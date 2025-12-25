@@ -1,7 +1,9 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { CourseProvider } from "@/lib/context/CourseContext"; // import your new context
 
+// ---------------- Theme Context (existing) ----------------
 type Theme = "warm" | "natural" | "modern" | "neutral";
 
 interface ThemeContextType {
@@ -11,7 +13,7 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
+export function ThemeProvider({ children }: { children: ReactNode }) {
     const [theme, setTheme] = useState<Theme>("warm");
     const [mounted, setMounted] = useState(false);
 
@@ -25,12 +27,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         }
     }, [theme, mounted]);
 
-    // Used to prevent hydration mismatch on the theme attribute, 
-    // but we must ALWAYS provide the context.
     if (!mounted) {
         return (
             <ThemeContext.Provider value={{ theme, setTheme }}>
-                <div style={{ visibility: 'hidden' }}>{children}</div>
+                <div style={{ visibility: "hidden" }}>{children}</div>
             </ThemeContext.Provider>
         );
     }
@@ -44,8 +44,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 export function useTheme() {
     const context = useContext(ThemeContext);
-    if (context === undefined) {
-        throw new Error("useTheme must be used within a ThemeProvider");
-    }
+    if (!context) throw new Error("useTheme must be used within a ThemeProvider");
     return context;
+}
+
+// ---------------- Course Context Wrapper ----------------
+// Wrap both providers together
+export function Providers({ children }: { children: ReactNode }) {
+    return (
+        <ThemeProvider>
+            <CourseProvider>{children}</CourseProvider>
+        </ThemeProvider>
+    );
 }

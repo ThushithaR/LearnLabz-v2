@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "./providers";
+import { CourseProvider } from "@/lib/context/CourseContext"; // <- added
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -17,9 +18,13 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en">
-            <body className={`${outfit.variable} font-sans bg-background text-textPrimary antialiased min-h-screen selection:bg-accent selection:text-background`}>
+            <body
+                className={`${outfit.variable} font-sans bg-background text-textPrimary antialiased min-h-screen selection:bg-accent selection:text-background`}
+            >
                 <ThemeProvider>
-                    {children}
+                    <CourseProvider>
+                        {children}
+                    </CourseProvider>
                 </ThemeProvider>
             </body>
         </html>
