@@ -3,6 +3,7 @@ import { Lesson } from "@/lib/types/course";
 export const nlp = {
     id: "nlp",
     name: "Natural Language Processing",
+    description: "An introductory course on Natural Language Processing techniques and applications.",
 
     features: {
       dashboard: true,

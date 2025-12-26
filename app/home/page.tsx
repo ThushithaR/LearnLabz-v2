@@ -8,8 +8,8 @@ export default function HomePage() {
   const { setSelectedCourse } = useCourse();
 
   const handleCourseSelect = (course: "aiml" | "nlp") => {
-    setSelectedCourse(course);       // save in context
-    router.push("/dashboard");       // go to dashboard
+    setSelectedCourse(course);          // save in context
+    router.push(`/dashboard/${course}`); // go to [course]/dashboard
   };
 
   return (

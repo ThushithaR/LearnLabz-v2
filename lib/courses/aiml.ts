@@ -4,6 +4,7 @@ import { Lesson } from "@/lib/types/course";
 export const aiml = {
   id: "aiml", // use a URL-safe id
   name: "Artificial Intelligence and Machine Learning",
+  description: "A comprehensive course on Artificial Intelligence and Machine Learning fundamentals.",
 
   features: {
     dashboard: true,
@@ -91,7 +92,7 @@ export const aiml = {
     {
       id: 101,
       unit: 'Unit I',
-      title: 'Introduction to AI - Easy',
+      title: 'Introduction to AI',
       difficulty: 'Easy',
       time: '15 min',
       questions: 10,
@@ -119,7 +120,7 @@ export const aiml = {
     {
       id: 102,
       unit: 'Unit I',
-      title: 'Introduction to AI - Medium',
+      title: 'Introduction to AI ',
       difficulty: 'Medium',
       time: '25 min',
       questions: 15,
@@ -133,7 +134,7 @@ export const aiml = {
     {
       id: 103,
       unit: 'Unit I',
-      title: 'Introduction to AI - Hard',
+      title: 'Introduction to AI' ,
       difficulty: 'Hard',
       time: '35 min',
       questions: 20,
@@ -147,7 +148,7 @@ export const aiml = {
     {
       id: 201,
       unit: 'Unit II',
-      title: 'Search Strategies - Easy',
+      title: 'Search Strategies',
       difficulty: 'Easy',
       time: '20 min',
       questions: 12,

@@ -1,12 +1,21 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { Card } from "@/components/ui/Card";
-import { ArrowLeft, Brain, Clock, Trophy } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+
 import { courses, CourseId } from "@/lib/courses";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+
+import {
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Trophy,
+  PlayCircle,
+} from "lucide-react";
 
 export default function CourseQuizzesPage({
   params,
@@ -15,7 +24,7 @@ export default function CourseQuizzesPage({
 }) {
   const router = useRouter();
   const [courseData, setCourseData] = useState<any>(null);
-  const [filter, setFilter] = useState<'All' | 'Difficulty' | 'Unit'>('All');
+  const [expandedUnits, setExpandedUnits] = useState<string[]>([]);
 
   useEffect(() => {
     const course = courses[params.course as CourseId];
@@ -26,126 +35,155 @@ export default function CourseQuizzesPage({
     setCourseData(course);
   }, [params.course, router]);
 
+  /** Group quizzes -> Unit -> Difficulty */
+  const units = useMemo(() => {
+    if (!courseData?.quizzes) return [];
+
+    const map: Record<string, any[]> = {};
+    courseData.quizzes.forEach((quiz: any) => {
+      if (!map[quiz.unit]) map[quiz.unit] = [];
+      map[quiz.unit].push(quiz);
+    });
+
+    return Object.entries(map).map(([unit, quizzes]) => ({
+      id: unit,
+      title: unit,
+      quizzes: ["Easy", "Medium", "Hard"].map(level =>
+        quizzes.find(q => q.difficulty === level)
+      ).filter(Boolean),
+    }));
+  }, [courseData]);
+
+  const toggleUnit = (unitId: string) => {
+    setExpandedUnits(prev =>
+      prev.includes(unitId)
+        ? prev.filter(id => id !== unitId)
+        : [...prev, unitId]
+    );
+  };
+
   if (!courseData) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent mx-auto mb-4"></div>
-          <p className="text-textSecondary">Loading quizzes...</p>
-        </div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />
       </div>
     );
   }
 
-  const completedCount = courseData.quizzes?.filter((q: any) => q.status === "Completed").length || 0;
-  const totalCount = courseData.quizzes?.length || 0;
-
-  // Simple sorting/grouping logic for display
-  const getDisplayData = () => {
-    let data = [...(courseData.quizzes || [])];
-    if (filter === 'Difficulty') {
-      const priority = { Easy: 1, Medium: 2, Hard: 3 };
-      data.sort((a, b) => (priority[a.difficulty as keyof typeof priority] || 0) - (priority[b.difficulty as keyof typeof priority] || 0));
-    } else if (filter === 'Unit') {
-      data.sort((a, b) => a.unit.localeCompare(b.unit));
-    }
-    return data;
-  };
-
-  const displayData = getDisplayData();
-
   return (
-    <div className="p-6">
+    <div className="space-y-8 max-w-5xl mx-auto p-6">
       {/* Header */}
-      <div className="mb-8">
-
-        <h1 className="text-3xl font-bold text-textPrimary mb-2">Quiz Challenges - {courseData.name}</h1>
-        <p className="text-textSecondary">Test your knowledge with interactive quizzes</p>
-
-        <div className="flex items-center gap-4 mt-4">
-          <div className="flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-accent" />
-            <span className="text-sm text-textSecondary">{completedCount} / {totalCount} Completed</span>
-          </div>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold text-textPrimary">
+          Quizzes & Assessments – {courseData.name}
+        </h1>
+        <p className="text-textSecondary">
+          Clear all difficulty levels in each unit to master the course.
+        </p>
       </div>
 
-      {/* Sort Controls */}
-      <div className="bg-surface/20 p-1 rounded-lg w-fit border border-white/10 mb-8">
-        {(['All', 'Difficulty', 'Unit'] as const).map((option) => (
-          <Button
-            key={option}
-            size="sm"
-            variant={filter === option ? "primary" : "ghost"}
-            onClick={() => setFilter(option)}
-            className="text-xs"
-          >
-            {option}
-          </Button>
-        ))}
-      </div>
+      {/* Units */}
+      <div className="space-y-6">
+        {units.map(unit => {
+          const completed = unit.quizzes.filter(
+            (q: any) => q.status === "Completed"
+          ).length;
 
-      {/* Quizzes Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {displayData.map((quiz: any) => (
-          <Card
-            key={quiz.id}
-            className={`p-6 border transition-all hover:border-accent/50 cursor-pointer ${
-              quiz.status === "Completed"
-                ? "bg-green-500/5 border-green-500/20"
-                : quiz.status === "Locked"
-                ? "bg-surface/10 border-white/5 opacity-60"
-                : "bg-surface/20 border-white/10"
-            }`}
-            onClick={() => {
-              if (quiz.status !== "Locked") {
-                router.push(`/dashboard/quizzes/${params.course}/${quiz.id}`);
-              }
-            }}
-          >
-            <div className="flex items-start justify-between mb-4">
-              <Badge
-                variant={quiz.difficulty === "Easy" ? "success" : quiz.difficulty === "Medium" ? "warning" : "secondary"}
-                className="mb-2 opacity-70"
+          return (
+            <div key={unit.id} className="space-y-4">
+              {/* Unit Header */}
+              <button
+                onClick={() => toggleUnit(unit.id)}
+                className="w-full flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all text-left"
               >
-                {quiz.difficulty}
-              </Badge>
-              <div className="text-right">
-                <p className="text-sm font-medium text-textPrimary">+{quiz.xp || 50} XP</p>
-                <p className="text-xs text-textSecondary capitalize">{quiz.status.toLowerCase()}</p>
-              </div>
-            </div>
+                <div className="flex items-center gap-3">
+                  {expandedUnits.includes(unit.id) ? (
+                    <ChevronDown className="w-5 h-5 text-accent" />
+                  ) : (
+                    <ChevronRight className="w-5 h-5 text-textSecondary" />
+                  )}
+                  <span className="text-lg font-bold text-textPrimary">
+                    {unit.title}
+                  </span>
+                </div>
+                <Badge variant="outline">
+                  {completed} / {unit.quizzes.length} Completed
+                </Badge>
+              </button>
 
-            <h3 className="text-lg font-semibold text-textPrimary mb-2">{quiz.title}</h3>
-            <p className="text-sm text-textSecondary mb-4">{quiz.description || quiz.unit}</p>
+              {/* Quizzes */}
+              {expandedUnits.includes(unit.id) && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pl-4 border-l border-white/5">
+                  {unit.quizzes.map((quiz: any) => (
+                    <Card
+                      key={quiz.id}
+                      className={`p-5 flex flex-col gap-4 border-2 transition-all ${
+                        quiz.status === "Locked"
+                          ? "opacity-50 bg-white/5 border-transparent"
+                          : "bg-surface border-white/5 hover:border-accent/40"
+                      }`}
+                    >
+                      {/* Top */}
+                      <div className="flex justify-between">
+                        <Badge
+                          variant={
+                            quiz.difficulty === "Hard"
+                              ? "warning"
+                              : quiz.difficulty === "Medium"
+                              ? "default"
+                              : "secondary"
+                          }
+                          className="uppercase text-[10px]"
+                        >
+                          {quiz.difficulty}
+                        </Badge>
+                        <span className="text-xs text-textSecondary">
+                          {quiz.status}
+                        </span>
+                      </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs text-textSecondary">
-                <Clock className="w-3 h-3" />
-                <span>{quiz.time}</span>
-                <span>•</span>
-                <span>{quiz.questions} questions</span>
-              </div>
-              <Button
-                size="sm"
-                variant={quiz.status === "Completed" ? "secondary" : "primary"}
-                disabled={quiz.status === "Locked"}
-                className="text-xs"
-              >
-                {quiz.status === "Completed" ? "Review" : "Start"}
-              </Button>
+                      {/* Info */}
+                      <div>
+                        <h4 className="font-bold text-lg text-textPrimary">
+                          {quiz.questions} Questions
+                        </h4>
+                        <div className="flex gap-3 text-xs text-textSecondary">
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {quiz.time}
+                          </div>
+                          <div className="flex items-center gap-1 text-accent">
+                            <Trophy className="w-3 h-3" />
+                            {quiz.xp} XP
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action */}
+                      <div className="mt-auto pt-4 border-t border-white/5">
+                        {quiz.status === "Locked" ? (
+                          <Button size="sm" variant="ghost" disabled className="w-full">
+                            Locked
+                          </Button>
+                        ) : (
+                          <Link
+                            href={`/dashboard/${params.course}/quizzes/${quiz.id}`}
+                          >
+                            <Button size="sm" className="w-full gap-2">
+                              <PlayCircle className="w-4 h-4" />
+                              {quiz.status === "Completed" ? "Retake" : "Start"}
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
-          </Card>
-        ))}
+          );
+        })}
       </div>
-
-      {(!courseData.quizzes || courseData.quizzes.length === 0) && (
-        <div className="text-center py-12">
-          <Brain className="w-16 h-16 text-textSecondary mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-textPrimary mb-2">No Quizzes Available</h3>
-          <p className="text-textSecondary">Check back later for new quiz challenges in this course.</p>
-        </div>
-      )}
     </div>
   );
 }

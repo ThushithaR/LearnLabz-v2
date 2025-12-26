@@ -76,7 +76,7 @@ export default function ModulesPage({ params }: { params: { course: string } }) 
                       Locked
                     </Button>
                   ) : (
-                    <Link href={`/dashboard/modules/${course}/${unit.id}`}>
+                    <Link href={`/dashboard/${course}/modules/${unit.id}`}>
                       <Button className="w-full sm:w-auto">
                         {(unit as any).active ? "Continue Learning" : "Review Unit"}
                       </Button>

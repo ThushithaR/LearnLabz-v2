@@ -1,6 +1,7 @@
 export interface Course {
   id: string; // course slug or URL-safe id
   name: string; // course name
+  description: string; // course description
 
   features: {
     dashboard: boolean;

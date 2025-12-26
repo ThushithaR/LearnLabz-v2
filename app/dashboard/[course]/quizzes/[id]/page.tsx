@@ -97,7 +97,7 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
 
     const handleExit = () => {
         if (confirm("Are you sure you want to exit? Your progress will be lost.")) {
-            router.push(`/dashboard/quizzes/${params.course}`);
+            router.push(`/dashboard/${params.course}/quizzes`);
         }
     };
 
@@ -157,7 +157,7 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
                         </div>
 
                         <div className="flex gap-4 justify-center">
-                            <Button variant="outline" onClick={() => router.push(`/dashboard/quizzes/${params.course}`)}>
+                            <Button variant="outline" onClick={() => router.push(`/dashboard/${params.course}/quizzes`)}>
                                 <ArrowLeft className="w-4 h-4 mr-2" />
                                 Back
                             </Button>
@@ -226,7 +226,7 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
                                 <RotateCcw className="w-4 h-4 mr-2" />
                                 Retake Quiz
                             </Button>
-                            <Button onClick={() => router.push(`/dashboard/quizzes/${params.course}`)}>
+                            <Button onClick={() => router.push(`/dashboard/${params.course}/quizzes`)}>
                                 Back to Quizzes
                             </Button>
                         </div>
@@ -242,24 +242,52 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
         <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-300 overflow-y-auto lg:overflow-hidden">
             {/* Header */}
             <div className="bg-surface border-b border-white/5 px-4 md:px-6 py-3 flex items-center justify-between shrink-0 h-16 sticky top-0 z-20 backdrop-blur-md bg-surface/80">
-                <div>
-                    <h1 className="text-lg font-bold text-textPrimary">{quizData.title}</h1>
-                    <div className="text-xs text-textSecondary">Question {currentQuestion + 1} of {quizData.questionData?.length || 0}</div>
+            {/* Left */}
+            <div>
+                <div className="flex items-center gap-3">
+                <h1 className="text-lg font-bold text-textPrimary">
+                    {quizData.title}
+                </h1>
+
+                <Badge
+                    variant={
+                    quizData.difficulty === "Hard"
+                        ? "warning"
+                        : quizData.difficulty === "Medium"
+                        ? "default"
+                        : "secondary"
+                    }
+                    className="uppercase text-[10px]"
+                >
+                    {quizData.difficulty}
+                </Badge>
                 </div>
-                <div className="flex items-center gap-4 md:gap-6">
-                    <div className="text-right">
-                        <div className="text-[10px] text-textSecondary uppercase tracking-widest font-bold">Time Remaining</div>
-                        <div className="font-mono text-xl text-accent font-bold tabular-nums">{formatTime(timeLeft)}</div>
-                    </div>
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-red-500/20 text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                        onClick={handleExit}
-                    >
-                        Exit
-                    </Button>
+
+                <div className="text-xs text-textSecondary">
+                Question {currentQuestion + 1} of {quizData.questionData?.length || 0}
                 </div>
+            </div>
+
+            {/* Right */}
+            <div className="flex items-center gap-4 md:gap-6">
+                <div className="text-right">
+                <div className="text-[10px] text-textSecondary uppercase tracking-widest font-bold">
+                    Time Remaining
+                </div>
+                <div className="font-mono text-xl text-accent font-bold tabular-nums">
+                    {formatTime(timeLeft)}
+                </div>
+                </div>
+
+                <Button
+                size="sm"
+                variant="outline"
+                className="border-red-500/20 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                onClick={handleExit}
+                >
+                Exit
+                </Button>
+            </div>
             </div>
 
             <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 overflow-hidden">

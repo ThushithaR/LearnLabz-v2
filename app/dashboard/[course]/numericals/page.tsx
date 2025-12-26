@@ -40,7 +40,6 @@ export default function CourseNumericalsPage({
   const completedCount = courseData.numericals?.filter((n: any) => n.status === "Completed").length || 0;
   const totalCount = courseData.numericals?.length || 0;
 
-  // Simple sorting/grouping logic for display
   const getDisplayData = () => {
     let data = [...(courseData.numericals || [])];
     if (filter === 'Difficulty') {
@@ -57,9 +56,8 @@ export default function CourseNumericalsPage({
   return (
     <div className="p-6">
       {/* Header */}
-
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-textPrimary mb-2">Numerical Challenges - {courseData.name} </h1>
+        <h1 className="text-3xl font-bold text-textPrimary mb-2">Numerical Challenges - {courseData.name}</h1>
         <p className="text-textSecondary">Practice algorithmic problems and numerical computations</p>
       </div>
 
@@ -111,51 +109,70 @@ export default function CourseNumericalsPage({
 
       {/* Challenges Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {displayData.map((numerical: any) => (
-          <Card
-            key={numerical.id}
-            className={`p-6 border transition-all hover:border-accent/50 cursor-pointer ${
-              numerical.status === "Completed"
-                ? "bg-green-500/5 border-green-500/20"
-                : numerical.status === "Locked"
-                ? "bg-surface/10 border-white/5 opacity-60"
-                : "bg-surface/20 border-white/10"
-            }`}
-            onClick={() => {
-              if (numerical.status !== "Locked") {
-                router.push(`/dashboard/numericals/${params.course}/${numerical.id}`);
-              }
-            }}
-          >
-            <div className="flex items-start justify-between mb-4">
-              <Badge
-                variant={numerical.difficulty === "Easy" ? "success" : "warning"}
-                className="mb-2 opacity-70"
-              >
-                {numerical.difficulty}
-              </Badge>
-              <div className="text-right">
-                <p className="text-sm font-medium text-textPrimary">+{numerical.xp} XP</p>
-                <p className="text-xs text-textSecondary capitalize">{numerical.status.toLowerCase()}</p>
+        {displayData.map((numerical: any) => {
+          const isLocked = numerical.status === "Locked";
+
+          return (
+            <Card
+              key={numerical.id}
+              className={`p-5 flex flex-col gap-4 border-2 transition-all ${
+                isLocked
+                  ? "opacity-50 bg-white/5 border-transparent pointer-events-none"
+                  : "bg-surface border-white/5 hover:border-accent/40"
+              }`}
+              onClick={() => {
+                if (!isLocked) {
+                  router.push(`/dashboard/${params.course}/numericals/${numerical.id}`);
+                }
+              }}
+            >
+              {/* Top */}
+              <div className="flex justify-between">
+                <Badge
+                  variant={
+                    numerical.difficulty === "Hard"
+                      ? "warning"
+                      : numerical.difficulty === "Medium"
+                      ? "default"
+                      : "secondary" // Easy
+                  }
+                  className="uppercase text-[10px]"
+                >
+                  {numerical.difficulty}
+                </Badge>
+                <span className="text-xs text-textSecondary">{numerical.status}</span>
               </div>
-            </div>
 
-            <h3 className="text-lg font-semibold text-textPrimary mb-2">{numerical.title}</h3>
-            <p className="text-sm text-textSecondary mb-4">{numerical.description}</p>
+              {/* Info */}
+              <div>
+                <h4 className="font-bold text-lg text-textPrimary">{numerical.title}</h4>
+                <p className="text-sm text-textSecondary mb-2">{numerical.description}</p>
+                <div className="flex gap-3 text-xs text-textSecondary">
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {numerical.time || "N/A"}
+                  </div>
+                  <div className="flex items-center gap-1 text-accent">
+                    <Trophy className="w-3 h-3" />
+                    {numerical.xp} XP
+                  </div>
+                </div>
+              </div>
 
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-textSecondary">{numerical.topic}</span>
-              <Button
-                size="sm"
-                variant={numerical.status === "Completed" ? "secondary" : "primary"}
-                disabled={numerical.status === "Locked"}
-                className="text-xs"
-              >
-                {numerical.status === "Completed" ? "Review" : "Solve"}
-              </Button>
-            </div>
-          </Card>
-        ))}
+              {/* Action */}
+              <div className="mt-auto pt-4 border-t border-white/5">
+                <Button
+                  size="sm"
+                  variant={numerical.status === "Completed" ? "secondary" : "primary"}
+                  disabled={isLocked}
+                  className="w-full"
+                >
+                  {numerical.status === "Completed" ? "Review" : "Solve"}
+                </Button>
+              </div>
+            </Card>
+          );
+        })}
       </div>
 
       {(!courseData.numericals || courseData.numericals.length === 0) && (

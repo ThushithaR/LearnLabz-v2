@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -24,10 +24,53 @@ export default function LessonPage({ params }: { params: { course: string; id: s
   const [activeTab, setActiveTab] = useState<'reading' | 'interactive' | 'quiz'>('reading');
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [completedLessons, setCompletedLessons] = useState<boolean[]>(new Array(moduleData.lessons.length).fill(false));
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Update scroll progress on scroll event
+  const handleScroll = () => {
+    if (scrollRef.current && activeTab === "reading") {
+      const scrollTop = scrollRef.current.scrollTop;
+      const scrollHeight = scrollRef.current.scrollHeight;
+      const clientHeight = scrollRef.current.clientHeight;
+      const progress = ((scrollTop + clientHeight) / scrollHeight) * 100;
+      setScrollProgress(progress);
+    }
+  };
+
+  // Handle completing the current lesson and moving to next
+  const handleNext = () => {
+    // Mark current lesson as complete
+    setCompletedLessons(prev => {
+      const updated = [...prev];
+      updated[selectedLessonIdx] = true;
+      return updated;
+    });
+
+    // Ensure progress is 100% when clicked
+    setScrollProgress(100);
+
+    // Go to the next lesson or next module
+    if (selectedLessonIdx < moduleData.lessons.length - 1) {
+      setSelectedLessonIdx(selectedLessonIdx + 1);
+      setActiveTab('reading');
+      setScrollProgress(0); // Reset scroll progress for next lesson
+      scrollRef.current?.scrollTo(0, 0);
+    } else {
+      // Handle moving to next module
+      const currentModuleIdx = courseData.modules.findIndex(m => m.id === moduleData.id);
+      if (currentModuleIdx < courseData.modules.length - 1) {
+        const nextModule = courseData.modules[currentModuleIdx + 1];
+        window.location.href = `/dashboard/${course}/modules/${nextModule.id}`; // Navigate to next module
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] -m-6">
       <div className="flex flex-1 overflow-hidden">
-
         {/* LEFT PANEL: Sidebar */}
         <div className={cn(
           "bg-surface border-r border-white/5 flex flex-col transition-all duration-300 relative",
@@ -60,14 +103,14 @@ export default function LessonPage({ params }: { params: { course: string; id: s
           {/* Lessons List */}
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {moduleData.lessons.map((lesson, idx) => {
-              const completed = idx < selectedLessonIdx;
+              const completed = completedLessons[idx];
               const active = idx === selectedLessonIdx;
-              const progressPercent = active ? moduleData.progress : completed ? 100 : 0;
+              const progressPercent = completed ? 100 : active ? scrollProgress : 0;
 
               return (
                 <div
                   key={lesson.id}
-                  onClick={() => { setSelectedLessonIdx(idx); setActiveTab('reading'); }}
+                  onClick={() => { setSelectedLessonIdx(idx); setActiveTab('reading'); setScrollProgress(0); scrollRef.current?.scrollTo(0, 0); }}
                   className={cn(
                     "rounded text-sm cursor-pointer hover:bg-white/5 transition-colors flex flex-col group relative",
                     sidebarOpen ? "p-3" : "p-0 justify-center h-12 w-12 mx-auto items-center",
@@ -87,7 +130,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
                         <span className={cn("truncate flex-1 font-medium", active ? "text-accent" : "text-textSecondary")}>
                           {lesson.title}
                         </span>
-                        {completed && <span className="text-success ml-2">✓</span>}
+                        {completed && <span className="text-green-500 ml-2">✓</span>}
                       </>
                     )}
                   </div>
@@ -95,23 +138,10 @@ export default function LessonPage({ params }: { params: { course: string; id: s
                   {/* Track Bar */}
                   {sidebarOpen && (
                     <div className="mt-2 w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                      <div
-                        className={cn("h-full rounded-full", completed ? "bg-success" : active ? "bg-accent" : "bg-transparent")}
-                        style={{ width: completed ? '100%' : active ? `${moduleData.progress}%` : '0%' }}
+                    <div
+                        className={cn("h-full rounded-full", completed ? "bg-green-500" : active ? "bg-accent" : "bg-transparent")}
+                        style={{ width: completed ? '100%' : active ? `${scrollProgress}%` : '0%' }}
                       ></div>
-                    </div>
-                  )}
-
-                  {/* Tooltip for collapsed sidebar */}
-                  {!sidebarOpen && (
-                    <div className="absolute left-16 top-1/2 -translate-y-1/2 bg-[#1a1a1a] text-white text-xs font-bold px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 border border-white/10 shadow-xl transition-opacity animate-in fade-in slide-in-from-left-2">
-                      {lesson.title}
-                      <div className="mt-1 h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                        <div
-                          className={cn("h-full", completed ? "bg-success" : active ? "bg-accent" : "bg-transparent")}
-                          style={{ width: completed ? '100%' : active ? `${moduleData.progress}%` : '0%' }}
-                        ></div>
-                      </div>
                     </div>
                   )}
                 </div>
@@ -146,7 +176,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 overflow-y-auto p-8 relative">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-8 relative" onScroll={handleScroll}>
             {activeTab === 'reading' && (
               <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
                 <div className="prose prose-invert prose-p:text-textSecondary prose-headings:text-textPrimary prose-strong:text-accent">
@@ -162,10 +192,21 @@ export default function LessonPage({ params }: { params: { course: string; id: s
                   </p>
                 </Card>
 
+                <div className="prose prose-invert prose-p:text-textSecondary">
+                  <p>
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur? At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecat cupidatat non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus. Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis voluptatibus maiores alias consequatur aut perferendis doloribus asperiores repellat.
+                  </p>
+                </div>
+
                 <div className="flex justify-end pt-10">
                   {selectedLessonIdx < moduleData.lessons.length - 1 && (
-                    <Button onClick={() => setSelectedLessonIdx(selectedLessonIdx + 1)}>
+                    <Button onClick={handleNext}>
                       Next: {moduleData.lessons[selectedLessonIdx + 1].title} →
+                    </Button>
+                  )}
+                  {selectedLessonIdx === moduleData.lessons.length - 1 && (
+                    <Button onClick={handleNext}>
+                      Next Module → {/* Show button for Next Module */}
                     </Button>
                   )}
                 </div>
@@ -196,7 +237,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
               <div className="max-w-2xl mx-auto py-10 animate-fade-in">
                 <Card className="p-8">
                   <div className="mb-6 flex justify-between items-center">
-                    <Badge variant="warning">Quiz Placeholder</Badge>
+                    <Badge variant="warning">Quiz {lessonData.id}</Badge>
                     <span className="text-sm text-textSecondary">Question 1 of 3</span>
                   </div>
                   <h3 className="text-lg font-bold mb-4">This is a quiz question for {lessonData.title}</h3>
