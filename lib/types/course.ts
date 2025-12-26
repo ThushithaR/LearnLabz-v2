@@ -29,6 +29,9 @@ export interface Course {
   quizzes: Quiz[];
   achievements: Achievement[];
   leaderboard: LeaderboardEntry[];
+  notes: Note[];
+  numericals?: Numerical[];
+  calendar?: Event[];
 }
 
 export interface Lesson {
@@ -57,6 +60,15 @@ export interface Quiz {
   questions: number;
   status: string;
   score: string;
+  questionData?: QuizQuestion[];
+}
+
+export interface QuizQuestion {
+  id: number;
+  question: string;
+  options: string[];
+  correct: number;
+  explanation: string;
 }
 
 export interface Achievement {
@@ -74,4 +86,33 @@ export interface LeaderboardEntry {
   ep: number;
   avatar: string;
   isUser?: boolean;
+}
+
+export interface Note {
+  id: number;            // Unique identifier for the note
+  title: string;         // Title of the note
+  content: string;       // Content of the note (could be plain text, markdown, etc.)
+  type: "Module" | "General";  // Type of note: can be Module or General
+  emoji: string;         // Emoji representing the note
+  createdAt?: string;    // Optional: Date the note was created
+  updatedAt?: string;    // Optional: Date the note was last updated
+}
+
+export interface Numerical {
+  id: number; // Unique identifier for the numerical problem
+  title: string; // Title of the numerical problem
+  description: string; // Description of the problem
+  topic: string // Type of numerical: Theory or Practical
+  difficulty: "Easy" | "Medium" | "Hard"; // Difficulty level
+  solution?: string; // Solution or steps to solve the problem (optional)
+  status: "Locked" | "New" | "Completed" | "Completing" | "Pending"; // Current status of the problem
+  xp: number
+}
+
+export interface Event {
+  id: number;
+  title: string;
+  date: string; // YYYY-MM-DD
+  importance: "Normal" | "High" | "Critical";
+  time: string;
 }

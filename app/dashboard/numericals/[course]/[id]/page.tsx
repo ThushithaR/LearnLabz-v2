@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Calculator, X } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 
-export default function NumericalsSolvePage({ params }: { params: { id: string } }) {
+export default function NumericalsSolvePage({ params }: { params: { course: string; id: string } }) {
     const router = useRouter();
     const [solution, setSolution] = useState<string>(`// Workspace Step 1: `);
 
@@ -105,7 +105,7 @@ export default function NumericalsSolvePage({ params }: { params: { id: string }
             <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 overflow-hidden">
                 {/* Column 1: Problem Statement */}
                 <div className="w-full lg:col-span-3 bg-surface/30 border-r border-white/5 p-6 overflow-y-auto max-h-[40vh] lg:max-h-full shrink-0">
-                    <Badge variant="warning" className="mb-4">Hard</Badge>
+                    <Badge variant="accent" className="mb-4">Hard</Badge>
                     <h2 className="text-xl font-bold mb-4 text-textPrimary">Optimal Move Calculation</h2>
                     <p className="text-sm text-textSecondary leading-relaxed mb-6">
                         Given the following game tree with leaf node values, determine the value of the root node using the Minimax algorithm. Assume the root player is a Maximizer.
