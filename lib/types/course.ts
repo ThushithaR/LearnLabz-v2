@@ -58,6 +58,7 @@ export interface Quiz {
   difficulty: string;
   time: string;
   questions: number;
+  xp: number,
   status: string;
   score: string;
   questionData?: QuizQuestion[];
@@ -115,4 +116,5 @@ export interface Event {
   date: string; // YYYY-MM-DD
   importance: "Normal" | "High" | "Critical";
   time: string;
+  done?: boolean; // optional; false by default
 }

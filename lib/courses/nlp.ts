@@ -74,8 +74,8 @@ export const nlp = {
     quizzes: [
       {
         id: 101,
-        title: 'Introduction to NLP - Easy',
         unit: 'Unit I',
+        title: 'Introduction to NLP - Easy',
         difficulty: 'Easy',
         time: '15 min',
         questions: 10,
@@ -102,8 +102,8 @@ export const nlp = {
       },
       {
         id: 102,
-        title: 'Introduction to NLP - Medium',
         unit: 'Unit I',
+        title: 'Introduction to NLP - Medium',
         difficulty: 'Medium',
         time: '20 min',
         questions: 12,
@@ -116,8 +116,8 @@ export const nlp = {
       },
       {
         id: 103,
-        title: 'Introduction to NLP - Hard',
         unit: 'Unit I',
+        title: 'Introduction to NLP - Hard',
         difficulty: 'Hard',
         time: '25 min',
         questions: 15,
@@ -130,8 +130,8 @@ export const nlp = {
       },
       {
         id: 201,
-        title: 'Text Preprocessing - Easy',
         unit: 'Unit II',
+        title: 'Text Preprocessing - Easy',
         difficulty: 'Easy',
         time: '18 min',
         questions: 11,

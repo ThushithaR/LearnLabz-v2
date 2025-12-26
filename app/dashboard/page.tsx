@@ -7,8 +7,13 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { mockUser, modules } from "@/lib/data";
 import { ArrowRight, BookOpen, Calendar, Clock, Flame, Target, Trophy, Zap, ChevronRight, CheckCircle2, Circle } from "lucide-react";
+import { useCourse } from "@/lib/context/CourseContext";
+import { getDailyChallenge } from "@/lib/utils";
+import { courses, CourseId } from "@/lib/courses";
 
 export default function DashboardPage() {
+    const { selectedCourse } = useCourse();
+
     // Mock state for deadlines
     const [deadlines, setDeadlines] = useState([
         { id: 1, title: "Unit II Quiz", due: "11:59 PM", date: "23", month: "Today", isDone: false },
@@ -18,6 +23,8 @@ export default function DashboardPage() {
     const toggleDeadline = (id: number) => {
         setDeadlines(prev => prev.map(d => d.id === id ? { ...d, isDone: !d.isDone } : d));
     };
+
+    const dailyChallenge = getDailyChallenge(selectedCourse as CourseId);
 
     return (
         <div className="max-w-7xl mx-auto flex flex-col gap-6 pb-4">
@@ -73,7 +80,7 @@ export default function DashboardPage() {
                             </p>
 
                             <div className="flex items-center gap-4">
-                                <Link href="/dashboard/modules/2">
+                                <Link href={selectedCourse ? `/dashboard/${selectedCourse}/modules/2` : "/dashboard/modules/2"}>
                                     <Button className="px-6 gap-2">
                                         Resume Learning <ArrowRight className="w-4 h-4" />
                                     </Button>
@@ -104,32 +111,45 @@ export default function DashboardPage() {
             {/* 3. Symmetrical Action Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-6">
 
-                {/* Grid Item 1: Challenge */}
+                {/* Grid Item 1: Daily Challenge */}
+                {selectedCourse && (
                 <Card className="flex flex-col p-0 overflow-hidden border border-white/5 bg-gradient-to-br from-white/[0.07] to-transparent hover:from-white/[0.1] transition-all group backdrop-blur-md shadow-lg shadow-black/20">
                     <div className="p-5 border-b border-white/5 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <Zap className="w-5 h-5 text-yellow-400" />
-                            <span className="text-xs font-bold text-textSecondary uppercase tracking-widest">Daily Challenge</span>
-                        </div>
-                        <Badge variant="outline" className="px-2 py-0.5">500 XP</Badge>
+                    <div className="flex items-center gap-2">
+                        <Zap className="w-5 h-5 text-yellow-400" />
+                        <span className="text-xs font-bold text-textSecondary uppercase tracking-widest">
+                        Daily Challenge
+                        </span>
+                    </div>
+                    <Badge variant="outline" className="px-2 py-0.5">
+                        {dailyChallenge?.xp || 500} XP
+                    </Badge>
                     </div>
 
                     <div className="p-5 flex-1 flex flex-col justify-between">
-                        <div>
-                            <h4 className="font-bold text-lg text-textPrimary leading-snug mb-2 group-hover:text-accent transition-colors">
-                                Alpha-Beta Speedrun
-                            </h4>
-                            <p className="text-sm text-textSecondary leading-relaxed mb-4">
-                                Solve 5 Minimax problems with pruning enabled in under 10 minutes.
-                            </p>
-                        </div>
-                        <Link href="/dashboard/quizzes?filter=hard" className="w-full">
-                            <Button variant="outline" className="w-full border-white/10 hover:border-accent/40 group-hover:bg-accent/5">
-                                Start Challenge
-                            </Button>
-                        </Link>
+                    <div>
+                        <h4 className="font-bold text-lg text-textPrimary leading-snug mb-2 group-hover:text-accent transition-colors">
+                        {dailyChallenge?.title || "No Challenge Today"}
+                        </h4>
+                        <p className="text-sm text-textSecondary leading-relaxed mb-4">
+                        {dailyChallenge?.description || "Check back tomorrow for a new challenge."}
+                        </p>
+                    </div>
+                    <Link
+                        href={
+                        dailyChallenge
+                            ? `/dashboard/${selectedCourse}/quizzes/${dailyChallenge.quizId}`
+                            : "/dashboard/quizzes"
+                        }
+                        className="w-full"
+                    >
+                        <Button variant="outline" className="w-full border-white/10 hover:border-accent/40 group-hover:bg-accent/5">
+                        Start Challenge
+                        </Button>
+                    </Link>
                     </div>
                 </Card>
+                )}
 
                 {/* Grid Item 2: Smart Review */}
                 <Card className="flex flex-col p-0 overflow-hidden border border-white/5 bg-gradient-to-br from-white/[0.07] to-transparent hover:from-white/[0.1] transition-all backdrop-blur-md shadow-lg shadow-black/20">
@@ -139,7 +159,7 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="p-3 flex-1 space-y-2">
-                        <Link href="/dashboard/modules/1" className="block">
+                        <Link href={selectedCourse ? `/dashboard/${selectedCourse}/modules/1` : "/dashboard/modules/1"} className="block">
                             <div className="p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] cursor-pointer group flex items-center justify-between transition-all border border-transparent hover:border-white/10">
                                 <div className="space-y-1.5">
                                     <div className="text-[10px] font-bold text-red-400 flex items-center gap-1.5 uppercase tracking-wide">
@@ -151,7 +171,7 @@ export default function DashboardPage() {
                             </div>
                         </Link>
 
-                        <Link href="/dashboard/modules/2" className="block">
+                        <Link href={selectedCourse ? `/dashboard/${selectedCourse}/modules/2` : "/dashboard/modules/2"} className="block">
                             <div className="p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] cursor-pointer group flex items-center justify-between transition-all border border-transparent hover:border-white/10">
                                 <div className="space-y-1.5">
                                     <div className="text-[10px] font-bold text-yellow-400 flex items-center gap-1.5 uppercase tracking-wide">

@@ -90,8 +90,8 @@ export const aiml = {
   quizzes: [
     {
       id: 101,
-      title: 'Introduction to AI - Easy',
       unit: 'Unit I',
+      title: 'Introduction to AI - Easy',
       difficulty: 'Easy',
       time: '15 min',
       questions: 10,
@@ -118,8 +118,8 @@ export const aiml = {
     },
     {
       id: 102,
-      title: 'Introduction to AI - Medium',
       unit: 'Unit I',
+      title: 'Introduction to AI - Medium',
       difficulty: 'Medium',
       time: '25 min',
       questions: 15,
@@ -132,8 +132,8 @@ export const aiml = {
     },
     {
       id: 103,
-      title: 'Introduction to AI - Hard',
       unit: 'Unit I',
+      title: 'Introduction to AI - Hard',
       difficulty: 'Hard',
       time: '35 min',
       questions: 20,
@@ -146,8 +146,8 @@ export const aiml = {
     },
     {
       id: 201,
-      title: 'Search Strategies - Easy',
       unit: 'Unit II',
+      title: 'Search Strategies - Easy',
       difficulty: 'Easy',
       time: '20 min',
       questions: 12,
@@ -189,8 +189,8 @@ export const aiml = {
     { id: 303, title: "Neural Net Weights", description: "Neural Networks", topic: "Practical", difficulty: "Medium" as const, status: "New" as const, xp: 30 },
   ],
   calendar: [
-    { id: 1, title: "Unit IV Assessment", date: "2025-12-29", importance: "Critical" as const, time: "14:00" },
-    { id: 2, title: "Project Submission", date: "2025-12-24", importance: "High" as const, time: "23:59" },
+    { id: 1, title: "Unit IV Assessment", date: "2025-12-29", importance: "Critical" as const, time: "14:00", done: true },
+    { id: 2, title: "Project Submission", date: "2025-12-24", importance: "High" as const, time: "23:59", done: true },
     { id: 3, title: "AI Ethics Discussion", date: "2025-12-25", importance: "Normal" as const, time: "10:00" },
   ],
 }

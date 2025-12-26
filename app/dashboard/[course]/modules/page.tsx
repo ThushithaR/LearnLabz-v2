@@ -16,7 +16,7 @@ export default function ModulesPage({ params }: { params: { course: string } }) 
     <div className="space-y-6 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold text-textPrimary">{courseData.name} UNITS</h1>
+        <h1 className="text-3xl font-bold text-textPrimary">Units - {courseData.name}</h1>
         <p className="text-textSecondary">
           Structured curriculum designed for depth and mastery.
         </p>

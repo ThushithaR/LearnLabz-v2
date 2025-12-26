@@ -79,7 +79,7 @@ export default function CalendarPage() {
         <div className="max-w-6xl mx-auto space-y-6 relative">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-textPrimary">Calendar{selectedCourse ? ` - ${courses[selectedCourse].name}` : ''}</h1>
+                    <h1 className="text-3xl font-bold text-textPrimary">Calendar</h1>
                     <p className="text-textSecondary mt-1">Track your important dates and deadlines</p>
                 </div>
                 <Button onClick={() => setIsModalOpen(true)} className="bg-accent hover:bg-accent/90">

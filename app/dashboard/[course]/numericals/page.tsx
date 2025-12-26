@@ -59,7 +59,7 @@ export default function CourseNumericalsPage({
       {/* Header */}
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-textPrimary mb-2">{courseData.name} - Numerical Challenges</h1>
+        <h1 className="text-3xl font-bold text-textPrimary mb-2">Numerical Challenges - {courseData.name} </h1>
         <p className="text-textSecondary">Practice algorithmic problems and numerical computations</p>
       </div>
 
