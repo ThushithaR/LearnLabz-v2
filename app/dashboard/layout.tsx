@@ -1,0 +1,34 @@
+"use client";
+
+import { useState } from "react";
+import { Header } from "@/components/layout/Header";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { cn } from "@/lib/utils";
+import { useCourse } from "@/lib/context/CourseContext";
+
+export default function DashboardLayout({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const { isFullscreen } = useCourse();
+
+    return (
+        <div className="min-h-screen bg-background">
+            {!isFullscreen && <Header />}
+            {!isFullscreen && <Sidebar collapsed={isSidebarCollapsed} setCollapsed={setIsSidebarCollapsed} />}
+            <main
+                className={cn(
+                    "transition-all duration-300",
+                    !isFullscreen && "pt-16",
+                    !isFullscreen && (isSidebarCollapsed ? "pl-16" : "pl-64")
+                )}
+            >
+                <div className={cn("px-6 pb-6 pt-2", isFullscreen && "p-0")}>
+                    {children}
+                </div>
+            </main>
+        </div>
+    );
+}
