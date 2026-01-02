@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { courses, CourseId } from "@/lib/courses";
 import { Course, Module, Lesson, ProblemStatementContent } from "@/lib/types/course";
 import { useCourse } from "@/lib/context/CourseContext";
-import { ProblemStatement } from "@/lib/modules/nlp/ProblemStatement";
+import { ProblemStatement } from "@/lib/content/nlp/unit1/problemStatement";
 import {
   ChevronLeft,
   ChevronRight,

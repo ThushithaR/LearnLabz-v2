@@ -23,6 +23,7 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
     const [calculatorOpen, setCalculatorOpen] = useState(false);
     const [calcDisplay, setCalcDisplay] = useState("0");
     const [calcPrevious, setCalcPrevious] = useState("");
+    const [quizTimeTaken, setQuizTimeTaken] = useState(0);
 
     useEffect(() => {
         const course = courses[params.course as CourseId];
@@ -94,6 +95,13 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
     };
 
     const handleSubmitQuiz = () => {
+        // Calculate time taken
+        let initialTime = 0;
+        const timeMatch = quizData.time.match(/(\d+)/);
+        if (timeMatch) {
+            initialTime = parseInt(timeMatch[1]) * 60;
+        }
+        setQuizTimeTaken(initialTime - timeLeft);
         setShowResults(true);
     };
 
@@ -105,7 +113,7 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
             newStarred.add(questionIndex);
         }
         setStarredQuestions(newStarred);
-        
+
         // Save to localStorage
         const storageKey = `starred_questions_${params.course}_${params.id}`;
         localStorage.setItem(storageKey, JSON.stringify(Array.from(newStarred)));
@@ -262,6 +270,10 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
                             <Badge variant={score >= 70 ? "success" : score >= 50 ? "warning" : "secondary"} className="text-lg px-4 py-2">
                                 {score >= 70 ? "Excellent!" : score >= 50 ? "Good Job!" : "Keep Practicing!"}
                             </Badge>
+                            <div className="mt-4 flex items-center justify-center gap-2 text-textSecondary">
+                                <Clock className="w-4 h-4" />
+                                <span>Time Taken: {formatTime(quizTimeTaken)}</span>
+                            </div>
                         </div>
 
                         <div className="space-y-4 mb-8">
@@ -457,22 +469,22 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
                                 <button onClick={handleCalcClear} className="col-span-2 p-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30">C</button>
                                 <button onClick={handleCalcBackspace} className="p-2 bg-surface/40 text-textSecondary rounded hover:bg-surface/60">←</button>
                                 <button onClick={() => handleCalcOperation('/')} className="p-2 bg-accent/20 text-accent rounded hover:bg-accent/30">÷</button>
-                                
+
                                 <button onClick={() => handleCalcNumber('7')} className="p-2 bg-surface/40 text-textPrimary rounded hover:bg-surface/60">7</button>
                                 <button onClick={() => handleCalcNumber('8')} className="p-2 bg-surface/40 text-textPrimary rounded hover:bg-surface/60">8</button>
                                 <button onClick={() => handleCalcNumber('9')} className="p-2 bg-surface/40 text-textPrimary rounded hover:bg-surface/60">9</button>
                                 <button onClick={() => handleCalcOperation('*')} className="p-2 bg-accent/20 text-accent rounded hover:bg-accent/30">×</button>
-                                
+
                                 <button onClick={() => handleCalcNumber('4')} className="p-2 bg-surface/40 text-textPrimary rounded hover:bg-surface/60">4</button>
                                 <button onClick={() => handleCalcNumber('5')} className="p-2 bg-surface/40 text-textPrimary rounded hover:bg-surface/60">5</button>
                                 <button onClick={() => handleCalcNumber('6')} className="p-2 bg-surface/40 text-textPrimary rounded hover:bg-surface/60">6</button>
                                 <button onClick={() => handleCalcOperation('-')} className="p-2 bg-accent/20 text-accent rounded hover:bg-accent/30">−</button>
-                                
+
                                 <button onClick={() => handleCalcNumber('1')} className="p-2 bg-surface/40 text-textPrimary rounded hover:bg-surface/60">1</button>
                                 <button onClick={() => handleCalcNumber('2')} className="p-2 bg-surface/40 text-textPrimary rounded hover:bg-surface/60">2</button>
                                 <button onClick={() => handleCalcNumber('3')} className="p-2 bg-surface/40 text-textPrimary rounded hover:bg-surface/60">3</button>
                                 <button onClick={() => handleCalcOperation('+')} className="p-2 bg-accent/20 text-accent rounded hover:bg-accent/30">+</button>
-                                
+
                                 <button onClick={() => handleCalcNumber('0')} className="col-span-2 p-2 bg-surface/40 text-textPrimary rounded hover:bg-surface/60">0</button>
                                 <button onClick={() => handleCalcNumber('.')} className="p-2 bg-surface/40 text-textPrimary rounded hover:bg-surface/60">.</button>
                                 <button onClick={handleCalcEquals} className="p-2 bg-green-500/20 text-green-400 rounded hover:bg-green-500/30">=</button>
