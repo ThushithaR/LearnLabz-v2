@@ -41,15 +41,15 @@ export default function CourseDashboardPage({
   const activeModule = courseData.modules.find((m) => m.active);
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-6 pb-4">
-      {/* 1. Header */}
+    <div className="max-w-7xl mx-auto flex flex-col gap-4 pb-4">
+      {/* 1. Header - Compact */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 shrink-0">
         <div>
-          <h1 className="text-3xl font-bold text-textPrimary tracking-tight">
+          <h1 className="text-2xl font-bold text-textPrimary tracking-tight">
             Hello, {user.name.split(" ")[0]}.
           </h1>
-          <p className="text-sm text-textSecondary mt-1 font-light flex items-center gap-2">
-            <Flame className="w-4 h-4 text-accent" />
+          <p className="text-xs text-textSecondary mt-1 font-light flex items-center gap-2">
+            <Flame className="w-3.5 h-3.5 text-accent" />
             <span className="text-accent font-medium">{user.streak} day streak</span>
             <span className="text-white/20">|</span>
             <span>Keep the momentum.</span>
@@ -57,39 +57,39 @@ export default function CourseDashboardPage({
         </div>
 
         {/* Stats Strip */}
-        <div className="flex gap-10 border-l border-white/10 pl-8">
+        <div className="flex gap-8 border-l border-white/10 pl-6">
           <div>
-            <div className="text-xl font-bold font-mono text-textPrimary">{user.ep}</div>
-            <div className="text-[10px] text-textSecondary uppercase tracking-widest font-medium">XP Earned</div>
+            <div className="text-lg font-bold font-mono text-textPrimary">{user.ep}</div>
+            <div className="text-[9px] text-textSecondary uppercase tracking-widest font-medium">XP Earned</div>
           </div>
           <div>
-            <div className="text-xl font-bold font-mono text-textPrimary">#{user.level}</div>
-            <div className="text-[10px] text-textSecondary uppercase tracking-widest font-medium">Level</div>
+            <div className="text-lg font-bold font-mono text-textPrimary">#{user.level}</div>
+            <div className="text-[9px] text-textSecondary uppercase tracking-widest font-medium">Level</div>
           </div>
           <div>
-            <div className="text-xl font-bold font-mono text-textPrimary">{user.modulesCompleted}</div>
-            <div className="text-[10px] text-textSecondary uppercase tracking-widest font-medium">Modules</div>
+            <div className="text-lg font-bold font-mono text-textPrimary">{user.modulesCompleted}</div>
+            <div className="text-[9px] text-textSecondary uppercase tracking-widest font-medium">Modules</div>
           </div>
         </div>
       </div>
 
-      {/* 2. Hero Section */}
+      {/* 2. Hero Section - Compact */}
       <div className="relative group shrink-0">
-        <div className="absolute -inset-1 bg-gradient-to-r from-accent/20 to-purple-600/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-700"></div>
-        <Card className="relative p-0 overflow-hidden border border-white/5 bg-gradient-to-br from-accent/10 to-transparent backdrop-blur-xl">
+        <div className="absolute -inset-1 bg-gradient-to-r from-accent/20 to-purple-600/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition duration-700"></div>
+        <Card className="relative p-0 overflow-hidden border border-white/5 bg-gradient-to-br from-accent/10 to-transparent backdrop-blur-xl rounded-xl">
           <div className="grid md:grid-cols-2">
-            <div className="p-8 flex flex-col justify-center">
-              <div className="flex items-center gap-2 mb-4 text-accent">
-                <span className="flex items-center justify-center w-5 h-5 rounded-full border border-accent/30 text-[10px] font-bold">
+            <div className="p-6 flex flex-col justify-center">
+              <div className="flex items-center gap-2 mb-2 text-accent">
+                <span className="flex items-center justify-center w-4 h-4 rounded-full border border-accent/30 text-[9px] font-bold">
                   {activeModule?.id || "I"}
                 </span>
-                <span className="text-[10px] font-bold tracking-widest uppercase">Current Focus</span>
+                <span className="text-[9px] font-bold tracking-widest uppercase">Current Focus</span>
               </div>
 
-              <h2 className="text-2xl md:text-3xl font-bold text-textPrimary mb-2">
+              <h2 className="text-xl md:text-2xl font-bold mb-1">
                 {activeModule?.title || "Start Learning"}
               </h2>
-              <p className="text-textSecondary text-sm mb-6 leading-relaxed max-w-md">
+              <p className="text-textSecondary text-xs mb-4 leading-relaxed max-w-md line-clamp-2">
                 {activeModule?.description || ""}
                 {" "}You are {activeModule?.progress || 0}% through this module.
               </p>
@@ -97,8 +97,8 @@ export default function CourseDashboardPage({
               <div className="flex items-center gap-4">
                 {activeModule && (
                   <Link href={`/dashboard/${course}/modules/${activeModule.id}`}>
-                    <Button className="px-6 gap-2">
-                      Resume Learning <ArrowRight className="w-4 h-4" />
+                    <Button size="sm" className="px-5 gap-2 h-9 text-sm">
+                      Resume Learning <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
                   </Link>
                 )}
@@ -112,29 +112,29 @@ export default function CourseDashboardPage({
         </Card>
       </div>
 
-      {/* 3. Action Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-6">
+      {/* 3. Action Grid - Compact */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
         {/* Daily Challenge */}
-        <Card className="flex flex-col p-0 overflow-hidden border border-white/5 bg-gradient-to-br from-white/[0.07] to-transparent hover:from-white/[0.1] transition-all group backdrop-blur-md shadow-lg shadow-black/20">
-          <div className="p-5 border-b border-white/5 flex items-center justify-between">
+        <Card className="flex flex-col p-0 overflow-hidden border border-white/5 bg-gradient-to-br from-white/[0.07] to-transparent hover:from-white/[0.1] transition-all group backdrop-blur-md shadow-lg shadow-black/20 rounded-xl">
+          <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-yellow-400" />
-              <span className="text-xs font-bold text-textSecondary uppercase tracking-widest">Daily Challenge</span>
+              <Zap className="w-4 h-4 text-yellow-400" />
+              <span className="text-[10px] font-bold text-textSecondary uppercase tracking-widest">Daily Challenge</span>
             </div>
-            <Badge variant="outline" className="px-2 py-0.5">{getDailyChallenge(course)?.xp || 500} XP</Badge>
+            <Badge variant="outline" className="px-1.5 py-0 text-[10px] h-5">{getDailyChallenge(course)?.xp || 500} XP</Badge>
           </div>
 
-          <div className="p-5 flex-1 flex flex-col justify-between">
+          <div className="p-4 flex-1 flex flex-col justify-between gap-2">
             <div>
-              <h4 className="font-bold text-lg text-textPrimary leading-snug mb-2 group-hover:text-accent transition-colors">
+              <h4 className="font-bold text-sm text-textPrimary leading-snug mb-1 group-hover:text-accent transition-colors truncate">
                 {getDailyChallenge(course)?.title || "No Challenge Today"}
               </h4>
-              <p className="text-sm text-textSecondary leading-relaxed mb-4">
+              <p className="text-xs text-textSecondary leading-relaxed mb-2 line-clamp-2">
                 {getDailyChallenge(course)?.description || "Check back tomorrow for a new challenge."}
               </p>
             </div>
             <Link href={getDailyChallenge(course) ? `/dashboard/${course}/quizzes/${getDailyChallenge(course)?.quizId}` : `/dashboard/${course}/quizzes`} className="w-full">
-              <Button variant="outline" className="w-full border-white/10 hover:border-accent/40 group-hover:bg-accent/5">
+              <Button variant="outline" size="sm" className="w-full h-8 text-xs border-white/10 hover:border-accent/40 group-hover:bg-accent/5">
                 Start Challenge
               </Button>
             </Link>
@@ -142,23 +142,23 @@ export default function CourseDashboardPage({
         </Card>
 
         {/* Smart Review */}
-        <Card className="flex flex-col p-0 overflow-hidden border border-white/5 bg-gradient-to-br from-white/[0.07] to-transparent hover:from-white/[0.1] transition-all backdrop-blur-md shadow-lg shadow-black/20">
-          <div className="p-5 border-b border-white/5 flex items-center gap-2">
-            <Target className="w-5 h-5 text-purple-400" />
-            <span className="text-xs font-bold text-textSecondary uppercase tracking-widest">Smart Review</span>
+        <Card className="flex flex-col p-0 overflow-hidden border border-white/5 bg-gradient-to-br from-white/[0.07] to-transparent hover:from-white/[0.1] transition-all backdrop-blur-md shadow-lg shadow-black/20 rounded-xl">
+          <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2">
+            <Target className="w-4 h-4 text-purple-400" />
+            <span className="text-[10px] font-bold text-textSecondary uppercase tracking-widest">Smart Review</span>
           </div>
 
-          <div className="p-3 flex-1 space-y-2">
+          <div className="p-3 flex-1 space-y-1.5">
             {courseData.modules.slice(0, 2).map((mod) => (
               <Link key={mod.id} href={`/dashboard/${course}/modules/${mod.id}`} className="block">
-                <div className="p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] cursor-pointer group flex items-center justify-between transition-all border border-transparent hover:border-white/10">
-                  <div className="space-y-1.5">
-                    <div className="text-[10px] font-bold text-red-400 flex items-center gap-1.5 uppercase tracking-wide">
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span> Weak Spot
+                <div className="p-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] cursor-pointer group flex items-center justify-between transition-all border border-transparent hover:border-white/10">
+                  <div className="space-y-1">
+                    <div className="text-[9px] font-bold text-red-400 flex items-center gap-1 uppercase tracking-wide">
+                      <span className="w-1 h-1 rounded-full bg-red-400"></span> Weak Spot
                     </div>
-                    <h5 className="text-sm font-medium text-textPrimary group-hover:text-accent transition-colors">{mod.title}</h5>
+                    <h5 className="text-xs font-medium text-textPrimary group-hover:text-accent transition-colors truncate">{mod.title}</h5>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-white/20 group-hover:text-white/60" />
+                  <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-white/60" />
                 </div>
               </Link>
             ))}
@@ -166,57 +166,57 @@ export default function CourseDashboardPage({
         </Card>
 
         {/* Deadlines */}
-        <Card className="flex flex-col p-0 overflow-hidden border border-white/5 bg-gradient-to-br from-white/[0.07] to-transparent hover:from-white/[0.1] transition-all backdrop-blur-md shadow-lg shadow-black/20">
-        <div className="p-5 border-b border-white/5 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-blue-400" />
-            <span className="text-xs font-bold text-textSecondary uppercase tracking-widest">Deadlines</span>
-        </div>
+        <Card className="flex flex-col p-0 overflow-hidden border border-white/5 bg-gradient-to-br from-white/[0.07] to-transparent hover:from-white/[0.1] transition-all backdrop-blur-md shadow-lg shadow-black/20 rounded-xl">
+          <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-blue-400" />
+            <span className="text-[10px] font-bold text-textSecondary uppercase tracking-widest">Deadlines</span>
+          </div>
 
-        <div className="p-3 flex-1 space-y-2">
+          <div className="p-3 flex-1 space-y-1.5">
             {deadlines.map((deadline) => {
-            // parse date to get day and month
-            const dateObj = new Date(deadline.date);
-            const day = dateObj.getDate();
-            const month = dateObj.toLocaleString("default", { month: "short" });
+              // parse date to get day and month
+              const dateObj = new Date(deadline.date);
+              const day = dateObj.getDate();
+              const month = dateObj.toLocaleString("default", { month: "short" });
 
-            return (
+              return (
                 <div
-                key={deadline.id}
-                className={`p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] flex items-center gap-4 transition-all group border border-transparent hover:border-white/10 ${deadline.isDone ? "opacity-40 grayscale" : ""}`}
+                  key={deadline.id}
+                  className={`p-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] flex items-center gap-3 transition-all group border border-transparent hover:border-white/10 ${deadline.isDone ? "opacity-40 grayscale" : ""}`}
                 >
-                {/* Checkbox */}
-                <div
+                  {/* Checkbox */}
+                  <div
                     className="cursor-pointer shrink-0"
                     onClick={() => toggleDeadline(deadline.id)}
-                >
+                  >
                     {deadline.isDone ? (
-                    <CheckCircle2 className="w-6 h-6 text-success" />
+                      <CheckCircle2 className="w-5 h-5 text-success" />
                     ) : (
-                    <Circle className="w-6 h-6 text-white/20 group-hover:text-accent transition-colors stroke-2" />
+                      <Circle className="w-5 h-5 text-white/20 group-hover:text-accent transition-colors stroke-2" />
                     )}
-                </div>
+                  </div>
 
-                {/* Date box */}
-                <div className="flex flex-col items-center justify-center w-12 h-12 rounded-lg bg-white/5 border border-white/10 shrink-0">
-                    <span className={`text-[9px] font-bold uppercase tracking-wider ${deadline.isDone ? "text-textSecondary" : "text-red-400"}`}>
-                    {deadline.id === 1 ? "Today" : month}
+                  {/* Date box */}
+                  <div className="flex flex-col items-center justify-center w-10 h-10 rounded bg-white/5 border border-white/10 shrink-0">
+                    <span className={`text-[8px] font-bold uppercase tracking-wider ${deadline.isDone ? "text-textSecondary" : "text-red-400"}`}>
+                      {deadline.id === 1 ? "Today" : month}
                     </span>
-                    <span className="text-lg font-bold text-textPrimary leading-none mt-0.5">{day}</span>
-                </div>
+                    <span className="text-sm font-bold text-textPrimary leading-none mt-0.5">{day}</span>
+                  </div>
 
-                {/* Deadline info */}
-                <div className="flex-1 min-w-0">
-                    <h5 className={`text-xs font-bold truncate ${deadline.isDone ? "line-through text-textSecondary" : "text-textPrimary"}`}>
-                    {deadline.title}
+                  {/* Deadline info */}
+                  <div className="flex-1 min-w-0">
+                    <h5 className={`text-[11px] font-bold truncate ${deadline.isDone ? "line-through text-textSecondary" : "text-textPrimary"}`}>
+                      {deadline.title}
                     </h5>
-                    <p className="text-[10px] text-textSecondary mt-0.5">
-                    {deadline.isDone ? "Completed" : `Due: ${deadline.time}`}
+                    <p className="text-[9px] text-textSecondary">
+                      {deadline.isDone ? "Completed" : `Due: ${deadline.time}`}
                     </p>
+                  </div>
                 </div>
-                </div>
-            );
+              );
             })}
-        </div>
+          </div>
         </Card>
       </div>
     </div>

@@ -9,11 +9,6 @@ export default function LandingPage() {
             <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-highlight/20 blur-[120px]" />
 
             <div className="z-10 text-center max-w-4xl px-4">
-                <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/5 px-6 py-2 backdrop-blur-md animate-fade-in-up">
-                    <span className="flex h-2 w-2 rounded-full bg-accent animate-pulse"></span>
-                    <span className="text-xs font-bold uppercase tracking-wider text-accent">Now in Public Beta</span>
-                </div>
-
                 <h1 className="mb-2 text-7xl font-bold tracking-tighter text-white sm:text-8xl md:text-9xl bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60">
                     LearnLabz
                 </h1>
@@ -59,7 +54,7 @@ export default function LandingPage() {
             </div>
 
             <footer className="absolute bottom-8 text-center text-sm text-textSecondary/50">
-                © 2025 LearnLabz Inc. • San Francisco
+                © 2025 LearnLabz
             </footer>
         </main>
     );

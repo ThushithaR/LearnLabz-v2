@@ -35,7 +35,7 @@ export default function CourseQuizzesPage({
     setCourseData(course);
   }, [params.course, router]);
 
-  /** Group quizzes -> Unit -> Difficulty */
+  /* Group quizzes -> Unit -> Difficulty */
   const units = useMemo(() => {
     if (!courseData?.quizzes) return [];
 
@@ -53,6 +53,13 @@ export default function CourseQuizzesPage({
       ).filter(Boolean),
     }));
   }, [courseData]);
+
+  // Auto-expand all units on load
+  useEffect(() => {
+    if (units.length > 0) {
+      setExpandedUnits(units.map(u => u.id));
+    }
+  }, [units]);
 
   const toggleUnit = (unitId: string) => {
     setExpandedUnits(prev =>
@@ -117,11 +124,10 @@ export default function CourseQuizzesPage({
                   {unit.quizzes.map((quiz: any) => (
                     <Card
                       key={quiz.id}
-                      className={`p-5 flex flex-col gap-4 border-2 transition-all ${
-                        quiz.status === "Locked"
+                      className={`p-5 flex flex-col gap-4 border-2 transition-all ${quiz.status === "Locked"
                           ? "opacity-50 bg-white/5 border-transparent"
                           : "bg-surface border-white/5 hover:border-accent/40"
-                      }`}
+                        }`}
                     >
                       {/* Top */}
                       <div className="flex justify-between">
@@ -130,8 +136,8 @@ export default function CourseQuizzesPage({
                             quiz.difficulty === "Hard"
                               ? "warning"
                               : quiz.difficulty === "Medium"
-                              ? "default"
-                              : "secondary"
+                                ? "default"
+                                : "secondary"
                           }
                           className="uppercase text-[10px]"
                         >

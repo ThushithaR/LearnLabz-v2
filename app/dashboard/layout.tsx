@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { cn } from "@/lib/utils";
+import { useCourse } from "@/lib/context/CourseContext";
 
 export default function DashboardLayout({
     children,
@@ -11,18 +12,20 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const { isFullscreen } = useCourse();
 
     return (
         <div className="min-h-screen bg-background">
-            <Header />
-            <Sidebar collapsed={isSidebarCollapsed} setCollapsed={setIsSidebarCollapsed} />
+            {!isFullscreen && <Header />}
+            {!isFullscreen && <Sidebar collapsed={isSidebarCollapsed} setCollapsed={setIsSidebarCollapsed} />}
             <main
                 className={cn(
-                    "pt-16 transition-all duration-300",
-                    isSidebarCollapsed ? "pl-16" : "pl-64"
+                    "transition-all duration-300",
+                    !isFullscreen && "pt-16",
+                    !isFullscreen && (isSidebarCollapsed ? "pl-16" : "pl-64")
                 )}
             >
-                <div className="px-6 pb-6 pt-2">
+                <div className={cn("px-6 pb-6 pt-2", isFullscreen && "p-0")}>
                     {children}
                 </div>
             </main>

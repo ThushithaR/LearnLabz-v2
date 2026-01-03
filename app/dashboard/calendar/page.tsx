@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Flame } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useCourse } from "@/lib/context/CourseContext";
 import { courses } from "@/lib/courses";
 
@@ -17,14 +19,24 @@ interface Event {
 
 export default function CalendarPage() {
     const { selectedCourse } = useCourse();
-    const courseData = selectedCourse ? courses[selectedCourse] : null;
+    // const courseData = selectedCourse ? courses[selectedCourse] : null; // Unused for now
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const allEvents = Object.values(courses).flatMap(course => course.calendar || []);
-    const [events, setEvents] = useState<Event[]>(allEvents.length > 0 ? allEvents : [
+
+    // Merge course events with local state (mocking local modifications for now)
+    const [events, setEvents] = useState<Event[]>([
+        ...allEvents,
         { id: 1, title: "Unit IV Assessment", date: "2025-12-23", importance: "Critical", time: "14:00" },
-        { id: 2, title: "Project Submission", date: "2025-12-24", importance: "High", time: "23:59" }
+        { id: 2, title: "Project Submission", date: "2025-12-24", importance: "High", time: "23:59" },
+        // Sync with Dashboard Mock Data
+        { id: 3, title: "Unit II Quiz", date: "2025-12-23", importance: "High", time: "23:59" },
+        { id: 4, title: "Vis Project", date: "2025-12-25", importance: "Normal", time: "12:00" },
     ]);
+
+    // Add 'completed' to local state tracking (mock)
+    const [completedEventIds, setCompletedEventIds] = useState<number[]>([]);
+
     const [newEvent, setNewEvent] = useState<Partial<Event>>({ importance: "Normal" });
 
     const now = new Date();
@@ -36,7 +48,7 @@ export default function CalendarPage() {
     const startDayOfWeek = firstDay.getDay();
     const days: (number | null)[] = [...Array.from({ length: startDayOfWeek }, () => null), ...Array.from({ length: numDays }, (_, i) => i + 1)];
     const todayNum = now.getDate();
-    const todayDate = now.toISOString().split('T')[0];
+    // const todayDate = now.toISOString().split('T')[0]; // Unused
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const currentMonthName = monthNames[month];
 
@@ -47,16 +59,15 @@ export default function CalendarPage() {
         setNewEvent({ importance: "Normal" });
     };
 
-    const handleDeleteEvent = (id: number) => {
-        setEvents(events.filter(e => e.id !== id));
-    };
+    // const handleDeleteEvent = (id: number) => {
+    //     setEvents(events.filter(e => e.id !== id));
+    // };
 
-    const isDueSoon = (dateStr: string) => {
-        const today = new Date(todayDate);
-        const eventDate = new Date(dateStr);
-        const diffTime = eventDate.getTime() - today.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays >= 0 && diffDays <= 1; // Due today or tomorrow
+    const toggleComplete = (id: number, e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent opening event details if we add that later
+        setCompletedEventIds(prev =>
+            prev.includes(id) ? prev.filter(eid => eid !== id) : [...prev, id]
+        );
     };
 
     const getEventsForDay = (day: number) => {
@@ -66,7 +77,8 @@ export default function CalendarPage() {
         });
     };
 
-    const getImportanceColor = (importance: string) => {
+    const getImportanceColor = (importance: string, isCompleted: boolean) => {
+        if (isCompleted) return "text-textSecondary border-white/5 bg-white/[0.02] decoration-white/20 line-through opacity-60 grayscale";
         switch (importance) {
             case "Critical": return "text-red-400 border-red-400/30 bg-red-400/5";
             case "High": return "text-orange-400 border-orange-400/30 bg-orange-400/5";
@@ -109,78 +121,51 @@ export default function CalendarPage() {
                         {days.map((day, index) => {
                             if (day === null) {
                                 return (
-                                    <div key={index} className="min-h-[80px] p-2">
-                                        {/* Empty cell for days before the start of the month */}
+                                    <div key={index} className="min-h-[100px] p-2">
+                                        {/* Empty cell */}
                                     </div>
                                 );
                             }
                             const dayEvents = getEventsForDay(day);
                             const isToday = day === todayNum;
 
+                            // Mock active days for streaks (e.g., specific days the user was "active")
+                            const activeDays = [3, 5, 8, 12, 14, 15, 20, 22, 23, todayNum];
+                            const hasActiveStreak = activeDays.includes(day);
+
                             return (
                                 <Card
                                     key={day}
-                                    className={`min-h-[80px] p-2 cursor-pointer hover:bg-surface/80 transition-colors ${
-                                        isToday ? 'backdrop-blur-lg bg-accent/30 shadow-xl shadow-accent/30 border border-accent' : ''
-                                    }`}
+                                    className={`min-h-[100px] p-2 transition-colors ${isToday ? 'backdrop-blur-lg bg-accent/30 shadow-xl shadow-accent/30 border border-accent' : 'hover:bg-surface/80'
+                                        }`}
                                 >
-                                    <div className={`text-sm font-medium mb-1 ${
-                                        isToday ? 'text-accent' : 'text-textPrimary'
-                                    }`}>
-                                        {day}
+                                    <div className="flex items-center justify-between mb-1">
+                                        <div className={`text-sm font-medium ${isToday ? 'text-accent' : 'text-textPrimary'}`}>
+                                            {day}
+                                        </div>
+                                        {hasActiveStreak && (
+                                            <Flame className={cn("w-3 h-3 text-orange-500", isToday && "text-accent animate-pulse")} />
+                                        )}
                                     </div>
                                     <div className="space-y-1">
-                                        {dayEvents.map(event => (
-                                            <div
-                                                key={event.id}
-                                                className={`text-xs p-1 rounded border ${getImportanceColor(event.importance)}`}
-                                                title={`${event.title} at ${event.time}`}
-                                            >
-                                                <div className="font-medium truncate">{event.title}</div>
-                                                <div className="text-xs opacity-75">{event.time}</div>
-                                            </div>
-                                        ))}
+                                        {dayEvents.map(event => {
+                                            const isCompleted = completedEventIds.includes(event.id);
+                                            return (
+                                                <div
+                                                    key={event.id}
+                                                    onClick={(e) => toggleComplete(event.id, e)}
+                                                    className={`text-xs p-1.5 rounded border cursor-pointer select-none transition-all ${getImportanceColor(event.importance, isCompleted)}`}
+                                                    title={`${event.title} at ${event.time} - Click to toggle completion`}
+                                                >
+                                                    <div className="font-medium truncate">{event.title}</div>
+                                                    {!isCompleted && <div className="text-[10px] opacity-75">{event.time}</div>}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </Card>
                             );
                         })}
-                    </div>
-                </Card>
-
-                {/* Events List */}
-                <Card className="w-64 p-4">
-                    <h3 className="text-lg font-semibold text-textPrimary mb-4">Upcoming Events</h3>
-                    <div className="space-y-2">
-                        {events
-                            .filter(event => new Date(event.date) >= new Date(todayDate))
-                            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                            .map(event => (
-                                <div key={event.id} className="flex items-center justify-between p-2 border border-white/5 rounded-lg">
-                                    <div className="flex items-center gap-2">
-                                        <div className={`w-2 h-2 rounded-full ${
-                                            event.importance === 'Critical' ? 'bg-red-400' :
-                                            event.importance === 'High' ? 'bg-orange-400' : 'bg-blue-400'
-                                        }`} />
-                                        <div>
-                                            <div className="font-medium text-textPrimary text-sm">{event.title}</div>
-                                            <div className="text-xs text-textSecondary">
-                                                {event.date} at {event.time}
-                                                {isDueSoon(event.date) && (
-                                                    <span className="ml-1 text-red-400 font-medium">Due Soon!</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleDeleteEvent(event.id)}
-                                        className="text-red-400 hover:text-red-300 text-xs px-2 py-1"
-                                    >
-                                        Delete
-                                    </Button>
-                                </div>
-                            ))}
                     </div>
                 </Card>
             </div>

@@ -127,19 +127,21 @@ export default function CourseNumericalsPage({
               }}
             >
               {/* Top */}
-              <div className="flex justify-between">
-                <Badge
-                  variant={
-                    numerical.difficulty === "Hard"
-                      ? "warning"
-                      : numerical.difficulty === "Medium"
-                      ? "default"
-                      : "secondary" // Easy
-                  }
-                  className="uppercase text-[10px]"
-                >
-                  {numerical.difficulty}
-                </Badge>
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <Badge
+                    variant={
+                      numerical.difficulty === "Hard"
+                        ? "warning"
+                        : numerical.difficulty === "Medium"
+                        ? "default"
+                        : "secondary" // Easy
+                    }
+                    className="uppercase text-[10px]"
+                  >
+                    {numerical.difficulty}
+                  </Badge>
+                </div>
                 <span className="text-xs text-textSecondary">{numerical.status}</span>
               </div>
 

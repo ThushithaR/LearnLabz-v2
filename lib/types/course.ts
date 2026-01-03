@@ -40,6 +40,30 @@ export interface Lesson {
   title: string;
   duration: string;
   isInteractive?: boolean; // optional
+  content?: {
+    overview?: string;
+    objectives?: string[];
+    sections?: LessonSection[];
+    problemStatement?: {
+      problem: string;
+      twist?: string;
+      hints?: string[];
+      solution?: string | React.ReactNode;
+    };
+  };
+}
+
+export interface ProblemStatementContent {
+  problem: string;
+  twist?: string;
+  hints?: string[];
+  solution?: string | React.ReactNode;
+}
+
+export interface LessonSection {
+  type: 'text' | 'problem-statement' | 'examples' | 'summary';
+  title?: string;
+  content: string | React.ReactNode | ProblemStatementContent;
 }
 
 export interface Module {
@@ -93,9 +117,10 @@ export interface LeaderboardEntry {
 export interface Note {
   id: number;            // Unique identifier for the note
   title: string;         // Title of the note
+  subtitle?: string;      // Optional: Subtitle of the note
   content: string;       // Content of the note (could be plain text, markdown, etc.)
   type: "Module" | "General";  // Type of note: can be Module or General
-  emoji: string;         // Emoji representing the note
+  emoji?: string;         // Optional: Emoji representing the note
   createdAt?: string;    // Optional: Date the note was created
   updatedAt?: string;    // Optional: Date the note was last updated
 }

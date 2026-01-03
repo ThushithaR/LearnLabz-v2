@@ -8,12 +8,15 @@ type CourseType = "aiml" | "nlp";
 interface CourseContextType {
   selectedCourse: CourseType | null;
   setSelectedCourse: (course: CourseType) => void;
+  isFullscreen: boolean;
+  setIsFullscreen: (isFull: boolean) => void;
 }
 
 const CourseContext = createContext<CourseContextType | undefined>(undefined);
 
 export const CourseProvider = ({ children }: { children: ReactNode }) => {
   const [selectedCourse, setSelectedCourse] = useState<CourseType | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Load saved course from localStorage when provider mounts
   useEffect(() => {
@@ -31,7 +34,7 @@ export const CourseProvider = ({ children }: { children: ReactNode }) => {
   }, [selectedCourse]);
 
   return (
-    <CourseContext.Provider value={{ selectedCourse, setSelectedCourse }}>
+    <CourseContext.Provider value={{ selectedCourse, setSelectedCourse, isFullscreen, setIsFullscreen }}>
       {children}
     </CourseContext.Provider>
   );

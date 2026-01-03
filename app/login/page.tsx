@@ -21,9 +21,6 @@ export default function LoginPage() {
 
       <Card className="z-10 w-full max-w-md border-white/5 bg-surface/50 backdrop-blur-xl">
         <div className="mb-8 text-center">
-          <Link href="/" className="inline-block mb-4">
-            <div className="h-10 w-10 mx-auto rounded bg-gradient-to-br from-accent to-highlight" />
-          </Link>
           <h2 className="text-2xl font-bold text-textPrimary">Welcome Back</h2>
           <p className="mt-2 text-sm text-textSecondary">
             Continue your journey to mastery
@@ -50,7 +47,7 @@ export default function LoginPage() {
           </div>
 
           <Button type="submit" className="w-full" size="lg">
-            Sign In
+            Log In
           </Button>
         </form>
 

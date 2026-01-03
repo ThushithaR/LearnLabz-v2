@@ -6,10 +6,50 @@ import { Input } from "@/components/ui/Input";
 import { mockUser } from "@/lib/data";
 import { Button } from "@/components/ui/Button";
 
+import { useCourse } from "@/lib/context/CourseContext";
+
 export function Header() {
     const pathname = usePathname();
     const router = useRouter();
-    const pageName = pathname.split('/').pop()?.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') || 'Dashboard';
+    const { selectedCourse } = useCourse();
+    const pathParts = pathname.split('/').filter(Boolean); // e.g. ['dashboard', 'aiml', 'modules']
+    const courseId = pathParts[1];
+    const component = pathParts[2];
+
+    let pageTitle = "Dashboard";
+    let titleColor = "text-textPrimary";
+
+    const getCourseTitle = (id: string) => {
+        if (id === 'aiml') return "AI/ML";
+        if (id === 'nlp') return "NLP";
+        return id.charAt(0).toUpperCase() + id.slice(1);
+    };
+
+    const getCourseColor = (id: string) => {
+        if (id === 'aiml') return "text-accent";
+        if (id === 'nlp') return "text-accent";
+        return "text-textPrimary";
+    };
+
+    // If we are in a course-specific route or have a selected global course
+    const activeCourseId = courseId && (courseId === 'aiml' || courseId === 'nlp') ? courseId : selectedCourse;
+
+    if (activeCourseId) {
+        pageTitle = getCourseTitle(activeCourseId);
+        titleColor = getCourseColor(activeCourseId);
+
+        if (component) {
+            pageTitle += ` | ${component.toUpperCase()}`;
+        } else if (pathname.includes('/settings')) {
+            pageTitle += ` | SETTINGS`;
+        } else if (pathname.includes('/calendar')) {
+            pageTitle += ` | CALENDAR`;
+        }
+    } else {
+        // Fallback for no selected course (e.g. fresh global dashboard)
+        if (pathname.includes('/settings')) pageTitle = "SETTINGS";
+        if (pathname.includes('/calendar')) pageTitle = "CALENDAR";
+    }
 
     const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -23,19 +63,14 @@ export function Header() {
     return (
         <header className="h-16 border-b border-white/5 bg-surface/50 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between px-6">
             <div className="flex items-center gap-4">
-                <h2 className="text-xl font-bold text-textPrimary capitalize">{pageName}</h2>
+                <h2 className={`text-xl font-bold capitalize ${titleColor}`}>{pageTitle}</h2>
             </div>
 
             <div className="flex items-center gap-4 w-full max-w-md justify-end">
                 {/* Search Bar Removed as per request */}
 
                 <div className="flex items-center gap-3">
-                    <button className="relative p-2 rounded-full hover:bg-white/5 transition-colors group" title="Notifications">
-                        <Bell className="w-5 h-5 text-textSecondary group-hover:text-textPrimary" />
-                        {notificationCount > 0 && (
-                            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                        )}
-                    </button>
+                    {/* Bell Notification Removed */}
 
                     <div className="h-8 w-[1px] bg-white/10 mx-2"></div>
 
