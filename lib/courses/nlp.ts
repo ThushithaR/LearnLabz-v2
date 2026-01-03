@@ -34,8 +34,10 @@ export const nlp = {
         progress: 100,
         isLocked: false,
         lessons: [
-            { id: "1.1", title: "What is NLP?", duration: "10 min" },
-            { id: "1.2", title: "History of NLP", duration: "15 min" },
+            { id: "1.1", title: "NLP Pipeline", duration: "10 min" },
+            { id: "1.2", title: "Data Acquisition", duration: "15 min" },
+            { id: "1.3", title: "Text Extraction and Cleanup", duration: "20 min" },
+            { id: "1.4", title: "Text Preprocessing", duration: "15 min" },
         ]
     },
     {
