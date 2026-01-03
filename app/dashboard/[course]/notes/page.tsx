@@ -156,13 +156,6 @@ export default function NotesPage({
     input.click();
   };
 
-  const handleInsertURL = () => {
-    const url = prompt("Enter image URL:");
-    if (url) {
-      insertImageAtCursor(url);
-    }
-  };
-
   const handleCreateNote = () => {
     if (!newNoteData.title.trim()) return;
 
@@ -401,13 +394,6 @@ export default function NotesPage({
                 title="Upload Image"
               >
                 <ImageIcon className="w-4 h-4" />
-              </button>
-              <button
-                onClick={handleInsertURL}
-                className="p-2 hover:bg-white/10 rounded-xl text-[10px] font-bold w-10 h-10 flex items-center justify-center transition-all hover:scale-110 text-textSecondary hover:text-white"
-                title="Insert Image URL"
-              >
-                URL
               </button>
             </div>
 

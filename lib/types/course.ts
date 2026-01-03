@@ -11,6 +11,7 @@ export interface Course {
     numericals: boolean;
     notes: boolean;
     calendar: boolean;
+    important: boolean;
   };
 
   user: {
@@ -33,6 +34,7 @@ export interface Course {
   notes: Note[];
   numericals?: Numerical[];
   calendar?: Event[];
+  important: StarredQuestion[];
 }
 
 export interface Lesson {
@@ -95,6 +97,7 @@ export interface QuizQuestion {
   options: string[];
   correct: number;
   explanation: string;
+  topics?: string[];
 }
 
 export interface Achievement {
@@ -134,6 +137,7 @@ export interface Numerical {
   solution?: string; // Solution or steps to solve the problem (optional)
   status: "Locked" | "New" | "Completed" | "Completing" | "Pending"; // Current status of the problem
   xp: number
+  topics?: string[];
 }
 
 export interface Event {
@@ -143,4 +147,19 @@ export interface Event {
   importance: "Normal" | "High" | "Critical";
   time: string;
   done?: boolean; // optional; false by default
+}
+
+export interface StarredQuestion {
+  id: string;
+  question: string;
+  answer?: string;
+  options?: string[];
+  correct?: number;
+  quizTitle: string;
+  unit: string;
+  difficulty: string;
+  time: string;
+  course: string;
+  moduleId: string;
+  questionIndex: number;
 }

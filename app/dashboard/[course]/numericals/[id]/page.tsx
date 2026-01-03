@@ -28,14 +28,8 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
   const [isTimerRunning, setIsTimerRunning] = useState(true);
   const [workingPenalty, setWorkingPenalty] = useState(0);
 
-  // Load saved timer on mount
+  // Load starred state on mount
   useEffect(() => {
-    const savedTime = localStorage.getItem(`timer_${params.id}`);
-    if (savedTime) {
-      setTimer(parseInt(savedTime, 10));
-    }
-
-    // Load starred state
     const storageKey = `starred_numericals_${params.course}`;
     const saved = localStorage.getItem(storageKey);
     if (saved) {
@@ -398,9 +392,6 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
                 </div>
                 <div className="bg-surface/30 rounded-2xl border border-white/5 p-6 h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/5 font-mono text-sm leading-relaxed text-textSecondary relative group">
                   <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setShowResults(false)}>
-                      <Calculator className="w-4 h-4" />
-                    </Button>
                   </div>
                   {solution.split('\n').map((line, i) => (
                     <div key={i} className="flex gap-4">

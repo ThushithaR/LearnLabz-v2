@@ -14,6 +14,7 @@ export const aiml = {
     numericals: true,
     notes: false,
     calendar: true,
+    important: true,
   },
 
   user: {
@@ -105,14 +106,16 @@ export const aiml = {
           question: 'What does AI stand for?',
           options: ['Artificial Intelligence', 'Automated Integration', 'Advanced Interface', 'Algorithmic Implementation'],
           correct: 0,
-          explanation: 'AI stands for Artificial Intelligence, which is the simulation of human intelligence in machines.'
+          explanation: 'AI stands for Artificial Intelligence, which is the simulation of human intelligence in machines.',
+          topics: ['BFS', 'DFS', 'Heuristic Search']
         },
         {
           id: 2,
           question: 'Which of the following is NOT a component of an intelligent agent?',
           options: ['Percepts', 'Actions', 'Environment', 'Database'],
           correct: 3,
-          explanation: 'Intelligent agents consist of percepts (inputs), actions (outputs), and environment, but not necessarily a database.'
+          explanation: 'Intelligent agents consist of percepts (inputs), actions (outputs), and environment, but not necessarily a database.',
+          topics: ['BFS', 'DFS', 'Heuristic Search'],
         },
         // Add more questions...
       ]
@@ -127,6 +130,7 @@ export const aiml = {
       xp: 100,
       status: 'Available',
       score: '-',
+      topics: ['AI Applications', 'Agent Types', 'Search Algorithms'],
       questionData: [
         // Medium level questions for Unit I
       ]
@@ -183,7 +187,7 @@ export const aiml = {
       { id: 4, title: "AI Ethics", content: "What are the ethical implications of AI?\n- AI bias\n- Privacy concerns", type: "General" as const, emoji: "⚖️" },
     ],
     numericals : [
-    { id: 402, title: "Optimal Move - Minimax", description: "Game Theory", topic: "Practical", difficulty: "Hard" as const, status: "Pending" as const, xp: 50 },
+    { id: 402, title: "Optimal Move - Minimax", description: "Game Theory", topic: "Practical", difficulty: "Hard" as const, status: "Pending" as const, xp: 50, topics :["Minimax","Alpha-beta pruning"]},
     { id: 105, title: "A* Heuristic Estimation", description: "Informed Search", topic: "Practical", difficulty: "Medium" as const, status: "Completing" as const, xp: 30 },
     { id: 208, title: "Alpha-Beta Pruning Count", description: "Game Theory", topic: "Practical", difficulty: "Hard" as const, status: "Locked" as const, xp: 50 },
     { id: 101, title: "BFS Path Cost", description: "Uninformed Search", topic: "Practical", difficulty: "Easy" as const, status: "Completed" as const, xp: 15 },
@@ -194,4 +198,5 @@ export const aiml = {
     { id: 2, title: "Project Submission", date: "2025-12-24", importance: "High" as const, time: "23:59", done: true },
     { id: 3, title: "AI Ethics Discussion", date: "2025-12-25", importance: "Normal" as const, time: "10:00" },
   ],
+  important: []
 }
