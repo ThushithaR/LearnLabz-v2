@@ -1,18 +1,54 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import { supabase } from "@/lib/supabase/client";
+import {updateUserStreak} from "@/lib/supabase/progress";
+import { getCurrentUserProfile } from "@/lib/supabase/profile";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: add real login/auth logic here
-    router.push("/home"); // Navigate to home page after login
+    setError("");
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
+     // ✅ fetch logged-in user profile
+  const user = await getCurrentUserProfile();
+    if (!user) {
+      setError("Unable to load user profile");
+      return;
+    }
+
+    // ✅ decide active course
+    // (temporary: first enrolled course)
+    const { data: userCourses } = await supabase
+      .from("user_courses")
+      .select("course_id")
+      .eq("user_id", user.user_id)
+      .order("last_active", { ascending: false })
+      .limit(1);
+
+    if (userCourses && userCourses.length > 0) {
+      await updateUserStreak(user.user_id, userCourses[0].course_id);
+    }
+    router.push("/home");
   };
 
   return (
@@ -28,9 +64,21 @@ export default function LoginPage() {
         </div>
 
         <form className="space-y-4" onSubmit={handleLogin}>
+          {error && (
+            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-xs text-center">
+              {error}
+            </div>
+          )}
+
           <div className="space-y-1">
             <label className="text-xs font-medium uppercase text-textSecondary">Email</label>
-            <Input type="email" placeholder="scholar@learnlabz.com" required />
+            <Input
+              type="email"
+              placeholder="scholar@learnlabz.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           </div>
 
           <div className="space-y-1">
@@ -38,7 +86,13 @@ export default function LoginPage() {
               <span>Password</span>
               <Link href="#" className="text-accent hover:underline lowercase bg-transparent">forgot?</Link>
             </label>
-            <Input type="password" placeholder="••••••••" required />
+            <Input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
           </div>
 
           <div className="flex items-center gap-2">

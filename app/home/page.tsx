@@ -1,33 +1,76 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase/client";
 import { useCourse } from "@/lib/context/CourseContext";
 import { ArrowRight, BrainCircuit, MessageSquareText } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 
 export default function HomePage() {
   const router = useRouter();
   const { setSelectedCourse } = useCourse();
+  const [loading, setLoading] = useState(true);
+
+  // 🔐 Protect Home Page
+  useEffect(() => {
+    const checkUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.replace("/login"); // block access
+        return;
+      }
+
+      setLoading(false);
+    };
+
+    checkUser();
+  }, [router]);
 
   const handleCourseSelect = (course: "aiml" | "nlp") => {
     setSelectedCourse(course);
     router.push(`/dashboard/${course}`);
   };
 
+  // ⏳ Prevent UI flash
+  if (loading) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center bg-background gap-4">
+        <div className="relative">
+          <div className="w-16 h-16 rounded-full bg-accent/10 blur-xl absolute inset-0" />
+          <div className="relative w-14 h-14">
+            <div className="absolute inset-0 rounded-full border-4 border-accent/20" />
+            <div className="absolute inset-0 rounded-full border-4 border-accent border-t-transparent animate-spin" />
+          </div>
+        </div>
+
+        <p className="text-sm text-textSecondary tracking-wide animate-pulse">
+          Securing your workspace…
+        </p>
+      </main>
+    );
+  }
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
       <div className="w-full max-w-2xl space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold text-textPrimary">Choose Your Course</h1>
-          <p className="text-textSecondary">Select a track to begin your learning journey</p>
+          <h1 className="text-4xl font-bold text-textPrimary">
+            Choose Your Course
+          </h1>
+          <p className="text-textSecondary">
+            Select a track to begin your learning journey
+          </p>
         </div>
 
         {/* Course Cards */}
         <div className="grid md:grid-cols-2 gap-6">
           {/* AI/ML Card */}
-          <Card 
+          <Card
             className="p-6 border border-white/10 bg-surface/50 hover:border-accent/40 hover:bg-accent/5 transition-all cursor-pointer group"
             onClick={() => handleCourseSelect("aiml")}
           >
@@ -48,23 +91,23 @@ export default function HomePage() {
           </Card>
 
           {/* NLP Card */}
-          <Card 
-            className="p-6 border border-white/10 bg-surface/50 hover:border-highlight/40 hover:bg-highlight/5 transition-all cursor-pointer group"
+          <Card
+            className="p-6 border border-white/10 bg-surface/50 hover:border-accent/40 hover:bg-accent/5 transition-all cursor-pointer group"
             onClick={() => handleCourseSelect("nlp")}
           >
             <div className="flex flex-col items-center text-center space-y-4">
               <div className="w-12 h-12 rounded-lg bg-highlight/20 flex items-center justify-center group-hover:bg-highlight/30 transition-colors">
-                <MessageSquareText className="w-6 h-6 text-highlight" />
+                <MessageSquareText className="w-6 h-6 text-accent" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-textPrimary group-hover:text-highlight transition-colors">
+                <h3 className="text-lg font-bold text-textPrimary group-hover:text-accent transition-colors">
                   Natural Language Processing
                 </h3>
                 <p className="text-sm text-textSecondary mt-1">
                   LLMs & Transformers
                 </p>
               </div>
-              <ArrowRight className="w-4 h-4 text-textSecondary group-hover:text-highlight group-hover:translate-x-1 transition-all" />
+              <ArrowRight className="w-4 h-4 text-textSecondary group-hover:text-accent group-hover:translate-x-1 transition-all" />
             </div>
           </Card>
         </div>
@@ -72,7 +115,9 @@ export default function HomePage() {
         {/* Bottom note */}
         <div className="text-center">
           <p className="text-sm text-textSecondary">
-            Not sure? <span className="text-accent">Start with AI & ML</span> for a comprehensive foundation.
+            Not sure?{" "}
+            <span className="text-accent">Start with AI & ML</span>{" "}
+            for a comprehensive foundation.
           </p>
         </div>
       </div>

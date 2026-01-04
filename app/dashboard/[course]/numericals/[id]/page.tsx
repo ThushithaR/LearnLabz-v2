@@ -26,7 +26,6 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const [isStarred, setIsStarred] = useState(false);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
-  const [workingPenalty, setWorkingPenalty] = useState(0);
 
   // Load starred state on mount
   useEffect(() => {
@@ -108,22 +107,6 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
   // Handle submission (show results on same page)
   const handleSubmit = () => {
     setIsTimerRunning(false);
-
-    // Smarter Workspace Validation
-    // Check for "working" by looking for keywords and key values from the problem
-    const content = solution.toLowerCase();
-    const keywords = ["max", "min", "root", "prune", "node", "branch", "alpha", "beta"];
-    const hasKeywords = keywords.some(word => content.includes(word));
-    const hasValues = content.includes("3") && content.includes("5");
-
-    const trimmedSolution = solution.replace(/\/\/ Workspace Step 1: /g, '').trim();
-
-    // Penalize if the working is too short OR lacks logical components (keywords/values)
-    if (trimmedSolution.length < 15 || (!hasKeywords && !hasValues)) {
-      setWorkingPenalty(10); // Reduced to 10%
-    } else {
-      setWorkingPenalty(0);
-    }
 
     setShowResults(true);
     setShowModal(true);
@@ -362,24 +345,16 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
               <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5 hover:border-white/10 transition-colors">
                 <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Time Performance tapped</div>
                 <div className="text-2xl font-bold text-white mb-1">{formatTime(timer)}</div>
-                <div className="text-xs text-green-400 font-medium">Faster than 82% of peers</div>
               </Card>
               <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5 hover:border-white/10 transition-colors">
                 <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Calculation Accuracy</div>
                 <div className="text-2xl font-bold text-white mb-1">
-                  {Math.max(0, ((isRootNodeCorrect ? 50 : 0) + (isNodesPrunedCorrect ? 50 : 0)) - workingPenalty)}%
-                </div>
-                <div className={cn(
-                  "text-xs font-medium",
-                  workingPenalty > 0 ? "text-red-400" : "text-textSecondary"
-                )}>
-                  {workingPenalty > 0 ? "Penalty: Missing Working" : "Focus area: Pruning Logic"}
+                  {(isRootNodeCorrect ? 50 : 0) + (isNodesPrunedCorrect ? 50 : 0)}%
                 </div>
               </Card>
               <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5 hover:border-white/10 transition-colors">
                 <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Experience Earned</div>
                 <div className="text-2xl font-bold text-accent mb-1">+450 EP</div>
-                <div className="text-xs text-accent/60 font-medium">Bonus: Streak Multiplier (x1.2)</div>
               </Card>
             </div>
 
@@ -446,16 +421,6 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
                     <p className="mb-4">
                       Nodes Pruned: <span className={cn("font-bold px-1.5 py-0.5 rounded", isNodesPrunedCorrect ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400")}>{nodesPruned || '0'}</span>. Alpha-Beta pruning is an enhancement that reduces the number of nodes evaluated.
                     </p>
-                    {workingPenalty > 0 && (
-                      <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl mb-4 animate-in slide-in-from-top-2">
-                        <h5 className="text-xs font-bold text-red-400 uppercase mb-1 flex items-center gap-2">
-                          <XCircle className="w-3 h-3" /> Working Validation Failed
-                        </h5>
-                        <p className="text-[11px] text-red-300/80">
-                          A 10% penalty was applied because your workspace content didn't match the expected problem-solving steps. Numerical analysis requires proof of logic (calculations or keywords) for full credit.
-                        </p>
-                      </div>
-                    )}
                     <p>
                       It stops evaluating a move when at least one possibility has been found that proves the move to be worse than a previously examined move.
                     </p>
@@ -465,14 +430,7 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
             </Card>
 
             {/* Bottom Navigation */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-8 border-t border-white/5">
-              <Button
-                variant="ghost"
-                onClick={() => setShowResults(false)}
-                className="text-textSecondary hover:text-white"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" /> Back to Workspace
-              </Button>
+            <div className="flex flex-col md:flex-row items-center justify-center gap-6 pt-8 border-t border-white/5">
               <div className="flex gap-4 w-full md:w-auto">
                 <Button
                   variant="outline"
@@ -482,7 +440,8 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
                   Clear & Try Again
                 </Button>
                 <Button
-                  className="flex-1 md:flex-none px-12 h-12 shadow-xl shadow-accent/20"
+                  variant="outline"
+                  className="flex-1 md:flex-none"
                   onClick={handleExit}
                 >
                   Continue Journey

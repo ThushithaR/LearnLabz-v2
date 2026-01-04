@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import { supabase } from "@/lib/supabase/client";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -64,7 +65,7 @@ export default function SignupPage() {
     if (error) setError("");
   };
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -83,8 +84,31 @@ export default function SignupPage() {
       return;
     }
 
-    // TODO: add real signup logic here
-    router.push("/home"); // Navigate to home page after signup
+    const { data, error: authError } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+    });
+
+    if (authError || !data.user) {
+      setError(authError?.message || "Signup failed");
+      return;
+    }
+
+    const { error: dbError } = await supabase.from("users").insert({
+      auth_user_id: data.user.id,
+      user_name: formData.name,
+      user_email: formData.email,
+      school_name: formData.school,
+      class_name: formData.section,
+      password_hash: formData.password,
+    });
+
+    if (dbError) {
+      setError(dbError.message);
+      return;
+    }
+
+    router.push("/home");
   };
 
   return (

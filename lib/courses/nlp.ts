@@ -223,18 +223,6 @@ export const nlp = {
         { id: 2, name: "Linguist", icon: "🗣️", unlocked: true, desc: "Maintain a 7-day streak in NLP" },
         { id: 3, name: "Context King", icon: "👑", unlocked: false, desc: "Score 100% on the Sequence Models quiz" },
     ],
-    leaderboard: [
-        { rank: 1, name: "Liam Smith", tier: "NLP Maestro", ep: 12500, avatar: "LS" },
-        { rank: 2, name: "Noah Williams", tier: "Data Wrangler", ep: 11200, avatar: "NW" },
-        { rank: 3, name: "Emma Brown", tier: "Language Expert", ep: 9800, avatar: "EB" },
-        { rank: 4, name: "Olivia Jones", tier: "Token Master", ep: 8500, avatar: "OJ" },
-        { rank: 5, name: "Sophie Lee (You)", tier: "NLP Novice", ep: 800, isUser: true, avatar: "SL" },
-    ],
-    calendar: [
-        { id: 1, title: "Unit I Quiz", date: "2025-12-31", importance: "High" as const, time: "23:59" },
-        { id: 2, title: "NLP Project Proposal", date: "2026-01-05", importance: "Critical" as const, time: "18:00" },
-        { id: 3, title: "Reading: Attention Paper", date: "2026-01-02", importance: "Normal" as const, time: "12:00" },
-    ],
     numericals: [
         {
             id: 1,
@@ -262,15 +250,6 @@ export const nlp = {
             difficulty: "Hard" as const,
             xp: 500,
             status: "Locked" as const
-        }
-    ],
-    notes: [
-        {
-            id: 1,
-            title: "Introduction to NLP Basics",
-            content: "<h2>Core Concepts</h2><p>Natural Language Processing is bridging the gap between human communication and computer understanding.</p><ul><li><b>Syntax:</b> Sentence structure</li><li><i>Semantics:</i> Meaning of words</li><li><u>Pragmatics:</u> Context of usage</li></ul><p><span style='background-color: #facc15'>Key takeaway:</span> Data quality is crucial for model performance.</p>",
-            type: "Module" as const,
-            emoji: "📚"
         }
     ],
     important: []
