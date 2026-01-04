@@ -48,6 +48,10 @@ export default function LoginPage() {
     if (userCourses && userCourses.length > 0) {
       await updateUserStreak(user.user_id, userCourses[0].course_id);
     }
+    
+    // ✅ Save user_id to localStorage for progress tracking
+    localStorage.setItem("user_id", user.user_id.toString());
+    
     router.push("/home");
   };
 

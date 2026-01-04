@@ -6,26 +6,14 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
-import { courses, CourseId } from "@/lib/courses";
+import { courses, CourseId, COURSE_ID_MAP } from "@/lib/courses";
 import { Course, Module, Lesson, ProblemStatementContent } from "@/lib/types/course";
 import { useCourse } from "@/lib/context/CourseContext";
 import { ProblemStatement } from "@/lib/content/nlp/unit1/problemStatement";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  BookOpen,
-  CheckCircle2,
-  Save,
-  FileText,
-  ArrowLeft,
-  X,
-  PauseCircle,
-  PlayCircle,
-  Image as ImageIcon,
-  Star,
-  RotateCw
-} from "lucide-react";
+import InteractiveCodeWalkthrough from "@/lib/content/nlp/unit2/InteractiveCodeWalkthrough";
+import {ChevronLeft,ChevronRight,Clock,BookOpen,CheckCircle2,Save,FileText,ArrowLeft,X,PauseCircle,PlayCircle,Image as ImageIcon,Star,RotateCw} from "lucide-react";
+import { ModuleProgress } from "@/lib/types/progress";
+import { getLessonProgress, getLessonProgressByUnit, upsertLessonProgress, updateUnitProgress } from "@/lib/supabase/progress";
 
 export default function LessonPage({ params }: { params: { course: string; id: string } }) {
   const { course, id } = params;
@@ -33,9 +21,11 @@ export default function LessonPage({ params }: { params: { course: string; id: s
   const courseData: Course = courses[course as CourseId];
   const moduleData: Module | undefined = courseData.modules.find(m => m.id.toString() === id);
 
+  // User tracking
+  const [userId, setUserId] = useState<number | null>(null);
+
   // Global State
   const [hasStarted, setHasStarted] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(0); // Timer (seconds elapsed)
   const [isPaused, setIsPaused] = useState(false);
 
   // Active lesson state (default first lesson)
@@ -68,12 +58,107 @@ export default function LessonPage({ params }: { params: { course: string; id: s
   const [selectionRange, setSelectionRange] = useState<Range | null>(null);
 
   const { isFullscreen, setIsFullscreen } = useCourse();
+  // Module progress state
+  const progressKey = `module_progress_${course}_${moduleData?.id}`;
+  const [moduleProgress, setModuleProgress] = useState<ModuleProgress>({
+  totalReadingTime: 0,
+  lessons: {},
+  });
+  // Lesson time tracking - per lesson
+  const [lessonTime, setLessonTime] = useState(0);
+  const [lessonTimeMap, setLessonTimeMap] = useState<Record<string, number>>({}); // Track time for each lesson
+  
+  // Reset lesson time when switching lessons
+  useEffect(() => {
+    if (!moduleData) return;
+    const currentLesson = moduleData.lessons[selectedLessonIdx];
+    const currentLessonId = currentLesson?.id.toString();
+    if (currentLessonId && lessonTimeMap[currentLessonId]) {
+      setLessonTime(lessonTimeMap[currentLessonId]);
+    } else {
+      setLessonTime(0);
+    }
+  }, [selectedLessonIdx, moduleData, lessonTimeMap]);
+  
+  // Timer for current lesson only
+  useEffect(() => {
+    if (!hasStarted || isPaused || showQuizResults) return;
+    const interval = setInterval(() => {
+      setLessonTime(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [hasStarted, isPaused, showQuizResults]);
+
+  // Load userId from localStorage
+  useEffect(() => {
+    const userIdStr = localStorage.getItem("user_id");
+    if (userIdStr) {
+      setUserId(parseInt(userIdStr));
+    }
+  }, []);
 
   useEffect(() => {
     if (moduleData) {
       setCompletedLessons(new Array(moduleData.lessons.length).fill(false));
     }
   }, [moduleData]);
+
+  // Load existing lesson progress from database
+  useEffect(() => {
+    const loadProgress = async () => {
+      if (!userId || !moduleData) return;
+
+      try {
+        const { data, error } = await getLessonProgressByUnit({
+          user_id: userId,
+          unit_id: moduleData.id,
+        });
+
+        if (error) {
+          console.error("Failed to load lesson progress:", error);
+          return;
+        }
+
+        if (data && Array.isArray(data)) {
+          const completed = new Array(moduleData.lessons.length).fill(false);
+          const timeMap: Record<string, number> = {};
+          let lastCompletedIdx = -1;
+
+          data.forEach((lessonProgress: any) => {
+            // Find the lesson index that matches this progress record
+            const lessonIdx = moduleData.lessons.findIndex(
+              (l) => l.id.toString() === lessonProgress.lesson_id.toString()
+            );
+            if (lessonIdx !== -1) {
+              completed[lessonIdx] = lessonProgress.completed || false;
+              // Store time for this specific lesson
+              timeMap[lessonProgress.lesson_id.toString()] = lessonProgress.lesson_time_spent_sec || 0;
+              
+              // Track the last completed lesson
+              if (lessonProgress.completed) {
+                lastCompletedIdx = lessonIdx;
+              }
+            }
+          });
+
+          setCompletedLessons(completed);
+          setLessonTimeMap(timeMap);
+          
+          // Start from the next incomplete lesson or the first incomplete one
+          if (lastCompletedIdx !== -1 && lastCompletedIdx < moduleData.lessons.length - 1) {
+            setSelectedLessonIdx(lastCompletedIdx + 1);
+          } else if (completed.every(c => c)) {
+            // All lessons completed, stay at the last one
+            setSelectedLessonIdx(moduleData.lessons.length - 1);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load progress:", err);
+      }
+    };
+
+    loadProgress();
+  }, [userId, moduleData]);
 
   // Scroll to top when lesson changes
   useEffect(() => {
@@ -133,7 +218,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
   };
 
   const handleQuizSubmit = () => {
-    setQuizTimeTaken(timeLeft);
+    setQuizTimeTaken(lessonTime);
     setShowQuizResults(true);
   };
 
@@ -165,7 +250,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
     let interval: NodeJS.Timeout;
     if (hasStarted && !isPaused && !showQuizResults) {
       interval = setInterval(() => {
-        setTimeLeft(prev => prev + 1);
+        setLessonTime(prev => prev + 1);
       }, 1000);
     }
     return () => {
@@ -187,6 +272,9 @@ export default function LessonPage({ params }: { params: { course: string; id: s
       const scrollHeight = scrollRef.current.scrollHeight;
       const clientHeight = scrollRef.current.clientHeight;
       const progress = ((scrollTop + clientHeight) / scrollHeight) * 100;
+      if (progress >= 90 && !readCompleted) {
+        setReadCompleted(true);
+      }
       setScrollProgress(progress);
 
       // Auto-mark read complete if scraped to bottom? Optional.
@@ -195,13 +283,45 @@ export default function LessonPage({ params }: { params: { course: string; id: s
   };
 
   // Handle completing the current lesson and moving to next
-  const handleNext = () => {
+  const handleNext = async () => {
     setCompletedLessons(prev => {
       const updated = [...prev];
       updated[selectedLessonIdx] = true;
       return updated;
     });
     setScrollProgress(100);
+
+    // Save current lesson progress to database
+    if (userId && moduleData && lessonData) {
+      try {
+        const courseId = COURSE_ID_MAP[course as keyof typeof COURSE_ID_MAP];
+        await upsertLessonProgress({
+          user_id: userId,
+          course_id: courseId,
+          unit_id: moduleData.id,
+          lesson_id: Number(lessonData.id),
+          lesson_time_spent: lessonTime,
+          lesson_progress_percent: 100,
+          completed: true,
+        });
+
+        // Update unit progress after each lesson completion
+        const updatedCompleted = [...completedLessons];
+        updatedCompleted[selectedLessonIdx] = true;
+        const lessonCompletionRate = (updatedCompleted.filter(Boolean).length / updatedCompleted.length) * 100;
+
+        await updateUnitProgress({
+          user_id: userId,
+          course_id: courseId,
+          unit_id: moduleData.id,
+          quiz_score: 0,
+          unlocked: true,
+          progress_percent: lessonCompletionRate,
+        });
+      } catch (err) {
+        console.error("Failed to save lesson progress:", err);
+      }
+    }
 
     if (selectedLessonIdx < moduleData.lessons.length - 1) {
       setSelectedLessonIdx(selectedLessonIdx + 1);
@@ -211,6 +331,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
       scrollRef.current?.scrollTo(0, 0);
       window.scrollTo(0, 0); // Also scroll the window to top
     } else {
+      // All lessons completed - navigate to next module
       const currentModuleIdx = courseData.modules.findIndex(m => m.id === moduleData.id);
       if (currentModuleIdx < courseData.modules.length - 1) {
         const nextModule = courseData.modules[currentModuleIdx + 1];
@@ -249,6 +370,24 @@ export default function LessonPage({ params }: { params: { course: string; id: s
   useEffect(() => {
     return () => setIsFullscreen(false);
   }, [setIsFullscreen]);
+
+  // Save progress on unmount or navigation away
+  useEffect(() => {
+    return () => {
+      // Save current lesson progress when leaving page
+      if (hasStarted && userId && moduleData && lessonData && lessonTime > 0) {
+        upsertLessonProgress({
+          user_id: userId,
+          course_id: COURSE_ID_MAP[course as keyof typeof COURSE_ID_MAP],
+          unit_id: moduleData.id,
+          lesson_id: Number(lessonData.id),
+          lesson_time_spent: lessonTime,
+          lesson_progress_percent: scrollProgress,
+          completed: readCompleted,
+        }).catch(err => console.error("Failed to save progress on unmount:", err));
+      }
+    };
+  }, [hasStarted, userId, moduleData, lessonData, lessonTime, scrollProgress, readCompleted, course]);
 
   const [colorPickerPosition, setColorPickerPosition] = useState({ x: 0, y: 0 });
 
@@ -751,7 +890,7 @@ const handleSaveSelection = () => {
               {!showQuizResults && (
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 rounded-full border border-white/5 shadow-inner">
                   <Clock className={cn("w-3.5 h-3.5 text-accent", !isPaused && "animate-pulse")} />
-                  <span className="text-sm font-mono font-bold text-white">{formatTime(timeLeft)}</span>
+                  <span className="text-sm font-mono font-bold text-white">{formatTime(lessonTime)}</span>
                   <button
                     onClick={() => setIsPaused(!isPaused)}
                     className="ml-2 p-1 bg-white/10 rounded-full transition-colors text-textSecondary"
@@ -814,13 +953,18 @@ const handleSaveSelection = () => {
                 {/* Render lesson content dynamically */}
                 {lessonData.content && (
                   <>
-                    {/* Overview Section */}
-                    {lessonData.content.overview && (
+                    {/* Overview or Quote of the Day Section */}
+                    {(lessonData.content.overview || lessonData.content.quoteOfTheDay) && (
                       <Card className="p-6 bg-gradient-to-r from-surface to-transparent border-l-4 border-l-accent">
-                        <h4 className="font-bold text-textPrimary mb-2">Overview</h4>
+                        <h4 className="font-bold text-textPrimary mb-2">{lessonData.content.quoteOfTheDay ? "Quote of the Day" : "Overview"}</h4>
                         <p className="text-sm text-textSecondary leading-relaxed">
-                          {lessonData.content.overview}
+                          {lessonData.content.quoteOfTheDay || lessonData.content.overview}
                         </p>
+                        {lessonData.content.quoteAttribution && (
+                          <p className="text-xs text-textSecondary/60 italic mt-3 text-right">
+                            — {lessonData.content.quoteAttribution}
+                          </p>
+                        )}
                       </Card>
                     )}
 
@@ -854,6 +998,25 @@ const handleSaveSelection = () => {
                               <p>{section.content as React.ReactNode}</p>
                             </div>
                           </>
+                        )}
+
+                        {section.type === 'interactive' && (
+                          <div className="mt-8 pt-8 border-t border-white/10">
+                            <h2 className="font-bold text-textPrimary mb-6 text-2xl">
+                              {section.title}
+                            </h2>
+                            <div className="rounded-lg border border-white/10 p-6 bg-surface/50">
+                              {typeof section.content === 'object' && section.content !== null && 'lines' in (section.content as any) ? (
+                                <InteractiveCodeWalkthrough
+                                  lines={(section.content as any).lines}
+                                  outputs={(section.content as any).outputs}
+                                  summary={(section.content as any).summary}
+                                />
+                              ) : (
+                                (section.content as React.ReactNode)
+                              )}
+                            </div>
+                          </div>
                         )}
 
                         {section.type === 'problem-statement' && (
@@ -928,7 +1091,7 @@ const handleSaveSelection = () => {
                         <div className="flex items-center justify-center gap-6 text-textSecondary">
                           <div className="flex items-center gap-2">
                             <Clock className="w-5 h-5" />
-                            <span>{formatTime(timeLeft)}</span>
+                            <span>{formatTime(lessonTime)}</span>
                           </div>
                           <Badge variant="warning">3 Questions</Badge>
                         </div>
@@ -1066,7 +1229,7 @@ const handleSaveSelection = () => {
                     <div className="w-full lg:col-span-3 bg-surface/30 border-t lg:border-t-0 lg:border-l border-white/5 p-6 flex flex-col shrink-0">
                       <h3 className="font-bold text-xs mb-6 uppercase text-textSecondary tracking-widest flex justify-between items-center">
                         Navigator
-                        <span className="text-accent">{formatTime(timeLeft)}</span>
+                        <span className="text-accent">{formatTime(lessonTime)}</span>
                       </h3>
 
                       <div className="grid grid-cols-3 gap-2 mb-8">

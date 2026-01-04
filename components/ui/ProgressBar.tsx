@@ -14,13 +14,13 @@ const ProgressBar = forwardRef<HTMLDivElement, ProgressBarProps>(
             <div
                 ref={ref}
                 className={cn(
-                    "h-2 w-full overflow-hidden rounded-full bg-black/30",
+                    "h-3 w-full overflow-hidden rounded-full bg-black/40 border border-white/10",
                     className
                 )}
                 {...props}
             >
                 <div
-                    className={cn("h-full transition-all duration-500 ease-out", color)}
+                    className={cn("h-full transition-all duration-500 ease-out shadow-lg", color)}
                     style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
                 />
             </div>

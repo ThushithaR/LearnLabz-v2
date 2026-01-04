@@ -2,6 +2,9 @@
 import { dataAcquisitionContent } from "@/lib/content/nlp/unit1/dataAcquisition";
 import { problemStatementContent } from "@/lib/content/nlp/unit1/problemStatement";
 import { nlpQuizzes } from "@/lib/quizzes/nlp/quizzes";
+import { AccessingTextCorpora } from "@/lib/content/nlp/unit2/AccessingTextCorpora";
+import {BrownCorpus} from "@/lib/content/nlp/unit2/BrownCorpus";
+
 
 export const nlp = {
     id: "nlp",
@@ -41,7 +44,7 @@ export const nlp = {
             active: true,
             lessons: [
                 {
-                    id: "1.1",
+                    id: 1,
                     title: "What is NLP?",
                     duration: "10 min",
                     content: {
@@ -66,7 +69,7 @@ export const nlp = {
                     }
                 },
                 {
-                    id: "1.2",
+                    id: 2,
                     title: "History of NLP",
                     duration: "15 min",
                     content: {
@@ -91,13 +94,13 @@ export const nlp = {
                     }
                 },
                 {
-                    id: "1.3",
+                    id: 3,
                     title: "Data Acquisition Strategies",
                     duration: "25 min",
                     content: dataAcquisitionContent
                 },
                 {
-                    id: "1.4",
+                    id: 4,
                     title: "Real-world Problem Statement",
                     duration: "20 min",
                     content: {
@@ -120,13 +123,13 @@ export const nlp = {
         },
         {
             id: 2,
-            title: "Unit II: Text Preprocessing",
-            description: "Cleaning and preparing text for AI models.",
+            title: "Unit II: Textual Intelligence & Corpus Engineering",
+            description: "Transitioning from raw data acquisition to structured intelligence",
             progress: 0,
             isLocked: false,
             lessons: [
-                { id: "2.1", title: "Tokenization Techniques", duration: "20 min" },
-                { id: "2.2", title: "Stop-word Removal", duration: "10 min" },
+                { id: 1, title: "Accessing Text Corpora", duration: "20 min", content: AccessingTextCorpora },
+                { id: 2, title: "Brown Corpus", duration: "10 min", content: BrownCorpus },
             ]
         },
         {
@@ -136,8 +139,8 @@ export const nlp = {
             progress: 0,
             isLocked: false,
             lessons: [
-                { id: "3.1", title: "Word2Vec & GloVe", duration: "30 min" },
-                { id: "3.2", title: "TF-IDF Weighting", duration: "25 min" },
+                { id: 1, title: "Word2Vec & GloVe", duration: "30 min" },
+                { id: 2, title: "TF-IDF Weighting", duration: "25 min" },
             ]
         },
         {
@@ -147,8 +150,8 @@ export const nlp = {
             progress: 0,
             isLocked: false,
             lessons: [
-                { id: "4.1", title: "Recurrent Networks", duration: "35 min" },
-                { id: "4.2", title: "Attention Mechanism", duration: "40 min" },
+                { id: 1, title: "Recurrent Networks", duration: "35 min" },
+                { id: 2, title: "Attention Mechanism", duration: "40 min" },
             ]
         }
     ],

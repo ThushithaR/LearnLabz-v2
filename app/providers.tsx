@@ -17,17 +17,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const [theme, setTheme] = useState<Theme>("warm");
     const [mounted, setMounted] = useState(false);
 
+    // Only execute on client-side to avoid SSR issues
     useEffect(() => {
         setMounted(true);
     }, []);
 
+    // Only apply theme changes once the component is mounted
     useEffect(() => {
         if (mounted) {
             document.documentElement.setAttribute("data-theme", theme);
         }
     }, [theme, mounted]);
 
+    // Return the children wrapped by ThemeContext.Provider
     if (!mounted) {
+        // Return a dummy invisible div until mounted to avoid SSR mismatches
         return (
             <ThemeContext.Provider value={{ theme, setTheme }}>
                 <div style={{ visibility: "hidden" }}>{children}</div>

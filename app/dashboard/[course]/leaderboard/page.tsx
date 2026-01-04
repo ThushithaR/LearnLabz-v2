@@ -1,61 +1,86 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/Card";
-import { courses, CourseId } from "@/lib/courses";
-import { Course, LeaderboardEntry } from "@/lib/types/course";
+import { courses, CourseId, COURSE_ID_MAP } from "@/lib/courses";
+import { LeaderboardEntry } from "@/lib/types/course";
+import { getCurrentUserProfile } from "@/lib/supabase/profile";
+import { getLeaderboard } from "@/lib/supabase/leaderboard";
+import { supabase } from "@/lib/supabase/client";
 
 export default function LeaderboardPage({
   params,
 }: {
-  params: { course: CourseId }; // Access the course parameter from the URL
+  params: { course: CourseId };
 }) {
-  const [activeTab, setActiveTab] = useState<'Global' | 'School' | 'Class'>('Global');
+  const [activeTab, setActiveTab] =
+    useState<"Global" | "School" | "Class">("Global");
 
-  // Retrieve the course data based on the `course` parameter from the URL
-  const courseData: Course = courses[params.course];
+  const [leaderboardData, setLeaderboardData] =
+    useState<LeaderboardEntry[]>([]);
 
-  if (!courseData) {
-    return <p className="text-center mt-20">Course not found</p>; // Handle case if course data is not found
-  }
+  const courseData = courses[params.course];
+  const courseId = COURSE_ID_MAP[params.course];
 
-  const leaderboardData: LeaderboardEntry[] = courseData.leaderboard || []; // Get leaderboard data for the selected course
+  
 
-  // Mock data variations based on tab
-  const displayedData = useMemo(() => {
-    if (activeTab === 'Global') return leaderboardData;
-    // Shuffle/Filter for School/Class to simulate different lists
-    const shuffled = [...leaderboardData].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, activeTab === 'Class' ? 5 : 8);
-  }, [activeTab, leaderboardData]);
+  const loadLeaderboard = useCallback(async () => {
+    const user = await getCurrentUserProfile();
 
-  // Find the current user and exclude them from the general leaderboard list
-  const currentUser = displayedData.find((user) => user.isUser);
-  const leaderboardWithoutCurrentUser = displayedData.filter((user) => !user.isUser);
+    if (!user) return;
+    const { data, error } = await getLeaderboard(
+        courseId,
+        activeTab,
+        user.school_name,
+        user.class_name
+      );
+      console.log("LEADERBOARD RAW DATA", data);
+console.log("LEADERBOARD ERROR", error);
 
-  // Social / Chat State
-  const [messages, setMessages] = useState([
-    { id: 1, user: "Alice", text: "Anyone started the Unit 4 project?", color: "text-accent" },
-    { id: 2, user: "You", text: "Yeah, just started researching datasets.", color: "text-textPrimary", self: true },
-    { id: 3, user: "Bob", text: "Looking for a group partner!", color: "text-yellow-400" },
-  ]);
-  const [inputText, setInputText] = useState("");
+    if (error || !data) return;
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputText.trim()) return;
+    const mapped = data.map((row: any, index: number) => ({
+      rank: index + 1,
+      name: row.users.user_name,
+      avatar: row.users.avatar_url ?? row.users.user_name[0],
+      tier: `Level ${row.level}`,
+      ep: row.xp,
+      isUser: row.user_id === user.user_id,
+    }));
 
-    const newMessage = {
-      id: messages.length + 1,
-      user: "You",
-      text: inputText,
-      color: "text-textPrimary",
-      self: true,
+    setLeaderboardData(mapped);
+    
+  }, [courseId, activeTab]);
+
+  useEffect(() => {
+    loadLeaderboard();
+  }, [loadLeaderboard]);
+
+  // Realtime updates (course-specific)
+  useEffect(() => {
+    const channel = supabase
+      .channel(`leaderboard-${courseId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "user_courses",
+          filter: `course_id=eq.${courseId}`,
+        },
+        loadLeaderboard
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
     };
+  }, [courseId, loadLeaderboard]);
 
-    setMessages([...messages, newMessage]);
-    setInputText("");
-  };
+  const currentUser = leaderboardData.find((u) => u.isUser);
+  const leaderboardWithoutCurrentUser = leaderboardData.filter(
+    (u) => !u.isUser
+  );
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -84,8 +109,8 @@ export default function LeaderboardPage({
           {/* Render the top 3 leaderboard entries without current user */}
           {leaderboardWithoutCurrentUser.slice(0, 3).map((user: LeaderboardEntry, idx: number) => (
             <Card key={user.rank} className="flex items-center gap-4 p-4 border-accent/20 bg-gradient-to-r from-surface to-accent/5">
-              <div className={`font-black text-2xl w-12 text-center ${idx === 0 ? 'text-yellow-400' : idx === 1 ? 'text-gray-300' : 'text-amber-600'}`}>
-                {idx + 1}
+              <div className={`font-black text-2xl w-12 text-center ${user.rank === 1 ? 'text-yellow-400' : user.rank === 2 ? 'text-gray-300' : 'text-amber-600'}`}>
+                {user.rank}
               </div>
               <div className="h-10 w-10 rounded-full bg-surface border border-white/10 flex items-center justify-center font-bold text-xs ring-2 ring-white/5">
                 {user.avatar}
@@ -94,7 +119,7 @@ export default function LeaderboardPage({
                 <div className="font-bold text-textPrimary">{user.name}</div>
                 <div className="text-xs text-textSecondary">{user.tier}</div>
               </div>
-              <div className="font-mono font-bold text-accent">{user.ep.toLocaleString()} EP</div>
+              <div className="font-mono font-bold text-accent">{user.ep.toLocaleString()} XP</div>
             </Card>
           ))}
 
@@ -103,7 +128,7 @@ export default function LeaderboardPage({
           {leaderboardWithoutCurrentUser.slice(3).map((user: LeaderboardEntry, idx: number) => (
             <Card key={user.rank} className="flex items-center gap-4 p-4 opacity-80 hover:opacity-100 transition-opacity bg-black/20 border-transparent">
               <div className="font-medium text-xl w-12 text-center text-textSecondary">
-                {idx + 4}
+                {user.rank}
               </div>
               <div className="h-10 w-10 rounded-full bg-surface border border-white/10 flex items-center justify-center font-bold text-xs">
                 {user.avatar}
@@ -112,7 +137,7 @@ export default function LeaderboardPage({
                 <div className="font-bold text-textPrimary">{user.name}</div>
                 <div className="text-xs text-textSecondary">{user.tier}</div>
               </div>
-              <div className="font-mono text-textSecondary">{user.ep.toLocaleString()} EP</div>
+              <div className="font-mono text-textSecondary">{user.ep.toLocaleString()} XP</div>
             </Card>
           ))}
 
@@ -120,7 +145,7 @@ export default function LeaderboardPage({
           {currentUser && (
             <Card className="flex items-center gap-4 p-4 border-2 border-accent bg-accent/10 sticky bottom-4 shadow-2xl transform scale-100">
               <div className="font-medium text-xl w-12 text-center text-accent">
-                #{leaderboardData.indexOf(currentUser) + 1}
+                #{currentUser.rank}
               </div>
               <div className="h-10 w-10 rounded-full bg-accent text-background flex items-center justify-center font-bold text-xs">
                 AC
@@ -129,7 +154,7 @@ export default function LeaderboardPage({
                 <div className="font-bold text-textPrimary">You</div>
                 <div className="text-xs text-textSecondary">{currentUser.tier}</div>
               </div>
-              <div className="font-mono font-bold text-accent">{currentUser.ep.toLocaleString()} EP</div>
+              <div className="font-mono font-bold text-accent">{currentUser.ep.toLocaleString()} XP</div>
             </Card>
           )}
         </div>
