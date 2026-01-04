@@ -1,6 +1,7 @@
 // lib/courses/nlp.ts
 import { dataAcquisitionContent } from "@/lib/content/nlp/unit1/dataAcquisition";
 import { problemStatementContent } from "@/lib/content/nlp/unit1/problemStatement";
+import { nlpQuizzes } from "@/lib/quizzes/nlp/quizzes";
 
 export const nlp = {
     id: "nlp",
@@ -151,73 +152,7 @@ export const nlp = {
             ]
         }
     ],
-    quizzes: [
-        {
-            id: 1,
-            unit: "Unit I",
-            title: "NLP Foundations",
-            difficulty: "Easy",
-            time: "10 min",
-            questions: 1,
-            xp: 100,
-            status: "New",
-            score: "-",
-            questionData: [
-                {
-                    id: 1,
-                    question: "What does NLP stand for?",
-                    options: ["Natural Language Processing", "Neural Linguistic Program", "Native Language Protocol", "Next Level Process"],
-                    correct: 0,
-                    explanation: "NLP refers to Natural Language Processing, a subfield of AI focused on human-computer language interaction."
-                }
-            ]
-        },
-        {
-            id: 2,
-            unit: "Unit I",
-            title: "NLP History & Scope",
-            difficulty: "Medium",
-            time: "15 min",
-            questions: 2,
-            xp: 200,
-            status: "Locked",
-            score: "-",
-            questionData: [
-                {
-                    id: 1,
-                    question: "Which of these was an early rule-based NLP system?",
-                    options: ["SHRDLU", "BERT", "GPT-4", "LSTM"],
-                    correct: 0,
-                    explanation: "SHRDLU was an early natural language understanding program, developed by Terry Winograd at MIT in 1968-1970.",
-                    topics: ['BFS', 'DFS', 'Heuristic Search'],
-                }
-            ]
-        },
-        {
-            id: 3,
-            unit: "Unit I",
-            title: "Advanced NLP Logic",
-            difficulty: "Hard",
-            time: "20 min",
-            questions: 5,
-            xp: 500,
-            status: "Locked",
-            score: "-",
-            questionData: []
-        },
-        {
-            id: 201,
-            unit: "Unit II",
-            title: "Preprocessing Mastery",
-            difficulty: "Easy",
-            time: "12 min",
-            questions: 10,
-            xp: 150,
-            status: "Locked",
-            score: "-",
-            questionData: []
-        }
-    ],
+    quizzes: nlpQuizzes,
     achievements: [
         { id: 1, name: "First Token", icon: "🪙", unlocked: true, desc: "Complete your first NLP lesson" },
         { id: 2, name: "Linguist", icon: "🗣️", unlocked: true, desc: "Maintain a 7-day streak in NLP" },
