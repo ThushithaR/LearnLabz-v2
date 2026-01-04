@@ -17,6 +17,7 @@ export const nlp = {
         numericals: true,
         notes: true,
         calendar: true,
+        important: true,
     },
 
     user: {
@@ -189,7 +190,8 @@ export const nlp = {
                     question: "Which of these was an early rule-based NLP system?",
                     options: ["SHRDLU", "BERT", "GPT-4", "LSTM"],
                     correct: 0,
-                    explanation: "SHRDLU was an early natural language understanding program, developed by Terry Winograd at MIT in 1968-1970."
+                    explanation: "SHRDLU was an early natural language understanding program, developed by Terry Winograd at MIT in 1968-1970.",
+                    topics: ['BFS', 'DFS', 'Heuristic Search'],
                 }
             ]
         },
@@ -241,27 +243,27 @@ export const nlp = {
             title: "TF-IDF Calculation",
             description: "Calculate the TF-IDF score for a given word in a set of documents.",
             topic: "Word Embeddings",
-            difficulty: "Medium",
+            difficulty: "Medium" as const,
             xp: 300,
-            status: "New"
+            status: "New" as const
         },
         {
             id: 2,
             title: "Bigram Probability",
             description: "Compute the conditional probability of a word given the previous word in a corpus.",
             topic: "Language Models",
-            difficulty: "Easy",
+            difficulty: "Easy" as const,
             xp: 150,
-            status: "New"
+            status: "New" as const
         },
         {
             id: 3,
             title: "Viterbi Algorithm",
             description: "Apply the Viterbi algorithm to find the most likely sequence of hidden states.",
             topic: "Sequence Models",
-            difficulty: "Hard",
+            difficulty: "Hard" as const,
             xp: 500,
-            status: "Locked"
+            status: "Locked" as const
         }
     ],
     notes: [
@@ -269,8 +271,9 @@ export const nlp = {
             id: 1,
             title: "Introduction to NLP Basics",
             content: "<h2>Core Concepts</h2><p>Natural Language Processing is bridging the gap between human communication and computer understanding.</p><ul><li><b>Syntax:</b> Sentence structure</li><li><i>Semantics:</i> Meaning of words</li><li><u>Pragmatics:</u> Context of usage</li></ul><p><span style='background-color: #facc15'>Key takeaway:</span> Data quality is crucial for model performance.</p>",
-            type: "Module",
+            type: "Module" as const,
             emoji: "📚"
         }
-    ]
+    ],
+    important: []
 };

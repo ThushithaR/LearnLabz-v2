@@ -1,27 +1,29 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Star, Clock, BookOpen, ArrowRight, Calculator } from "lucide-react";
 import { useCourse } from "@/lib/context/CourseContext";
 import { courses, CourseId } from "@/lib/courses";
+import { StarredQuestion } from "@/lib/types/course";
 
-interface StarredQuestion {
-  id: string;
-  question: string;
-  answer?: string;
-  options?: string[];
-  correct?: number;
-  quizTitle: string;
-  unit: string;
-  difficulty: string;
-  time: string;
-  course: string;
-  moduleId: string;
-  questionIndex: number;
-}
+const createStarredQuestion = (question: any, quiz: any, course: string, index: number): StarredQuestion => ({
+  id: `${course}-${quiz.id}-${index}`,
+  question: question.question,
+  answer: question.options?.[question.correct],
+  options: question.options,
+  correct: question.correct,
+  quizTitle: quiz.title,
+  unit: quiz.unit,
+  difficulty: quiz.difficulty,
+  time: quiz.time,
+  course: course,
+  moduleId: quiz.id.toString(),
+  questionIndex: index
+});
 
 export default function ImportantPage({ params }: { params: { course?: string } }) {
   const { selectedCourse } = useCourse();
@@ -39,6 +41,8 @@ export default function ImportantPage({ params }: { params: { course?: string } 
     const allStarred: StarredQuestion[] = [];
     const allNumericals: StarredQuestion[] = [];
 
+
+
     // Load starred questions from all quizzes in this course
     if (courseData.quizzes) {
       courseData.quizzes.forEach((quiz: any) => {
@@ -49,20 +53,7 @@ export default function ImportantPage({ params }: { params: { course?: string } 
           starredIndices.forEach((index) => {
             const question = quiz.questionData?.[index];
             if (question) {
-              allStarred.push({
-                id: `${course}-${quiz.id}-${index}`,
-                question: question.question,
-                answer: question.options?.[question.correct],
-                options: question.options,
-                correct: question.correct,
-                quizTitle: quiz.title,
-                unit: quiz.unit,
-                difficulty: quiz.difficulty,
-                time: quiz.time,
-                course: course,
-                moduleId: quiz.id.toString(),
-                questionIndex: index
-              });
+              allStarred.push(createStarredQuestion(question, quiz, course, index));
             }
           });
         }
@@ -160,7 +151,7 @@ export default function ImportantPage({ params }: { params: { course?: string } 
           Important Questions
         </h1>
         <p className="text-textSecondary">
-          Quiz questions you've marked as important for review.
+          Pre-defined important questions and those you've marked for review.
         </p>
       </div>
 
@@ -292,9 +283,11 @@ export default function ImportantPage({ params }: { params: { course?: string } 
 
                   {/* Review Button */}
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1 text-xs">
-                      Review Question
-                    </Button>
+                    <Link href={`/dashboard/${course}/quizzes/${item.moduleId}`}>
+                      <Button size="sm" variant="outline" className="flex-1 text-xs">
+                        Review Question
+                      </Button>
+                    </Link>
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-white/5">
@@ -376,9 +369,11 @@ export default function ImportantPage({ params }: { params: { course?: string } 
 
                     {/* Review Button */}
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="flex-1 text-xs">
-                        Solve Numerical
-                      </Button>
+                      <Link href={`/dashboard/${course}/numericals/${item.questionIndex}`}>
+                        <Button size="sm" variant="outline" className="flex-1 text-xs">
+                          Solve Numerical
+                        </Button>
+                      </Link>
                     </div>
 
                     <div className="flex items-center justify-between pt-2 border-t border-white/5">

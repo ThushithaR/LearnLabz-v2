@@ -24,7 +24,8 @@ import {
   PauseCircle,
   PlayCircle,
   Image as ImageIcon,
-  Star
+  Star,
+  RotateCw
 } from "lucide-react";
 
 export default function LessonPage({ params }: { params: { course: string; id: string } }) {
@@ -74,6 +75,12 @@ export default function LessonPage({ params }: { params: { course: string; id: s
       setCompletedLessons(new Array(moduleData.lessons.length).fill(false));
     }
   }, [moduleData]);
+
+  // Scroll to top when lesson changes
+  useEffect(() => {
+    scrollRef.current?.scrollTo(0, 0);
+    window.scrollTo(0, 0);
+  }, [selectedLessonIdx]);
 
   // Load starred questions from localStorage
   useEffect(() => {
@@ -259,14 +266,26 @@ export default function LessonPage({ params }: { params: { course: string; id: s
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const smartHighlightColors = [
     { name: 'Yellow', value: '#facc15' },
-    { name: 'Purple', value: '#a855f7' },
-    { name: 'Cyan', value: '#06b6d4' },
     { name: 'Green', value: '#22c55e' },
-    { name: 'Rose', value: '#fb7185' },
-    { name: 'Orange', value: '#fb923c' },
+    { name: 'Blue', value: '#3b82f6' },
+    { name: 'Purple', value: '#a855f7' },
+    { name: 'Pink', value: '#ec4899' },
+    { name: 'Orange', value: '#f97316' },
   ];
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [pickerPosition, setPickerPosition] = useState({ top: 'auto', left: 'auto', bottom: 'auto', transform: 'none' });
+  const [arrowDirection, setArrowDirection] = useState<'left' | 'right'>('left');
+  const [smartPickerPosition, setSmartPickerPosition] = useState<React.CSSProperties>({ position: 'absolute', left: 'calc(100% + 8px)', top: 'auto', bottom: 'auto', transform: 'none' });
+  const [showLessonColorPicker, setShowLessonColorPicker] = useState(false);
+  const lessonHighlightButtonRef = useRef<HTMLButtonElement>(null);
+  const [lessonPickerPosition, setLessonPickerPosition] = useState({ left: 'calc(100% + 8px)', top: 'auto', bottom: 'auto', transform: 'none' });
+  const [lessonArrowDirection, setLessonArrowDirection] = useState<'left' | 'right'>('left');
 
   const [selectedSmartImg, setSelectedSmartImg] = useState<HTMLImageElement | null>(null);
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [selectedNote, setSelectedNote] = useState<any>(null);
+  const [notes, setNotes] = useState<any[]>(courseData.notes || []);
+  const [editingNote, setEditingNote] = useState<any>(null);
 
   const handleSmartEditorClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -383,35 +402,55 @@ export default function LessonPage({ params }: { params: { course: string; id: s
   };
 
   const handleSaveNotes = () => {
-    // Mock save
-    alert("Notes saved to module notes!");
+    const editor = document.getElementById('module-notes-editor');
+    if (editor) {
+      const content = editor.innerHTML;
+      if (content.trim()) {
+        if (editingNote) {
+          // Update existing note
+          setNotes(prev => prev.map(note =>
+            note.id === editingNote.id
+              ? { ...note, content: content, createdAt: new Date().toISOString() }
+              : note
+          ));
+          setEditingNote(null);
+          alert("Note updated successfully!");
+        } else {
+          // Create new note
+          const newNote = {
+            id: Date.now().toString(),
+            title: `Note ${notes.length + 1}`,
+            content: content,
+            createdAt: new Date().toISOString(),
+          };
+          setNotes(prev => [...prev, newNote]);
+          alert("Note saved successfully!");
+        }
+        editor.innerHTML = ''; // Clear editor after saving
+      } else {
+        alert("Please add some content before saving.");
+      }
+    }
   };
 
-  // Remove automatic text selection handling
-  // const handleTextSelection = () => {
-  //   const selection = window.getSelection();
-  //   if (selection && selection.toString().length > 0) {
-  //     const selectedText = selection.toString();
-  //     const range = selection.getRangeAt(0);
+  const handleTextSelection = () => {
+    const selection = window.getSelection();
+    if (selection && selection.toString().length > 0) {
+      const selectedText = selection.toString();
+      const range = selection.getRangeAt(0);
 
-  //     // Check if selection is within the notes editor
-  //     const editor = document.getElementById('module-notes-editor');
-  //     if (editor && editor.contains(range.commonAncestorContainer)) {
-  //       setSelectedText(selectedText);
-  //       setSelectionRange(range.cloneRange());
+      // Check if selection is within the lesson content (not notes editor)
+      const lessonContent = document.querySelector('.max-w-3xl.mx-auto');
+      if (lessonContent && lessonContent.contains(range.commonAncestorContainer)) {
+        setSelectedText(selectedText);
+        setSelectionRange(range.cloneRange());
+        setNotesOpen(true); // Open notes panel to access highlight button
+        // Color picker will be opened manually by clicking the highlight button
+      }
+    }
+  };
 
-  //       // Show color picker near selection
-  //       const rect = range.getBoundingClientRect();
-  //       setColorPickerPosition({
-  //         x: rect.left + rect.width / 2,
-  //         y: rect.top - 10
-  //       });
-  //       setShowColorPicker(true);
-  //     }
-  //   }
-  // };
-
-  const applyHighlight = (color: string) => {
+const applyHighlight = (color: string) => {
     if (selectionRange && selectedText) {
       const span = document.createElement('span');
       span.style.backgroundColor = color;
@@ -452,7 +491,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
     window.getSelection()?.removeAllRanges();
   };
 
-  const removeHighlight = (id: string) => {
+const removeHighlight = (id: string) => {
     setHighlights(prev => prev.filter(h => h.id !== id));
     const storageKey = `highlights_${course}_${moduleData.id}_${lessonData.id}`;
     const savedHighlights = JSON.parse(localStorage.getItem(storageKey) || '[]');
@@ -470,10 +509,15 @@ export default function LessonPage({ params }: { params: { course: string; id: s
     alert("Highlight data removed. You can now delete the text manually if needed.");
   };
 
-  const handleSaveSelection = () => {
+const handleSaveSelection = () => {
     const selection = window.getSelection();
     if (selection && selection.toString().length > 0) {
-      const text = selection.toString();
+      const range = selection.getRangeAt(0);
+      const clonedContent = range.cloneContents();
+      const div = document.createElement('div');
+      div.appendChild(clonedContent);
+      const htmlContent = div.innerHTML;
+
       const editor = document.getElementById('module-notes-editor');
       if (editor) {
         // Create a blockquote for the captured text
@@ -483,19 +527,16 @@ export default function LessonPage({ params }: { params: { course: string; id: s
         blockquote.style.margin = '8px 0';
         blockquote.style.opacity = '0.8';
         blockquote.style.fontStyle = 'italic';
-        blockquote.textContent = text;
-
-        const breakLine = document.createElement('br');
+        blockquote.innerHTML = htmlContent;
 
         editor.appendChild(blockquote);
-        editor.appendChild(breakLine);
       }
     } else {
       alert("Please select some text in the lesson first!");
     }
   };
 
-  // Load highlights from localStorage on component mount
+   // Load highlights from localStorage on component mount
   useEffect(() => {
     const savedHighlights = JSON.parse(localStorage.getItem(`highlights_${course}_${moduleData.id}_${lessonData.id}`) || '[]');
     setHighlights(savedHighlights);
@@ -515,6 +556,53 @@ export default function LessonPage({ params }: { params: { course: string; id: s
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [showColorPicker]);
+
+  // Click outside handler for smart color picker
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showSmartColorPicker) {
+        const target = event.target as Element;
+        if (!target.closest('.smart-color-picker') && !buttonRef.current?.contains(target)) {
+          setShowSmartColorPicker(false);
+        }
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showSmartColorPicker]);
+
+  // Dynamic positioning for smart color picker
+  useEffect(() => {
+    if (showSmartColorPicker && buttonRef.current) {
+      const buttonRect = buttonRef.current.getBoundingClientRect();
+      const toolbarRect = buttonRef.current.parentElement?.getBoundingClientRect();
+      const containerRect = buttonRef.current.parentElement?.parentElement?.getBoundingClientRect();
+      if (!toolbarRect || !containerRect) return;
+
+      const pickerWidth = 140;
+      const toolbarWidth = toolbarRect.width;
+      const buttonLeftRelative = buttonRect.left - toolbarRect.left;
+
+      let left: number;
+      let arrowDirection: 'left' | 'right';
+
+      if (buttonLeftRelative + pickerWidth <= toolbarWidth) {
+        left = buttonLeftRelative;
+        arrowDirection = 'left';
+      } else if (buttonLeftRelative - pickerWidth >= 0) {
+        left = buttonLeftRelative - pickerWidth;
+        arrowDirection = 'right';
+      } else {
+        left = buttonLeftRelative;
+        arrowDirection = 'left';
+      }
+
+      const top = toolbarRect.height;
+      setSmartPickerPosition({ position: 'absolute', top: `${top}px`, left: `${left}px`, bottom: 'auto', transform: 'none' });
+      setArrowDirection(arrowDirection);
+    }
+  }, [showSmartColorPicker]);
 
   // Resizing Logic
   useEffect(() => {
@@ -541,6 +629,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isResizing]);
+
 
   // START OVERLAY
   if (!hasStarted) {
@@ -1110,9 +1199,9 @@ export default function LessonPage({ params }: { params: { course: string; id: s
           {notesOpen && (
             <div className="p-4 space-y-4 flex-1 flex flex-col">
               {activeTab === 'reading' && (
-                <div className="flex flex-col gap-2 h-full">
+                <div className="flex flex-col gap-2 h-full border border-white/10 rounded-xl overflow-visible relative">
                   {/* Rich Text Toolbar */}
-                  <div className="flex items-center gap-1 bg-surface/50 backdrop-blur-md p-1.5 rounded-t-xl border border-white/10 border-b-0 overflow-visible relative">
+                  <div className="flex items-center gap-1 bg-surface/50 backdrop-blur-md p-1.5 overflow-visible relative">
                     <button
                       onClick={() => document.execCommand('bold')}
                       onMouseDown={(e) => e.preventDefault()}
@@ -1138,52 +1227,20 @@ export default function LessonPage({ params }: { params: { course: string; id: s
                       U
                     </button>
 
-                    <div className="relative">
-                      <button
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          setShowSmartColorPicker(!showSmartColorPicker);
-                        }}
-                        className={cn(
-                          "p-2 rounded-lg w-7 h-7 flex items-center justify-center transition-all hover:scale-110",
-                          showSmartColorPicker ? "bg-white/20" : "hover:bg-white/10"
-                        )}
-                        title="Highlight"
-                      >
-                        <div className="w-2.5 h-2.5 rounded-full bg-accent"></div>
-                      </button>
-
-                      {showSmartColorPicker && (
-                        <div
-                          className="absolute left-full bottom-full ml-2 z-[100] bg-surface/95 backdrop-blur-xl border border-white/20 rounded-xl p-2 shadow-2xl min-w-[140px] animate-in zoom-in slide-in-from-left-1 duration-200"
-                          onMouseDown={(e) => e.preventDefault()}
-                        >
-                          <div className="grid grid-cols-3 gap-1.5 mb-2">
-                            {smartHighlightColors.map((color) => (
-                              <button
-                                key={color.value}
-                                onClick={() => applySmartColor(color.value)}
-                                onMouseDown={(e) => e.preventDefault()}
-                                className="w-8 h-8 rounded-lg border border-white/10 hover:scale-110 active:scale-95 transition-all shadow-sm flex items-center justify-center group"
-                                style={{ backgroundColor: color.value }}
-                                title={color.name}
-                              >
-                                <div className="w-1.5 h-1.5 rounded-full bg-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                              </button>
-                            ))}
-                          </div>
-                          <button
-                            onClick={() => applySmartColor('transparent')}
-                            onMouseDown={(e) => e.preventDefault()}
-                            className="w-full py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-textSecondary hover:text-white transition-all text-[9px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 border border-white/5"
-                          >
-                            <X className="w-3 h-3" /> Clear
-                          </button>
-                          {/* Arrow pointing left, aligned with the bottom corner */}
-                          <div className="absolute bottom-2 -left-1 w-2 h-2 bg-surface border-l border-b border-white/20 rotate-45" />
-                        </div>
+                    <button
+                      ref={buttonRef}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setShowSmartColorPicker(!showSmartColorPicker);
+                      }}
+                      className={cn(
+                        "p-2 rounded-lg w-7 h-7 flex items-center justify-center transition-all hover:scale-110",
+                        showSmartColorPicker ? "bg-white/20" : "hover:bg-white/10"
                       )}
-                    </div>
+                      title="Highlight"
+                    >
+                      <div className="w-2.5 h-2.5 rounded-full bg-accent"></div>
+                    </button>
 
                     <div className="h-4 w-[1px] bg-white/10 mx-1"></div>
                     <button
@@ -1204,7 +1261,94 @@ export default function LessonPage({ params }: { params: { course: string; id: s
                     >
                       + Capture
                     </Button>
+                    <button
+                      onClick={() => setShowNotesModal(true)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      className="p-1 hover:bg-white/10 rounded text-[10px] w-6 h-6 flex items-center justify-center transition-all hover:scale-110 text-textSecondary hover:text-white"
+                      title="View All Notes"
+                    >
+                      <RotateCw className="w-3 h-3" />
+                    </button>
                   </div>
+
+                  {/* Smart Color Picker */}
+                  {showSmartColorPicker && (
+                    <div
+                      className="smart-color-picker absolute z-[100] bg-surface/95 backdrop-blur-xl border border-white/20 rounded-xl p-2 shadow-2xl min-w-[140px] animate-in zoom-in slide-in-from-left-1 duration-200"
+                      style={smartPickerPosition}
+                    >
+                      <div className="grid grid-cols-3 gap-1.5 mb-2">
+                        {smartHighlightColors.map((color) => (
+                          <button
+                            key={color.value}
+                            onClick={() => applySmartColor(color.value)}
+                            onMouseDown={(e) => e.preventDefault()}
+                            className="w-8 h-8 rounded-lg border border-white/10 hover:scale-110 active:scale-95 transition-all shadow-sm flex items-center justify-center group"
+                            style={{ backgroundColor: color.value }}
+                            title={color.name}
+                          >
+                            <div className="w-1.5 h-1.5 rounded-full bg-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => applySmartColor('transparent')}
+                        onMouseDown={(e) => e.preventDefault()}
+                        className="w-full py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-textSecondary hover:text-white transition-all text-[9px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 border border-white/5"
+                      >
+                        <X className="w-3 h-3" /> Clear
+                      </button>
+                      {/* Arrow pointing left, aligned with the bottom corner */}
+                      <div className={`absolute bottom-2 ${arrowDirection === 'left' ? '-left-1' : '-right-1'} w-2 h-2 bg-surface border-l border-b border-white/20 ${arrowDirection === 'left' ? 'rotate-45' : '-rotate-45'}`} />
+                    </div>
+                  )}
+
+                  {/* Highlight Color Picker in Sidebar */}
+                  {showColorPicker && (
+                    <div className="bg-surface/50 backdrop-blur-md p-3 rounded-lg border border-white/10">
+                      <h5 className="text-xs font-bold text-textSecondary uppercase mb-2">Highlight Colors</h5>
+                      <div className="grid grid-cols-3 gap-1">
+                        {highlightColors.map((color) => (
+                          <button
+                            key={color.value}
+                            onClick={() => applyHighlight(color.value)}
+                            className="w-8 h-8 rounded border border-white/20 hover:scale-110 transition-transform"
+                            style={{ backgroundColor: color.value }}
+                            title={color.name}
+                          />
+                        ))}
+                      </div>
+
+                      {highlights.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-white/10">
+                          <h6 className="text-[10px] font-bold text-textSecondary uppercase mb-2">Active Highlights</h6>
+                          <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                            {highlights.map(h => (
+                              <div key={h.id} className="flex items-center justify-between gap-2 p-1.5 bg-black/20 rounded border border-white/5 group">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: h.color }}></div>
+                                  <span className="text-[10px] text-textSecondary truncate">{h.text}</span>
+                                </div>
+                                <button
+                                  onClick={() => removeHighlight(h.id)}
+                                  className="text-textSecondary hover:text-red-400 transition-opacity"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => setShowColorPicker(false)}
+                        className="mt-2 w-full text-xs text-textSecondary hover:text-white transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
 
                   <h4 className="sr-only">My Notes</h4>
                   <div className="relative flex-1 min-h-[160px]">
@@ -1248,56 +1392,81 @@ export default function LessonPage({ params }: { params: { course: string; id: s
         </div>
       </div>
 
-      {/* Color Picker for Text Highlighting */}
-      {showColorPicker && (
-        <div
-          className="fixed z-50 bg-surface border border-white/20 rounded-lg shadow-2xl p-2"
-          style={{
-            left: `${colorPickerPosition.x - 100}px`,
-            top: `${colorPickerPosition.y - 80}px`,
-            transform: 'translateX(-50%)'
-          }}
-        >
-          <div className="grid grid-cols-3 gap-1">
-            {highlightColors.map((color) => (
+
+
+      {/* Notes Modal */}
+      {showNotesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-surface border border-white/10 rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-textPrimary">All Saved Notes</h2>
               <button
-                key={color.value}
-                onClick={() => applyHighlight(color.value)}
-                className="w-8 h-8 rounded border border-white/20 hover:scale-110 transition-transform"
-                style={{ backgroundColor: color.value }}
-                title={color.name}
-              />
-            ))}
-          </div>
-
-          {highlights.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-white/10">
-              <h5 className="text-[10px] font-bold text-textSecondary uppercase mb-2">Active Highlights</h5>
-              <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
-                {highlights.map(h => (
-                  <div key={h.id} className="flex items-center justify-between gap-2 p-1.5 bg-black/20 rounded border border-white/5 group">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: h.color }}></div>
-                      <span className="text-[10px] text-textSecondary truncate">{h.text}</span>
-                    </div>
-                    <button
-                      onClick={() => removeHighlight(h.id)}
-                      className="text-textSecondary hover:text-red-400 transition-opacity"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
+                onClick={() => setShowNotesModal(false)}
+                className="p-2 hover:bg-white/10 rounded-full text-textSecondary hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-          )}
-
-          <button
-            onClick={() => setShowColorPicker(false)}
-            className="mt-2 w-full text-xs text-textSecondary hover:text-white transition-colors"
-          >
-            Cancel
-          </button>
+            <div className="space-y-4">
+              {selectedNote ? (
+                <div className="space-y-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedNote(null)}
+                    className="mb-4"
+                  >
+                    ← Back to Notes List
+                  </Button>
+                  <div className="p-4 bg-surface/50 rounded-lg border border-white/5">
+                    <div className="flex items-start gap-2 mb-4">
+                      {selectedNote.emoji && <span className="text-lg">{selectedNote.emoji}</span>}
+                      <div className="flex-1">
+                        <h3 className="font-medium text-textPrimary">{selectedNote.title}</h3>
+                        {selectedNote.subtitle && <p className="text-sm text-textSecondary">{selectedNote.subtitle}</p>}
+                      </div>
+                    </div>
+                    <div className="text-textSecondary prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: selectedNote.content }} />
+                    {selectedNote.createdAt && (
+                      <p className="text-xs text-textSecondary mt-4">
+                        Created: {new Date(selectedNote.createdAt).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {courseData.notes && courseData.notes.length > 0 ? (
+                    courseData.notes.map((note, index) => (
+                      <div
+                        key={note.id}
+                        className="p-4 bg-surface/50 rounded-lg border border-white/5 cursor-pointer hover:bg-surface/70 transition-colors"
+                        onClick={() => setSelectedNote(note)}
+                      >
+                        <div className="flex items-start gap-2 mb-2">
+                          {note.emoji && <span className="text-lg">{note.emoji}</span>}
+                          <div className="flex-1">
+                            <h3 className="font-medium text-textPrimary">{note.title}</h3>
+                            {note.subtitle && <p className="text-sm text-textSecondary">{note.subtitle}</p>}
+                          </div>
+                          <Button size="sm" variant="ghost" className="text-xs" onClick={(e) => { e.stopPropagation(); setShowNotesModal(false); const editor = document.getElementById('module-notes-editor'); if (editor) { editor.innerHTML = note.content; } }}>
+                            Edit
+                          </Button>
+                        </div>
+                        {note.createdAt && (
+                          <p className="text-xs text-textSecondary mt-2">
+                            Created: {new Date(note.createdAt).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-textSecondary">No notes saved yet.</p>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
