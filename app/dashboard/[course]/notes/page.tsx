@@ -2,11 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
-import { courses, CourseId } from "@/lib/courses";
+import { courses, CourseId, COURSE_ID_MAP } from "@/lib/courses";
 import { Note } from "@/lib/types/course";
 import { useCourse } from "@/lib/context/CourseContext";
-import { ChevronLeft, ChevronRight, Maximize2, Minimize2, X, Image as ImageIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Maximize2, Minimize2, X, Image as ImageIcon, Save, Trash } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getCurrentUserProfile } from "@/lib/supabase/profile";
+import { getUserNotes, createNote, updateNoteById, deleteNoteById } from "@/lib/supabase/notes";
 
 export default function NotesPage({
   params,
@@ -20,27 +22,13 @@ export default function NotesPage({
   }
 
   // Ensure that notes are correctly typed and fall back to an empty array if undefined
-  const [notes, setNotes] = useState<Note[]>(
-    ((courseData.notes as Note[])?.length > 0 ? (courseData.notes as Note[]) : [
-      {
-        id: 1,
-        title: "NLP Unit 1 Reflection",
-        subtitle: "Key takeaways from unit 1",
-        content: "<h2>My Progress</h2><p>I have learned the <b>basics of Tokenization</b> and how it differs from stemming.</p><p><span style='background-color: #facc15'>Important:</span> Always use lemmatization for better root extraction.</p>",
-        type: "Module",
-      },
-      {
-        id: 2,
-        title: "Study Schedule",
-        subtitle: "Weekly goals",
-        content: "<ul><li>Monday: Text Preprocessing</li><li>Wednesday: Word Embeddings</li><li>Friday: Project Work</li></ul>",
-        type: "General",
-      }
-    ])
-  );
+  const [notes, setNotes] = useState<Note[]>([]);
 
-  const [activeNoteId, setActiveNoteId] = useState<number>(notes[0]?.id || 1);
+  const course_id = COURSE_ID_MAP[params.course];
+  const [activeNoteId, setActiveNoteId] = useState<number | null>(null);
   const activeNote = notes.find((n) => n.id === activeNoteId) || null;
+
+  const [userId, setUserId] = useState<number | null>(null);
 
   // New Features: Sidebar Collapse & Fullscreen
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -80,7 +68,7 @@ export default function NotesPage({
       // Manually trigger the note update for content change after deletion
       const editor = document.getElementById('notes-editor');
       if (editor) {
-        updateNote("content", editor.innerHTML);
+        updateNoteLocal("content", editor.innerHTML);
       }
     }
   };
@@ -107,7 +95,7 @@ export default function NotesPage({
     }
 
     // Sync state
-    updateNote("content", editorRef.current.innerHTML);
+    updateNoteLocal("content", editorRef.current.innerHTML);
     setShowColorPicker(false);
   };
 
@@ -131,7 +119,7 @@ export default function NotesPage({
       // Update state
       const editor = document.getElementById('notes-editor');
       if (editor) {
-        updateNote("content", editor.innerHTML);
+        updateNoteLocal("content", editor.innerHTML);
       }
     }
   };
@@ -156,37 +144,122 @@ export default function NotesPage({
     input.click();
   };
 
-  const handleCreateNote = () => {
-    if (!newNoteData.title.trim()) return;
 
-    const newNote: Note = {
-      id: Date.now(),
-      title: newNoteData.title,
-      subtitle: newNoteData.subtitle,
-      content: "",
-      type: "General",
-    };
-    setNotes([...notes, newNote]);
-    setActiveNoteId(newNote.id);
-    setIsCreatingNote(false);
-    setNewNoteData({ title: "", subtitle: "" });
+
+  /* =========================
+     Load notes from Supabase
+     ========================= */
+useEffect(() => {
+  async function load() {
+    const user = await getCurrentUserProfile();
+    if (!user) return;
+
+    setUserId(user.user_id);
+
+    const { data } = await getUserNotes(user.user_id, course_id);
+    if (!data) return;
+
+    const mapped: Note[] = data.map((n: any) => ({
+      id: n.note_id,
+      title: n.note_title ?? "",
+      subtitle: n.note_subtitle ?? "",
+      content: n.note_content?.html ?? "",
+      type: n.note_type === "MODULE" ? "Module" : "General",
+    }));
+
+    setNotes(mapped);
+    setActiveNoteId(mapped[0]?.id ?? null);
+  }
+
+  load();
+}, [course_id]);
+useEffect(() => {
+  if (editorRef.current && activeNote) {
+    editorRef.current.innerHTML = activeNote.content || "";
+  }
+}, [activeNote]);
+
+  /* =========================
+     Create note (Supabase)
+     ========================= */
+const handleCreateNote = async () => {
+  if (!userId || !newNoteData.title.trim()) return;
+
+  const { data, error } = await createNote({
+    user_id: userId,
+    course_id,
+    note_type: "GENERAL",
+    note_title: newNoteData.title,
+    note_subtitle: newNoteData.subtitle,
+    note_content: { html: "" },
+    source: "MANUAL",
+  });
+
+  if (error || !data) {
+    console.error(error);
+    return;
+  }
+
+  const newNote: Note = {
+    id: data.note_id,
+    title: data.note_title ?? "",
+    subtitle: data.note_subtitle ?? "",
+    content: "",
+    type: "General",
   };
 
-  const updateNote = (field: keyof Note, value: string) => {
-    setNotes(prevNotes =>
-      prevNotes.map((n) => (n.id === activeNoteId ? { ...n, [field]: value } : n))
+  // ✅ Optimistic UI update
+  setNotes((prev) => [newNote, ...prev]);
+  setActiveNoteId(newNote.id);
+
+  setIsCreatingNote(false);
+  setNewNoteData({ title: "", subtitle: "" });
+
+  // focus editor
+  setTimeout(() => editorRef.current?.focus(), 50);
+};
+  /* =========================
+     Local edits ONLY (no DB)
+     ========================= */
+  const updateNoteLocal = (field: keyof Note, value: any) => {
+    setNotes((prev) =>
+      prev.map((n) =>
+        n.id === activeNoteId ? { ...n, [field]: value } : n
+      )
     );
   };
 
-  // Sync editor content when active note changes
-  useEffect(() => {
-    if (editorRef.current && activeNote) {
-      // Only update if content is different to avoid cursor jumps
-      if (editorRef.current.innerHTML !== activeNote.content) {
-        editorRef.current.innerHTML = activeNote.content;
-      }
-    }
-  }, [activeNoteId]);
+  /* =========================
+     SAVE to Supabase (manual)
+     ========================= */
+  const handleSave = async () => {
+    if (!activeNote) return;
+
+    await updateNoteById(activeNote.id, {
+      note_title: activeNote.title,
+      note_subtitle: activeNote.subtitle,
+      note_type: activeNote.type === "Module" ? "MODULE" : "GENERAL",
+      note_content: { html: activeNote.content },
+    });
+
+    alert("Notes saved!");
+  };
+
+  /* =========================
+     DELETE note (Supabase)
+     ========================= */
+const handleDelete = async () => {
+  if (!activeNote) return;
+
+  // optimistic remove
+  setNotes((prev) => prev.filter((n) => n.id !== activeNote.id));
+
+  const remaining = notes.filter((n) => n.id !== activeNote.id);
+  setActiveNoteId(remaining.length ? remaining[0].id : null);
+
+  await deleteNoteById(activeNote.id);
+};
+
 
   return (
     <div className={cn("flex transition-all duration-300", isFullscreen ? "fixed inset-0 z-50 bg-background h-screen" : "h-[calc(100vh-8rem)] -m-6")}>
@@ -281,7 +354,7 @@ export default function NotesPage({
             <input
               type="text"
               value={activeNote.title}
-              onChange={(e) => updateNote("title", e.target.value)}
+              onChange={(e) => updateNoteLocal("title", e.target.value)}
               className="w-full bg-transparent text-4xl font-bold text-textPrimary placeholder:text-white/20 focus:outline-none mb-2 border-none text-center"
               placeholder="Title"
             />
@@ -289,7 +362,7 @@ export default function NotesPage({
               <input
                 type="text"
                 value={activeNote.subtitle}
-                onChange={(e) => updateNote("subtitle", e.target.value)}
+                onChange={(e) => updateNoteLocal("subtitle", e.target.value)}
                 className="w-full bg-transparent text-lg text-textSecondary placeholder:text-white/10 focus:outline-none mb-8 border-none text-center"
                 placeholder="Subtitle"
               />
@@ -299,7 +372,7 @@ export default function NotesPage({
               <select
                 value={activeNote.type}
                 onChange={(e) =>
-                  updateNote("type", e.target.value as "Module" | "General")
+                  updateNoteLocal("type", e.target.value as "Module" | "General")
                 }
                 className="bg-surface border border-white/10 rounded px-3 py-1 text-sm text-textSecondary outline-none focus:border-accent"
               >
@@ -395,6 +468,22 @@ export default function NotesPage({
               >
                 <ImageIcon className="w-4 h-4" />
               </button>
+              <div className="h-6 w-[1px] bg-white/10 mx-1"></div>
+              <button
+                onClick={handleSave}
+                className="p-2 hover:bg-white/10 rounded-xl text-sm w-10 h-10 flex items-center justify-center transition-all hover:scale-110 text-textSecondary hover:text-white"
+                title="Save Notes"
+              >
+                <Save className="w-4 h-4" />
+              </button>
+              <div className="h-6 w-[1px] bg-white/10 mx-1"></div>
+              <button
+                onClick={handleDelete}
+                className="p-2 hover:bg-white/10 rounded-xl text-sm w-10 h-10 flex items-center justify-center transition-all hover:scale-110 text-textSecondary hover:text-white"
+                title="Delete Note"
+              >
+                <Trash className="w-4 h-4" />
+              </button>
             </div>
 
             <div className="relative">
@@ -403,7 +492,7 @@ export default function NotesPage({
                 id="notes-editor"
                 contentEditable
                 suppressContentEditableWarning
-                onInput={(e) => updateNote("content", e.currentTarget.innerHTML)}
+                onInput={(e) => updateNoteLocal("content", e.currentTarget.innerHTML)}
                 onClick={handleEditorClick}
                 className="w-full min-h-[60vh] bg-transparent text-lg text-textSecondary leading-relaxed focus:outline-none placeholder:text-white/10 prose prose-invert max-w-none [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-xl [&_img]:my-4 [&_img]:border [&_img]:border-white/10 [&_img]:cursor-pointer [&_img]:transition-all [&_img]:select-none [&_img.selected]:ring-4 [&_img.selected]:ring-accent"
               />

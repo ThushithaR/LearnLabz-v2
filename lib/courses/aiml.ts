@@ -180,12 +180,6 @@ export const aiml = {
     { rank: 5, name: "Grace Hopper", tier: "Curious Scholar", ep: 11000, avatar: "GH" },
     { rank: 142, name: "Alex Chen (You)", tier: "Algorithm Adept", ep: 1250, isUser: true, avatar: "AC" },
   ],
-  notes: [
-      { id: 1, title: "Heuristics Draft", content: "Heuristics are crucial for informed search...\n\n\"A admissible heuristic never overestimates the cost.\"\n\nThings to remember regarding Euclidean vs Manhattan distance:\n- Manhattan is good for grid movements (4-way)\n- Euclidean is better for any-angle movement", type: "Module" as const, emoji: "📝" },
-      { id: 2, title: "Project Ideas", content: "1. AI Chess Bot\n2. Pathfinding Visualizer\n3. Spam Classifier", type: "General" as const, emoji: "💡" },
-      { id: 3, title: "Heuristic Algorithms", content: "Heuristic algorithms are used in AI to find solutions faster...\n\n- A* algorithm\n- Greedy algorithm", type: "Module" as const, emoji: "🧠" },
-      { id: 4, title: "AI Ethics", content: "What are the ethical implications of AI?\n- AI bias\n- Privacy concerns", type: "General" as const, emoji: "⚖️" },
-    ],
     numericals : [
     { id: 402, title: "Optimal Move - Minimax", description: "Game Theory", topic: "Practical", difficulty: "Hard" as const, status: "Pending" as const, xp: 50, topics :["Minimax","Alpha-beta pruning"]},
     { id: 105, title: "A* Heuristic Estimation", description: "Informed Search", topic: "Practical", difficulty: "Medium" as const, status: "Completing" as const, xp: 30 },
@@ -198,5 +192,6 @@ export const aiml = {
     { id: 2, title: "Project Submission", date: "2025-12-24", importance: "High" as const, time: "23:59", done: true },
     { id: 3, title: "AI Ethics Discussion", date: "2025-12-25", importance: "Normal" as const, time: "10:00" },
   ],
-  important: []
+  important: [],
+  notes:[]
 }

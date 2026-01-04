@@ -252,5 +252,7 @@ export const nlp = {
             status: "Locked" as const
         }
     ],
-    important: []
+    important: [],
+    notes:[],
+    leaderboard:[]
 };

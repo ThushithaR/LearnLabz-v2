@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {updateUserStreak} from "@/lib/supabase/progress"
-import {supabase} from "@/lib/supabase/client"
+import { supabase } from "@/lib/supabase/client";
 import {
   getCalendarEvents,
   addCalendarEvent,
@@ -42,7 +41,7 @@ export default function CalendarPage() {
     importance: "NORMAL" as "NORMAL" | "HIGH" | "CRITICAL",
   });
 
-  const [activeDays, setActiveDays] = useState<Set<number>>(new Set());
+  const [activeDays, setActiveDays] = useState<Set<string>>(new Set());
 
   /* =========================
      Load events + streak days
@@ -57,33 +56,26 @@ export default function CalendarPage() {
       const { data } = await getCalendarEvents(user.user_id);
       if (data) setEvents(data);
 
-      // 🔥 Build streak only from continuous login days
-      const { data: userCourses } = await supabase
+      // 🔥 get streak count from Supabase
+      const { data: course } = await supabase
         .from("user_courses")
-        .select("last_active")
+        .select("streak_days")
         .eq("user_id", user.user_id)
-        .order("last_active", { ascending: false });
+        .single();
 
-      if (!userCourses || userCourses.length === 0) return;
+      if (!course?.streak_days) return;
 
-      const streakSet = new Set<number>();
-      let streakDate = new Date(); // today
-      streakDate.setHours(0, 0, 0, 0);
+      const streakSet = new Set<string>();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-      for (const uc of userCourses) {
-        const login = new Date(uc.last_active);
-        login.setHours(0, 0, 0, 0);
-
-        const diff = (streakDate.getTime() - login.getTime()) / 86400000;
-
-        if (diff === 0 || diff === 1) {
-          // today or yesterday
-          streakSet.add(streakDate.getDate());
-          streakDate.setDate(streakDate.getDate() - 1);
-        } else {
-          // streak broken
-          break;
-        }
+      for (let i = 0; i < course.streak_days; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        streakSet.add(`${y}-${m}-${day}`);
       }
 
       setActiveDays(streakSet);
@@ -229,6 +221,8 @@ export default function CalendarPage() {
             const dayEvents = getEventsForDay(day);
             const isToday = day === todayNum;
 
+            const dayKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
             return (
               <Card
                 key={i}
@@ -248,7 +242,7 @@ export default function CalendarPage() {
                   >
                     {day}
                   </span>
-                  {activeDays.has(day) && (
+                  {activeDays.has(dayKey) && (
                     <Flame className="w-3 h-3 text-orange-500" />
                   )}
                 </div>
@@ -286,9 +280,6 @@ export default function CalendarPage() {
         </div>
       </Card>
 
-      {/* =========================
-         Add Event Modal
-      ========================= */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <Card className="w-full max-w-md p-6">

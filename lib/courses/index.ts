@@ -9,3 +9,8 @@ export const courses: Record<CourseId, Course> = {
   aiml,
   nlp,
 }
+
+export const COURSE_ID_MAP: Record<CourseId, number> = {
+  aiml: 1,
+  nlp: 2,
+};
