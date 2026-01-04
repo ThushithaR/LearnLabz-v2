@@ -1,0 +1,420 @@
+import React from 'react';
+import { ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import ProblemStatement from '../components/learning/ProblemStatement';
+import './lesson-view.css';
+
+const DataAcquisitionNLP = () => {
+    const navigate = useNavigate();
+
+    const handleBack = () => {
+        navigate('/learning-path');
+    };
+
+    const handleComplete = () => {
+        alert('Lesson Completed! +50 XP');
+    };
+
+    return (
+        <div className="data-acquisition-container">
+            {/* Header with Back Button */}
+            <div className="data-acquisition-header">
+                <button
+                    onClick={handleBack}
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '0.5rem 1rem',
+                        marginRight: 'auto',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                    }}
+                    className="back-link"
+                >
+                    <ArrowLeft size={18} />
+                    Back to Unit II
+                </button>
+                <button
+                    onClick={handleComplete}
+                    style={{
+                        padding: '0.75rem 1.5rem',
+                        backgroundColor: 'var(--accent)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '1rem',
+                        fontWeight: '500',
+                    }}
+                >
+                    Mark as Complete
+                </button>
+            </div>
+
+            {/* Main Content */}
+            <div className="data-acquisition-content">
+                <div className="lesson-content-wrapper">
+                    <h1 style={{ marginBottom: '1rem', fontSize: '2rem', color: 'var(--text-primary)' }}>
+                        Data Acquisition
+                    </h1>
+
+                    <div style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontSize: '0.95rem' }}>
+                        <span>Reading • 50 min</span>
+                    </div>
+
+                    {/* Placeholder Content */}
+                    <div
+                        style={{
+                            background: 'var(--bg-secondary)',
+                            padding: '1.5rem',
+                            borderRadius: '8px',
+                            marginBottom: '2rem',
+                            borderLeft: '4px solid var(--accent)',
+                        }}
+                    >
+                        <h2 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Quote of the Day</h2>
+                        <p style={{ marginBottom: '0.5rem' }}>
+                            "If we have data, let's look at data. If all we have are opinions, let's go with mine."
+                        </p>
+                        <p style={{ fontSize: '0.85rem', fontStyle: 'italic', color: 'var(--text-secondary)', textAlign: 'right' }}>
+                            — Jim Barksdale, former CEO of Netscape
+                        </p>
+                    </div>
+
+                    <div style={{ marginBottom: '2rem' }}>
+                        <h2 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Introduction</h2>
+                        <p>
+                            In industrial Machine Learning, the most significant challenge is rarely the algorithm; it is the data acquisition process. In an academic environment, you are typically provided with a complete dataset. In a professional setting, you often start with no data at all.
+                            This module covers the practical strategies used to gather and build a dataset for NLP system.
+                        </p>
+                    </div>
+
+                    <div
+                        style={{
+                            background: 'var(--bg-secondary)',
+                            padding: '1.5rem',
+                            borderRadius: '8px',
+                            marginBottom: '2rem',
+                        }}
+                    >
+                        <h2 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Learning Objectives</h2>
+                        <p style={{ marginBottom: '0.75rem' }}>
+                            By the end of this lesson, you will be able to:
+                        </p>
+                        <ul
+                            style={{
+                                listStyle: 'none',
+                                paddingLeft: 0,
+                                color: 'var(--text-primary)',
+                            }}
+                        >
+                            <li style={{ marginBottom: '0.5rem', paddingLeft: '1.5rem', position: 'relative' }}>
+                                <span style={{ position: 'absolute', left: 0 }}>✓</span>
+                                Identify reliable data sources for NLP projects
+                            </li>
+                            <li style={{ marginBottom: '0.5rem', paddingLeft: '1.5rem', position: 'relative' }}>
+                                <span style={{ position: 'absolute', left: 0 }}>✓</span>
+                                Implement data collection pipelines
+                            </li>
+                            <li style={{ marginBottom: '0.5rem', paddingLeft: '1.5rem', position: 'relative' }}>
+                                <span style={{ position: 'absolute', left: 0 }}>✓</span>
+                                Handle common data acquisition challenges
+                            </li>
+                        </ul>
+                    </div> 
+
+
+                    {/* Example Problem Statement */}
+                    <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid var(--border-color)' }}>
+                        <h2 style={{ marginBottom: '1.5rem', fontSize: '1.5rem' }}>Let's begin with a real-world problem</h2>
+                        <ProblemStatement
+                            problem="You’ve been hired by a rising e-commerce startup. You must build a system to route customer chat messages to either Commercial Inquiry or Technical Support."
+                            twist="The product is brand new. There are no historical logs, no labeled examples, and you have a two-week deadline to deploy a working version."
+                            hints={[
+                                'If you have zero examples to train a model, can you use basic logic rules to start?',
+                                'If you find a similar dataset online, will it work for your specific product names?',
+                                'If you manually label only ten messages, can you use technology to turn those into a thousand?',
+                            ]}
+                            solution={
+                                <div>
+                                    <p>
+                                        <strong>Phase 1 (Immediate):</strong> Use Heuristics. Create a list of 50 keywords for each category. This provides an instant, though imperfect, solution.
+                                    </p>
+                                    <p style={{ marginTop: '1rem' }}>
+                                        <strong>Phase 2 (The "Silver" Dataset):</strong> Use Back Translation to expand your small list of keywords into full sentences. Use Snorkel to label 5,000 unlabeled logs based on your Phase 1 rules.
+                                    </p>
+                                    <p style={{ marginTop: '1rem' }}>
+                                        <strong>Phase 3 (The Model):</strong> Train your NLP model on this "Silver" data.
+                                    </p>
+                                    <p style={{ marginTop: '1rem' }}>
+                                        <strong>Phase 4 (Long-Term):</strong> Set up Product Intervention to start collecting "Gold" data from real users for future updates.
+                                    </p>
+                                </div>
+                            }
+                        />
+                    </div>
+
+                    <div style={{ marginBottom: '2rem' }}>
+                        <h2 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Strategy 1: Public Datasets</h2>
+                        <p style={{ marginBottom: '1rem' }}>
+                            If you’re lucky, someone else has already suffered for you. Before creating your own data, check for existing datasets.
+                        </p>
+                        <ul
+                            style={{
+                                listStyle: 'none',
+                                paddingLeft: 0,
+                                color: 'var(--text-primary)',
+                            }}
+                        >
+                            <li style={{ marginBottom: '0.5rem', paddingLeft: '1.5rem', position: 'relative' }}>
+                                <span style={{ position: 'absolute', left: 0 }}>•</span>
+                                Sources: Use Google Dataset Search or public repositories like the Nicolas Iderhoff collection.
+                            </li>
+
+                            <li style={{ marginBottom: '1rem', paddingLeft: '1.5rem', position: 'relative' }}>
+                                <span style={{ position: 'absolute', left: 0 }}>•</span>
+                                Application: Use these publicly available datasets to train a "base" model that understands general language before fine-tuning it with your own data.
+                            </li>
+                        </ul>
+                        <p>
+                             The limitation is that public data rarely matches your specific "domain." For example, a public dataset of general emails will not contain your company's specific product codes or internal terminology.
+                        </p>
+                    </div>
+
+                    <div style={{ marginBottom: '2rem' }}>
+                        <h2 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Strategy 2: Web Scraping</h2>
+                        <p style={{ marginBottom: '1rem' }}>
+                            If no dataset exists, you can collect text from the internet.
+                        </p>
+                        <ul
+                            style={{
+                                listStyle: 'none',
+                                paddingLeft: 0,
+                                color: 'var(--text-primary)',
+                            }}
+                        >
+                            <li style={{ marginBottom: '0.5rem', paddingLeft: '1.5rem', position: 'relative' }}>
+                                <span style={{ position: 'absolute', left: 0 }}>•</span>
+                                Method: Extract text from public forums, Q&A sites (like Stack Overflow), or review platforms
+                            </li>
+                            <li style={{ marginBottom: '1rem', paddingLeft: '1.5rem', position: 'relative' }}>
+                                <span style={{ position: 'absolute', left: 0 }}>•</span>
+                                Process: Once scraped, the data usually requires human annotators to categorize it.
+                            </li>
+                        </ul>
+                        <p>
+                             The catch is that text from the internet is often "noisy"—it contains slang, irrelevant formatting, and behavior that may not match your actual customers.
+                        </p>
+                    </div>
+
+                    <div style={{ marginBottom: '2rem' }}>
+                        <h2 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Strategy 3: Product Intervention</h2>
+                        <p style={{ marginBottom: '1rem' }}>
+                            This is the most effective long-term strategy. It involves changing the software to collect data while people use it.
+                        </p>
+                        <ul
+                            style={{
+                                listStyle: 'none',
+                                paddingLeft: 0,
+                                color: 'var(--text-primary)',
+                            }}
+                        >
+                            <li style={{ marginBottom: '1rem', paddingLeft: '1.5rem', position: 'relative' }}>
+                                <span style={{ position: 'absolute', left: 0 }}>•</span>
+                                Implementation: Add a feature where the user must select a category (e.g., "Billing" or "Technical Issue") before they can send a message.
+                            </li>
+                        </ul>
+                        <p>
+                             This provides the highest quality data, but it usually takes 3 to 6 months to collect enough volume for a robust model.
+                        </p>
+                    </div>
+
+                    <div style={{ marginBottom: '2rem' }}>
+                        <h2 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Strategy 4: Data Augmentation</h2>
+                        <p style={{ marginBottom: '1rem' }}>
+                           When you have a very small amount of labeled data, you can use "augmentation" to create synthetic variations of those sentences.
+                        </p>
+                        
+                         <table style={{ 
+                            width: '100%', 
+                            borderCollapse: 'collapse', 
+                            marginTop: '1rem',
+                            fontSize: '0.95rem'
+                        }}>
+                            <thead>
+                                <tr>
+                                    <th style={{ border: '1px solid #ccc', padding: '0.75rem', textAlign: 'left' }}>
+                                        Technique
+                                    </th>
+                                    <th style={{ border: '1px solid #ccc', padding: '0.75rem', textAlign: 'left' }}>
+                                        Description
+                                    </th>
+                                    <th style={{ border: '1px solid #ccc', padding: '0.75rem', textAlign: 'left' }}>
+                                        Example
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style={{ border: '1px solid #ccc', padding: '0.75rem' }}>
+                                        Synonym Replacement
+                                    </td>
+                                    <td style={{ border: '1px solid #ccc', padding: '0.75rem' }}>
+                                        Replaces non-stopwords with their synonyms to create variation. You can use Synsets in Wordnet.
+                                    </td>
+                                    <td style={{ border: '1px solid #ccc', padding: '0.75rem' }}>
+                                        “I want a refund” → “I want a reimbursement”
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style={{ border: '1px solid #ccc', padding: '0.75rem' }}>
+                                        Back Translation
+                                    </td>
+                                    <td style={{ border: '1px solid #ccc', padding: '0.75rem' }}>
+                                        Translates text to another language and back to generate paraphrases
+                                    </td>
+                                    <td style={{ border: '1px solid #ccc', padding: '0.75rem' }}>
+                                        English → German → English. So the sentence
+                                        “I need help with my order” becomes “Can you assist me with my purchase?”
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style={{ border: '1px solid #ccc', padding: '0.75rem' }}>
+                                       TF-IDF Replacement
+                                    </td>
+                                    <td style={{ border: '1px solid #ccc', padding: '0.75rem' }}>
+                                        Replace unimportant words while keeping technical keywords.
+                                    </td>
+                                    <td style={{ border: '1px solid #ccc', padding: '0.75rem' }}>
+                                        Keeps "Server" or "API" but changes "very" or "quickly."
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style={{ border: '1px solid #ccc', padding: '0.75rem' }}>
+                                       Bigram Flipping
+                                    </td>
+                                    <td style={{ border: '1px solid #ccc', padding: '0.75rem' }}>
+                                        Swap two adjacent words.
+                                    </td>
+                                    <td style={{ border: '1px solid #ccc', padding: '0.75rem' }}>
+                                        "I am" → "Am I"
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style={{ border: '1px solid #ccc', padding: '0.75rem' }}>
+                                       Replacing Entities
+                                    </td>
+                                    <td style={{ border: '1px solid #ccc', padding: '0.75rem' }}>
+                                        Swap names or locations for others in the same category.
+                                    </td>
+                                    <td style={{ border: '1px solid #ccc', padding: '0.75rem' }}>
+                                        "Broken in New York" → "Broken in Tokyo"
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style={{ border: '1px solid #ccc', padding: '0.75rem' }}>
+                                       Adding Noise
+                                    </td>
+                                    <td style={{ border: '1px solid #ccc', padding: '0.75rem' }}>
+                                        Intentionally add common typos or keyboard errors.
+                                    </td>
+                                    <td style={{ border: '1px solid #ccc', padding: '0.75rem' }}>
+                                        "Support" → "Suuport" (Helps the model handle real-world "fat finger" mistakes.)
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div style={{ marginBottom: '2rem' }}>
+                        <h2 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Strategy 5: Advanced Programmatic Labelling</h2>
+                        <ul
+                            style={{
+                                listStyle: 'none',
+                                paddingLeft: 0,
+                                color: 'var(--text-primary)',
+                            }}
+                        >
+                            <li style={{ marginBottom: '1rem', paddingLeft: '1.5rem', position: 'relative' }}>
+                                <span style={{ position: 'absolute', left: 0 }}>1. </span>
+                                Snorkel (Weak Supervision)
+                            </li>
+                            <p>
+                                Instead of a human labeling every row, you write Labeling Functions (LFs). These are scripts based on keywords or patterns.
+                                <ul style={{listStyle: 'none', paddingLeft: 0, color: 'var(--text-primary)',}}>
+                                    <li style={{marginTop:'1rem', marginBottom: '1rem', paddingLeft: '1.5rem', position: 'relative' }}>
+                                    <span style={{ position: 'absolute', left: 0 }}>•</span>
+                                    Example: "If the message contains 'refund', label as Commercial." Snorkel then combines hundreds of these "noisy" rules to create a large, statistically consistent dataset.
+                                </li>
+                                </ul>
+                                
+                            </p>
+                            <li style={{ marginTop:'1rem', marginBottom: '1rem', paddingLeft: '1.5rem', position: 'relative' }}>
+                                <span style={{ position: 'absolute', left: 0 }}>2. </span>
+                                Active Learning
+                            </li>
+                            <p>
+                                This is a method to reduce labeling costs. Instead of labeling data at random, the model analyzes a large pool of unlabeled text and selects only the sentences it finds most "confusing." A human then labels only those specific rows.
+                            </p>
+                        </ul>
+                    </div>
+
+                    <div style={{ marginBottom: '2rem' }}>
+                        <h2 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Key Summary for Recall</h2>
+                        <ul
+                            style={{
+                                listStyle: 'none',
+                                paddingLeft: 0,
+                                color: 'var(--text-primary)',
+                            }}
+                        >
+                            <li style={{ marginBottom: '0.5rem', paddingLeft: '1.5rem', position: 'relative' }}>
+                                <span style={{ position: 'absolute', left: 0 }}>•</span>
+                                <strong>The Data Bottleneck:</strong> ML models are limited by the quality of their training data.
+                            </li>
+                            <li style={{ marginBottom: '0.5rem', paddingLeft: '1.5rem', position: 'relative' }}>
+                                <span style={{ position: 'absolute', left: 0 }}>•</span>
+                                <strong>Hybrid Sourcing:</strong> Most professional systems use a mix of public, synthetic, and human-labeled data.
+                            </li>
+                             <li style={{ marginBottom: '0.75rem', paddingLeft: '1.5rem', position: 'relative' }}>
+                                <span style={{ position: 'absolute', left: 0 }}>•</span>
+                                <strong>S.P.A.C.E. Acronym:</strong>
+
+                                <ul style={{ marginTop: '0.4rem', marginLeft: '1.5rem', listStyleType: 'circle' }}>
+                                    <li>
+                                    <strong>S</strong> – Scrape (Public forums, discussion boards)
+                                    </li>
+                                    <li>
+                                    <strong>P</strong> – Public (Open datasets)
+                                    </li>
+                                    <li>
+                                    <strong>A</strong> – Augment (Synonyms, Back-translation)
+                                    </li>
+                                    <li>
+                                    <strong>C</strong> – Collect (Product intervention)
+                                    </li>
+                                    <li>
+                                    <strong>E</strong> – Engineer (Snorkel, Active Learning)
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                        <p>
+                             Once you have acquired your data, you must clean it. Let’s move to Text Preprocessing.
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default DataAcquisitionNLP;
