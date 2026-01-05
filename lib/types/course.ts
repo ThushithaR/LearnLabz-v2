@@ -44,6 +44,8 @@ export interface Lesson {
   isInteractive?: boolean; // optional
   content?: {
     overview?: string;
+    quoteOfTheDay?: string;
+    quoteAttribution?: string;
     objectives?: string[];
     sections?: LessonSection[];
     problemStatement?: {
@@ -63,7 +65,7 @@ export interface ProblemStatementContent {
 }
 
 export interface LessonSection {
-  type: 'text' | 'problem-statement' | 'examples' | 'summary';
+  type: 'text' | 'problem-statement' | 'examples' | 'summary' | 'interactive';
   title?: string;
   content: string | React.ReactNode | ProblemStatementContent;
 }

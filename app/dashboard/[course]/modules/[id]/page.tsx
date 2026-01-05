@@ -10,6 +10,7 @@ import { courses, CourseId } from "@/lib/courses";
 import { Course, Module, Lesson, ProblemStatementContent } from "@/lib/types/course";
 import { useCourse } from "@/lib/context/CourseContext";
 import { ProblemStatement } from "@/lib/content/nlp/unit1/problemStatement";
+import InteractiveCodeWalkthrough from "@/lib/content/nlp/unit2/InteractiveCodeWalkthrough";
 import {
   ChevronLeft,
   ChevronRight,
@@ -814,13 +815,18 @@ const handleSaveSelection = () => {
                 {/* Render lesson content dynamically */}
                 {lessonData.content && (
                   <>
-                    {/* Overview Section */}
-                    {lessonData.content.overview && (
+                    {/* Overview or Quote of the Day Section */}
+                    {(lessonData.content.overview || lessonData.content.quoteOfTheDay) && (
                       <Card className="p-6 bg-gradient-to-r from-surface to-transparent border-l-4 border-l-accent">
-                        <h4 className="font-bold text-textPrimary mb-2">Overview</h4>
+                        <h4 className="font-bold text-textPrimary mb-2">{lessonData.content.quoteOfTheDay ? "Quote of the Day" : "Overview"}</h4>
                         <p className="text-sm text-textSecondary leading-relaxed">
-                          {lessonData.content.overview}
+                          {lessonData.content.quoteOfTheDay || lessonData.content.overview}
                         </p>
+                        {lessonData.content.quoteAttribution && (
+                          <p className="text-xs text-textSecondary/60 italic mt-3 text-right">
+                            — {lessonData.content.quoteAttribution}
+                          </p>
+                        )}
                       </Card>
                     )}
 
@@ -854,6 +860,25 @@ const handleSaveSelection = () => {
                               <p>{section.content as React.ReactNode}</p>
                             </div>
                           </>
+                        )}
+
+                        {section.type === 'interactive' && (
+                          <div className="mt-8 pt-8 border-t border-white/10">
+                            <h2 className="font-bold text-textPrimary mb-6 text-2xl">
+                              {section.title}
+                            </h2>
+                            <div className="rounded-lg border border-white/10 p-6 bg-surface/50">
+                              {typeof section.content === 'object' && section.content !== null && 'lines' in (section.content as any) ? (
+                                <InteractiveCodeWalkthrough
+                                  lines={(section.content as any).lines}
+                                  outputs={(section.content as any).outputs}
+                                  summary={(section.content as any).summary}
+                                />
+                              ) : (
+                                (section.content as React.ReactNode)
+                              )}
+                            </div>
+                          </div>
                         )}
 
                         {section.type === 'problem-statement' && (
