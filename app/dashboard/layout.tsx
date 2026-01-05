@@ -17,16 +17,6 @@ export default function DashboardLayout({
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const { isFullscreen } = useCourse();
 
-    useEffect(() => {
-        const checkUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                router.push("/login");
-            }
-        };
-        checkUser();
-    }, [router]);
-
     return (
         <div className="min-h-screen bg-background">
             {!isFullscreen && <Header />}

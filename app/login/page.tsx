@@ -9,12 +9,18 @@ import { Card } from "@/components/ui/Card";
 import { supabase } from "@/lib/supabase/client";
 import {updateUserStreak} from "@/lib/supabase/progress";
 import { getCurrentUserProfile } from "@/lib/supabase/profile";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  // handles forgot password
+  const [info, setInfo] = useState("");
+  const [loading, setLoading] = useState(false);
+  // show password
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +61,30 @@ export default function LoginPage() {
     router.push("/home");
   };
 
+  const handleForgotPassword = async () => {
+    setError("");
+    setInfo("");
+
+    if (!email) {
+      setError("Please enter your email first");
+      return;
+    }
+
+    setLoading(true);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    setLoading(false);
+
+    if (error) {
+      setError(error.message);
+    } else {
+      alert("Email sent for resetting password!");
+    }
+  };
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-surface via-background to-background opacity-50" />
@@ -85,24 +115,27 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="flex items-center justify-between text-xs font-medium uppercase text-textSecondary">
-              <span>Password</span>
-              <Link href="#" className="text-accent hover:underline lowercase bg-transparent">forgot?</Link>
-            </label>
-            <Input
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className="flex justify-between items-center text-xs font-medium uppercase text-textSecondary">
+            <label htmlFor="password">Password</label>
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              className="text-accent hover:underline lowercase text-xs"
+              disabled={loading}
+            >
+              Forgot?
+            </button>
           </div>
 
-          <div className="flex items-center gap-2">
-            <input type="checkbox" id="remember" className="rounded border-white/10 bg-black/20 text-accent focus:ring-accent" />
-            <label htmlFor="remember" className="text-sm text-textSecondary">Remember me</label>
-          </div>
+          <Input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="pr-10"
+          />
 
           <Button type="submit" className="w-full" size="lg">
             Log In

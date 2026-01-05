@@ -1,11 +1,12 @@
-import { useState } from "react";
+"use client";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Bell, LogOut, Settings, User } from "lucide-react";
 import { Input } from "@/components/ui/Input";
-import { mockUser } from "@/lib/data";
+import { getCurrentUserProfile } from "@/lib/supabase/profile";
 import { Button } from "@/components/ui/Button";
-
+import { supabase } from "@/lib/supabase/client";
 import { useCourse } from "@/lib/context/CourseContext";
 
 export function Header() {
@@ -15,6 +16,9 @@ export function Header() {
     const pathParts = pathname.split('/').filter(Boolean); // e.g. ['dashboard', 'aiml', 'modules']
     const courseId = pathParts[1];
     const component = pathParts[2];
+    const [user, setUser] = useState<{
+        name: string;
+    } | null>(null);
 
     let pageTitle = "Dashboard";
     let titleColor = "text-textPrimary";
@@ -30,6 +34,16 @@ export function Header() {
         if (id === 'nlp') return "text-accent";
         return "text-textPrimary";
     };
+  useEffect(() => {
+    const loadUser = async () => {
+      const profile = await getCurrentUserProfile();
+      if (!profile) return;
+      setUser({
+        name: profile.user_name,
+      });
+    };
+    loadUser();
+}, []);
 
     // If we are in a course-specific route or have a selected global course
     const activeCourseId = courseId && (courseId === 'aiml' || courseId === 'nlp') ? courseId : selectedCourse;
@@ -56,9 +70,11 @@ export function Header() {
     // Mock Notification Count (Logic: 1 item due Today)
     const notificationCount = 1;
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
         router.push("/login");
-    };
+        };
+
 
     return (
         <header className="h-16 border-b border-white/5 bg-surface/50 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between px-6">
@@ -80,12 +96,14 @@ export function Header() {
                             className="flex items-center gap-3 pl-2 hover:bg-white/5 rounded-lg p-1.5 transition-all text-left"
                         >
                             <div className="text-right hidden sm:block">
-                                <div className="text-sm font-bold text-textPrimary leading-none">{mockUser.name}</div>
-                                <div className="text-xs text-textSecondary mt-1">Level {mockUser.level} Scholar</div>
-                            </div>
-                            <div className="h-9 w-9 rounded-full bg-accent/20 border border-accent/50 flex items-center justify-center text-accent font-bold">
-                                {mockUser.name.charAt(0)}
-                            </div>
+                                <div className="text-sm font-bold text-textPrimary leading-none">
+                                    {user?.name ?? "Loading..."}
+                                </div>
+                                </div>
+
+                                <div className="h-9 w-9 rounded-full bg-accent/20 border border-accent/50 flex items-center justify-center text-accent font-bold">
+                                {user?.name?.charAt(0) ?? "U"}
+                                </div>
                         </button>
 
                         {isProfileOpen && (

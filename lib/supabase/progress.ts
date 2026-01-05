@@ -224,7 +224,7 @@ export async function updateUserStreak(
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  let newStreak = 1;
+  let newStreak = data.streak_days ?? 0;
 
   if (data.last_active) {
     const last = new Date(data.last_active);
@@ -234,20 +234,21 @@ export async function updateUserStreak(
       (today.getTime() - last.getTime()) /
       (1000 * 60 * 60 * 24);
 
-    if (diffDays === 0) {
-      return; // same day → no change
-    }
-
     if (diffDays === 1) {
-      newStreak = data.streak_days + 1;
+      newStreak += 1; // continue streak
+    } else if (diffDays > 1) {
+      newStreak = 1; // reset streak
     }
+    // diffDays === 0 → same day → keep streak as-is
+  } else {
+    newStreak = 1;
   }
 
   await supabase
     .from("user_courses")
     .update({
       streak_days: newStreak,
-      last_active: today.toISOString(),
+      last_active: new Date().toISOString(), // ✅ ALWAYS update
     })
     .eq("user_id", userId)
     .eq("course_id", courseId);
