@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Card } from "@/components/ui/Card";
 import { 
   CheckCircle, 
   XCircle, 
@@ -21,7 +21,11 @@ import {
 import { cn } from "@/lib/utils";
 
 // Tree structure for BFS
-const treeData = {
+type TreeData = {
+  [key: number]: number[];
+};
+
+const treeData: TreeData = {
   1: [2, 3, 4],
   2: [5, 6],
   3: [7, 8],
@@ -41,30 +45,53 @@ const treeData = {
 
 const correctPath = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
+// Node positions type
+type NodePositions = {
+  [key: number]: { x: number; y: number };
+};
+
+const nodePositions: NodePositions = {
+  1: { x: 400, y: 50 },
+  2: { x: 200, y: 150 },
+  3: { x: 400, y: 150 },
+  4: { x: 600, y: 150 },
+  5: { x: 100, y: 250 },
+  6: { x: 300, y: 250 },
+  7: { x: 400, y: 250 },
+  8: { x: 500, y: 250 },
+  9: { x: 550, y: 250 },
+  10: { x: 650, y: 250 },
+  11: { x: 50, y: 350 },
+  12: { x: 150, y: 350 },
+  13: { x: 300, y: 350 },
+  14: { x: 400, y: 350 },
+  15: { x: 500, y: 350 }
+};
+
 export default function BFSNumericalSolver() {
-  const [timer, setTimer] = useState(0);
-  const [hintOpen, setHintOpen] = useState(false);
-  const [showResults, setShowResults] = useState(false);
-  const [isStarred, setIsStarred] = useState(false);
-  const [isTimerRunning, setIsTimerRunning] = useState(true);
+  const [timer, setTimer] = useState<number>(0);
+  const [hintOpen, setHintOpen] = useState<boolean>(false);
+  const [showResults, setShowResults] = useState<boolean>(false);
+  const [isStarred, setIsStarred] = useState<boolean>(false);
+  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(true);
   
   // BFS specific states
-  const [currentNode, setCurrentNode] = useState(1);
-  const [visitedNodes, setVisitedNodes] = useState([1]);
-  const [queue, setQueue] = useState([1]);
-  const [selectedPath, setSelectedPath] = useState([1]);
-  const [availableNodes, setAvailableNodes] = useState([]);
-  const [foundGoal, setFoundGoal] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [showError, setShowError] = useState(false);
+  const [currentNode, setCurrentNode] = useState<number>(1);
+  const [visitedNodes, setVisitedNodes] = useState<number[]>([1]);
+  const [queue, setQueue] = useState<number[]>([1]);
+  const [selectedPath, setSelectedPath] = useState<number[]>([1]);
+  const [availableNodes, setAvailableNodes] = useState<number[]>([]);
+  const [foundGoal, setFoundGoal] = useState<boolean>(false);
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [showError, setShowError] = useState<boolean>(false);
 
   useEffect(() => {
     // Initialize available nodes with children of root
-    setAvailableNodes(treeData[1]);
+    setAvailableNodes(treeData[1] || []);
   }, []);
 
   useEffect(() => {
-    let interval;
+    let interval: NodeJS.Timeout | undefined;
     if (isTimerRunning) {
       interval = setInterval(() => {
         setTimer(prev => prev + 1);
@@ -75,13 +102,13 @@ export default function BFSNumericalSolver() {
     };
   }, [isTimerRunning]);
 
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const handleNodeSelect = (node) => {
+  const handleNodeSelect = (node: number): void => {
     // Check if node can be selected (must be in available nodes)
     if (!availableNodes.includes(node)) {
       setShowError(true);
@@ -99,7 +126,7 @@ export default function BFSNumericalSolver() {
     
     // Add children of the selected node to the queue if not visited
     const children = treeData[node] || [];
-    children.forEach(child => {
+    children.forEach((child: number) => {
       if (!visitedNodes.includes(child) && !newQueue.includes(child)) {
         newQueue.push(child);
       }
@@ -124,17 +151,17 @@ export default function BFSNumericalSolver() {
     setCurrentStep(prev => prev + 1);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = (): void => {
     setIsTimerRunning(false);
     setShowResults(true);
   };
 
-  const handleReset = () => {
+  const handleReset = (): void => {
     setCurrentNode(1);
     setVisitedNodes([1]);
     setQueue([1]);
     setSelectedPath([1]);
-    setAvailableNodes(treeData[1]);
+    setAvailableNodes(treeData[1] || []);
     setFoundGoal(false);
     setCurrentStep(1);
     setShowResults(false);
@@ -145,25 +172,6 @@ export default function BFSNumericalSolver() {
 
   const isCorrect = JSON.stringify(selectedPath) === JSON.stringify(correctPath);
   const accuracy = Math.round((selectedPath.filter((node, idx) => node === correctPath[idx]).length / correctPath.length) * 100);
-
-  // Node positions for visualization
-  const nodePositions = {
-    1: { x: 400, y: 50 },
-    2: { x: 200, y: 150 },
-    3: { x: 400, y: 150 },
-    4: { x: 600, y: 150 },
-    5: { x: 100, y: 250 },
-    6: { x: 300, y: 250 },
-    7: { x: 400, y: 250 },
-    8: { x: 500, y: 250 },
-    9: { x: 550, y: 250 },
-    10: { x: 650, y: 250 },
-    11: { x: 50, y: 350 },
-    12: { x: 150, y: 350 },
-    13: { x: 300, y: 350 },
-    14: { x: 400, y: 350 },
-    15: { x: 500, y: 350 }
-  };
 
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-300 overflow-hidden">
@@ -321,9 +329,11 @@ export default function BFSNumericalSolver() {
                     {/* Draw edges */}
                     {Object.entries(treeData).map(([parent, children]) => 
                       children.map(child => {
-                        const parentPos = nodePositions[parseInt(parent)];
-                        const childPos = nodePositions[child];
-                        const isInPath = visitedNodes.includes(parseInt(parent)) && visitedNodes.includes(child);
+                        const parentNum = parseInt(parent);
+                        const childNum = child;
+                        const parentPos = nodePositions[parentNum];
+                        const childPos = nodePositions[childNum];
+                        const isInPath = visitedNodes.includes(parentNum) && visitedNodes.includes(childNum);
                         return (
                           <line
                             key={`${parent}-${child}`}
@@ -346,7 +356,6 @@ export default function BFSNumericalSolver() {
                       const isVisited = visitedNodes.includes(node);
                       const isGoal = node === 11;
                       const isAvailable = availableNodes.includes(node);
-                      const isCurrent = node === currentNode;
                       
                       return (
                         <g key={node}>
