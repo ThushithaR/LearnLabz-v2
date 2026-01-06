@@ -113,10 +113,11 @@ export interface Achievement {
 export interface LeaderboardEntry {
   rank: number;
   name: string;
+  avatarUrl?: string | null;
+  initial: string;
   tier: string;
   ep: number;
-  avatar: string;
-  isUser?: boolean;
+  isUser: boolean;
 }
 
 export interface Note {

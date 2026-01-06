@@ -6,16 +6,18 @@ import { Input } from "@/components/ui/Input";
 import { useTheme } from "@/app/providers";
 import { getCurrentUserProfile } from "@/lib/supabase/profile";
 import { supabase } from "@/lib/supabase/client";
+import { uploadAvatar } from "@/lib/supabase/avatar";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [userId, setUserId] = useState<number | null>(null);
-  const [avatar, setAvatar] = useState("https://api.dicebear.com/7.x/avataaars/svg?seed=Alex");  
+  const [avatar, setAvatar] = useState<string | null>(null);  
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
+  
 
   // 🔹 Load current user
     useEffect(() => {
@@ -28,23 +30,32 @@ export default function SettingsPage() {
         setEmail(user.user_email ?? "");
 
         // optional avatar from DB later
-        // setAvatar(user.avatar_url ?? defaultAvatar);
+        setAvatar(user.avatar_url ?? "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex");
     };
 
     loadUser();
     }, []);
 
   // 🔹 Avatar change (local preview only for now)
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !userId) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setAvatar(reader.result as string);
+    // Validate
+    if (file.size > 5 * 1024 * 1024) {
+        alert("Max file size is 5MB");
+        return;
+    }
+
+    try {
+        const url = await uploadAvatar( file);
+        setAvatar(url); // instantly update UI
+    } catch (err) {
+        console.error(err);
+        alert("Upload failed");
+    }
     };
-    reader.readAsDataURL(file);
-  };
+    
     return (
         <div className="max-w-3xl mx-auto space-y-8">
             <h1 className="text-3xl font-bold text-textPrimary">Settings</h1>
@@ -101,7 +112,7 @@ export default function SettingsPage() {
                     onClick={() => fileInputRef.current?.click()}
                     >
                     <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-accent">
-                        <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
+                        <img src={avatar ||  "/avatar-placeholder.png"} alt="Profile" className="w-full h-full object-cover" />
                     </div>
 
                     <input

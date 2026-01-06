@@ -37,3 +37,28 @@ export async function submitQuizAttempt({
     time_taken_sec: time_taken
   });
 }
+
+export async function getDailyQuiz(courseId: number) {
+  // 1. Get all quizzes for this course
+  const { data: quizzes, error } = await supabase
+    .from("quizzes")
+    .select("quiz_id, quiz_title, quiz_pass_score")
+    .eq("course_id", courseId)
+    .order("id");
+
+  if (error || !quizzes || quizzes.length === 0) return null;
+
+  // 2. Get day index (changes once per day globally)
+  const today = new Date();
+  const dayIndex = Math.floor(today.getTime() / (1000 * 60 * 60 * 24));
+
+  // 3. Cycle through quizzes
+  const quiz = quizzes[dayIndex % quizzes.length];
+
+  return {
+  quizId: quiz.quiz_id,
+  title: quiz.quiz_title,
+  description: "Daily practice quiz",
+  xp: 500,
+};
+}

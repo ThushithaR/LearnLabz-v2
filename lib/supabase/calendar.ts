@@ -27,3 +27,14 @@ export async function toggleCalendarEventComplete(
     .update({ cal_completed: completed })
     .eq("cal_id", calId);
 }
+
+export async function getUpcomingDeadlines( userId: number) {
+  const today = new Date().toISOString().split("T")[0];
+
+  return supabase
+    .from("calendar_events")
+    .select("*")
+    .eq("user_id", userId)
+    .gte("cal_date", today)
+    .order("cal_date", { ascending: true });
+}

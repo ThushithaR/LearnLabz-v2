@@ -7,7 +7,9 @@ export async function getUserProfile(authId: string) {
       user_id,
       user_name,
       user_email,
-      avatar_url
+      avatar_url,
+      school_name,
+      class_name
     `)
     .eq("auth_user_id", authId)
     .single();

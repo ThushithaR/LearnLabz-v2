@@ -114,8 +114,7 @@ export default function LoginPage() {
               required
             />
           </div>
-
-            <div className="flex justify-between items-center text-xs font-medium uppercase text-textSecondary">
+          <div className="flex justify-between items-center text-xs font-medium uppercase text-textSecondary">
             <label htmlFor="password">Password</label>
             <button
               type="button"
@@ -127,16 +126,29 @@ export default function LoginPage() {
             </button>
           </div>
 
-          <Input
-            id="password"
-            type={showPassword ? "text" : "password"}
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="pr-10"
-          />
-
+          {/* NEW relative wrapper */}
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-3 flex items-center text-textSecondary hover:text-textPrimary"
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
           <Button type="submit" className="w-full" size="lg">
             Log In
           </Button>

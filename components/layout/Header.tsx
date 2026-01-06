@@ -17,7 +17,8 @@ export function Header() {
     const courseId = pathParts[1];
     const component = pathParts[2];
     const [user, setUser] = useState<{
-        name: string;
+    name: string;
+    avatar: string | null;
     } | null>(null);
 
     let pageTitle = "Dashboard";
@@ -40,7 +41,8 @@ export function Header() {
       if (!profile) return;
       setUser({
         name: profile.user_name,
-      });
+        avatar: profile.avatar_url,
+        });
     };
     loadUser();
 }, []);
@@ -101,9 +103,19 @@ export function Header() {
                                 </div>
                                 </div>
 
-                                <div className="h-9 w-9 rounded-full bg-accent/20 border border-accent/50 flex items-center justify-center text-accent font-bold">
-                                {user?.name?.charAt(0) ?? "U"}
-                                </div>
+                                <div className="h-9 w-9 rounded-full overflow-hidden bg-accent/20 border border-accent/50 flex items-center justify-center text-accent font-bold">
+                                {user?.avatar ? (
+                                <img
+                                    src={user.avatar}
+                                    alt="Profile"
+                                    className="w-full h-full object-cover rounded-full"
+                                    />
+                                ) : (
+                                    <span>
+                                    {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
+                                    </span>
+                                )}
+                            </div>
                         </button>
 
                         {isProfileOpen && (

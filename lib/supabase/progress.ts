@@ -220,20 +220,15 @@ export async function updateUserStreak(
     .single();
 
   if (!data) return;
-
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
   let newStreak = data.streak_days ?? 0;
-
   if (data.last_active) {
     const last = new Date(data.last_active);
     last.setHours(0, 0, 0, 0);
-
     const diffDays =
       (today.getTime() - last.getTime()) /
       (1000 * 60 * 60 * 24);
-
     if (diffDays === 1) {
       newStreak += 1; // continue streak
     } else if (diffDays > 1) {
@@ -243,7 +238,6 @@ export async function updateUserStreak(
   } else {
     newStreak = 1;
   }
-
   await supabase
     .from("user_courses")
     .update({
@@ -252,4 +246,31 @@ export async function updateUserStreak(
     })
     .eq("user_id", userId)
     .eq("course_id", courseId);
+}
+
+export async function getContinueLesson(userId: number, courseId: number) {
+  return supabase
+    .from("lesson_progress")
+    .select(`
+      lesson_id,
+      lesson_progress_percent,
+      lessons ( lesson_title, unit_id )
+    `)
+    .eq("user_id", userId)
+    .eq("course_id", courseId)
+    .eq("completed", false)
+    .order("lesson_progress_percent", { ascending: false })
+    .limit(1)
+    .single();
+}
+
+export async function getCompletedUnitsCount(userId: number, courseId: number) {
+  const { count } = await supabase
+    .from("unit_progress")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("course_id", courseId)
+    .eq("unit_progress_percent", 100);
+
+  return count ?? 0;
 }

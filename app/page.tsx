@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/Button";
 
 export default function LandingPage() {
     return (
-        <main className="flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[url('/grid-pattern.svg')] bg-cover relative">
+        <main className="flex min-h-screen flex-col items-center justify-center overflow-hidden  bg-cover relative">
             {/* Ambient Background Effects */}
             <div className="absolute top-0 left-0 h-96 w-96 rounded-full bg-accent/20 blur-[120px] animate-pulse" />
             <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-highlight/20 blur-[120px]" />

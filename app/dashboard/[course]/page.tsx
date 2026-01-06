@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -16,7 +16,14 @@ import {
   Circle,
 } from "lucide-react";
 import { courses, CourseId } from "@/lib/courses";
-import { getDailyChallenge } from "@/lib/utils";
+import { supabase } from "@/lib/supabase/client";
+import { getCurrentUserProfile } from "@/lib/supabase/profile";
+import { getUpcomingDeadlines, toggleCalendarEventComplete } from "@/lib/supabase/calendar";
+import { getDailyQuiz } from "@/lib/supabase/quizzes";
+import { COURSE_ID_MAP } from "@/lib/courses";
+import { getUserCourseStats } from "@/lib/supabase/user-courses";
+import { getContinueLesson } from "@/lib/supabase/progress";
+import { getCompletedUnitsCount } from "@/lib/supabase/progress";
 
 export default function CourseDashboardPage({
   params,
@@ -25,18 +32,90 @@ export default function CourseDashboardPage({
 }) {
   const { course } = params;
   const courseData = courses[course];
-  const user = courseData.user;
+  const courseId = COURSE_ID_MAP[course];
+  const [stats, setStats] = useState<any>(null);
+  const [continueLesson, setContinueLesson] = useState<any>(null);
+  const [completedUnits, setCompletedUnits] = useState<number>(0);
+  const [profile, setProfile] = useState<any>(null);
+
+  // get user profile
+  useEffect(() => {
+  const loadProfile = async () => {
+    const u = await getCurrentUserProfile();
+    setProfile(u);
+  };
+    loadProfile();
+  }, []);
+
+  //get user course stats 
+  useEffect(() => {
+  const loadStats = async () => {
+    const user = await getCurrentUserProfile();
+    if (!user) return;
+    const { data } = await getUserCourseStats(user.user_id, courseId);
+    setStats(data);
+  };
+    loadStats();
+  }, [courseId]);
+
+  // continue lesson
+  useEffect(() => {
+  const loadContinue = async () => {
+    const user = await getCurrentUserProfile();
+    if (!user) return;
+    const { data } = await getContinueLesson(user.user_id, courseId);
+    setContinueLesson(data);
+  };
+    loadContinue();
+  }, [courseId]);
+
+  // completed units count
+  useEffect(() => {
+  const loadCompleted = async () => {
+    const user = await getCurrentUserProfile();
+    if (!user) return;
+
+    const count = await getCompletedUnitsCount(user.user_id, courseId);
+    setCompletedUnits(count);
+  };
+    loadCompleted();
+  }, [courseId]);
 
   // Initialize deadlines from course calendar, add `isDone` default
-  const [deadlines, setDeadlines] = useState(
-    (courseData.calendar || []).map((d) => ({ ...d, isDone: false }))
-  );
+  const [deadlines, setDeadlines] = useState<any[]>([]);
+  useEffect(() => {
+    const loadDeadlines = async () => {
+      const user = await getCurrentUserProfile();
+      if (!user) return;
 
-  const toggleDeadline = (id: number) => {
+      const { data } = await getUpcomingDeadlines(user.user_id);
+      if (data) setDeadlines(data);
+    };
+
+    loadDeadlines();
+  }, [courseId]);
+
+
+  const toggleDeadline = async (id: number, current: boolean) => {
+    await toggleCalendarEventComplete(id, !current);
     setDeadlines((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, isDone: !d.isDone } : d))
+      prev.map((d) =>
+        d.cal_id === id
+          ? { ...d, cal_completed: !current }
+          : d
+      )
     );
   };
+
+  // daily challenges
+  const [dailyQuiz, setDailyQuiz] = useState<any>(null);
+  useEffect(() => {
+    const loadDaily = async () => {
+      const quiz = await getDailyQuiz(courseId);
+      setDailyQuiz(quiz);
+    };
+    loadDaily();
+  }, [courseId]);
 
   const activeModule = courseData.modules.find((m) => m.active);
 
@@ -46,11 +125,11 @@ export default function CourseDashboardPage({
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-textPrimary tracking-tight">
-            Hello, {user.name.split(" ")[0]}.
+            Hello, {profile?.user_name?.split(" ")[0] || "Student"}.
           </h1>
           <p className="text-xs text-textSecondary mt-1 font-light flex items-center gap-2">
             <Flame className="w-3.5 h-3.5 text-accent" />
-            <span className="text-accent font-medium">{user.streak} day streak</span>
+            <span className="text-accent font-medium">{stats?.streak_days} day streak</span>
             <span className="text-white/20">|</span>
             <span>Keep the momentum.</span>
           </p>
@@ -59,15 +138,15 @@ export default function CourseDashboardPage({
         {/* Stats Strip */}
         <div className="flex gap-8 border-l border-white/10 pl-6">
           <div>
-            <div className="text-lg font-bold font-mono text-textPrimary">{user.ep}</div>
+            <div className="text-lg font-bold font-mono text-textPrimary">{stats?.xp}</div>
             <div className="text-[9px] text-textSecondary uppercase tracking-widest font-medium">XP Earned</div>
           </div>
           <div>
-            <div className="text-lg font-bold font-mono text-textPrimary">#{user.level}</div>
+            <div className="text-lg font-bold font-mono text-textPrimary">{stats?.level}</div>
             <div className="text-[9px] text-textSecondary uppercase tracking-widest font-medium">Level</div>
           </div>
           <div>
-            <div className="text-lg font-bold font-mono text-textPrimary">{user.modulesCompleted}</div>
+            <div className="text-lg font-bold font-mono text-textPrimary">{completedUnits}</div>
             <div className="text-[9px] text-textSecondary uppercase tracking-widest font-medium">Modules</div>
           </div>
         </div>
@@ -87,16 +166,16 @@ export default function CourseDashboardPage({
               </div>
 
               <h2 className="text-xl md:text-2xl font-bold mb-1">
-                {activeModule?.title || "Start Learning"}
+                {continueLesson?.lessons.lesson_title || "Start Learning"}
               </h2>
               <p className="text-textSecondary text-xs mb-4 leading-relaxed max-w-md line-clamp-2">
                 {activeModule?.description || ""}
-                {" "}You are {activeModule?.progress || 0}% through this module.
+                {" "}You are {(continueLesson?.lesson_progress_percent || 0).toFixed(2)}% through this module.
               </p>
 
               <div className="flex items-center gap-4">
                 {activeModule && (
-                  <Link href={`/dashboard/${course}/modules/${activeModule.id}`}>
+                  <Link href={`/dashboard/${course}/modules/${continueLesson?.lessons.unit_id}`}>
                     <Button size="sm" className="px-5 gap-2 h-9 text-sm">
                       Resume Learning <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -107,7 +186,7 @@ export default function CourseDashboardPage({
           </div>
 
           <div className="h-[2px] w-full bg-white/5">
-            <div className="h-full bg-accent shadow-[0_0_10px_rgba(var(--accent),0.5)]" style={{ width: `${activeModule?.progress || 0}%` }}></div>
+            <div className="h-full bg-accent shadow-[0_0_10px_rgba(var(--accent),0.5)]" style={{ width: `${continueLesson?.lesson_progress_percent || 0}%` }}></div>
           </div>
         </Card>
       </div>
@@ -121,19 +200,19 @@ export default function CourseDashboardPage({
               <Zap className="w-4 h-4 text-yellow-400" />
               <span className="text-[10px] font-bold text-textSecondary uppercase tracking-widest">Daily Challenge</span>
             </div>
-            <Badge variant="outline" className="px-1.5 py-0 text-[10px] h-5">{getDailyChallenge(course)?.xp || 500} XP</Badge>
+            <Badge variant="outline" className="px-1.5 py-0 text-[10px] h-5">{dailyQuiz?.xp || 500} XP</Badge>
           </div>
 
           <div className="p-4 flex-1 flex flex-col justify-between gap-2">
             <div>
               <h4 className="font-bold text-sm text-textPrimary leading-snug mb-1 group-hover:text-accent transition-colors truncate">
-                {getDailyChallenge(course)?.title || "No Challenge Today"}
+                {dailyQuiz?.title || "No Challenge Today"}
               </h4>
               <p className="text-xs text-textSecondary leading-relaxed mb-2 line-clamp-2">
-                {getDailyChallenge(course)?.description || "Check back tomorrow for a new challenge."}
+                {dailyQuiz?.description || "Check back tomorrow for a new challenge."}
               </p>
             </div>
-            <Link href={getDailyChallenge(course) ? `/dashboard/${course}/quizzes/${getDailyChallenge(course)?.quizId}` : `/dashboard/${course}/quizzes`} className="w-full">
+            <Link href={dailyQuiz ? `/dashboard/${course}/quizzes/${dailyQuiz?.quizId}` : `/dashboard/${course}/quizzes`} className="w-full">
               <Button variant="outline" size="sm" className="w-full h-8 text-xs border-white/10 hover:border-accent/40 group-hover:bg-accent/5">
                 Start Challenge
               </Button>
@@ -173,23 +252,31 @@ export default function CourseDashboardPage({
           </div>
 
           <div className="p-3 flex-1 space-y-1.5">
-            {deadlines.map((deadline) => {
-              // parse date to get day and month
-              const dateObj = new Date(deadline.date);
-              const day = dateObj.getDate();
-              const month = dateObj.toLocaleString("default", { month: "short" });
+            {deadlines.length === 0 ? (
+                <p className="text-xs text-textSecondary px-2">
+                  No upcoming deadlines 🎉
+                </p>
+              ) : (
+                deadlines.map((cal) => {
+                  const dateObj = new Date(cal.cal_date);
+                  const day = dateObj.getDate();
+                  const month = dateObj.toLocaleString("default", { month: "short" });
 
               return (
                 <div
-                  key={deadline.id}
-                  className={`p-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] flex items-center gap-3 transition-all group border border-transparent hover:border-white/10 ${deadline.isDone ? "opacity-40 grayscale" : ""}`}
+                  key={cal.cal_id}
+                  className={`p-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] flex items-center gap-3 transition-all group border border-transparent hover:border-white/10 ${
+                    cal.cal_completed ? "opacity-40 grayscale" : ""
+                  }`}
                 >
                   {/* Checkbox */}
                   <div
                     className="cursor-pointer shrink-0"
-                    onClick={() => toggleDeadline(deadline.id)}
+                    onClick={() =>
+                      toggleDeadline(cal.cal_id, cal.cal_completed)
+                    }
                   >
-                    {deadline.isDone ? (
+                    {cal.cal_completed ? (
                       <CheckCircle2 className="w-5 h-5 text-success" />
                     ) : (
                       <Circle className="w-5 h-5 text-white/20 group-hover:text-accent transition-colors stroke-2" />
@@ -198,26 +285,46 @@ export default function CourseDashboardPage({
 
                   {/* Date box */}
                   <div className="flex flex-col items-center justify-center w-10 h-10 rounded bg-white/5 border border-white/10 shrink-0">
-                    <span className={`text-[8px] font-bold uppercase tracking-wider ${deadline.isDone ? "text-textSecondary" : "text-red-400"}`}>
-                      {deadline.id === 1 ? "Today" : month}
+                    <span
+                      className={`text-[8px] font-bold uppercase tracking-wider ${
+                        cal.cal_completed
+                          ? "text-textSecondary"
+                          : "text-red-400"
+                      }`}
+                    >
+                      {dateObj.toDateString() ===
+                      new Date().toDateString()
+                        ? "Today"
+                        : month}
                     </span>
-                    <span className="text-sm font-bold text-textPrimary leading-none mt-0.5">{day}</span>
+                    <span className="text-sm font-bold text-textPrimary leading-none mt-0.5">
+                      {day}
+                    </span>
                   </div>
 
                   {/* Deadline info */}
                   <div className="flex-1 min-w-0">
-                    <h5 className={`text-[11px] font-bold truncate ${deadline.isDone ? "line-through text-textSecondary" : "text-textPrimary"}`}>
-                      {deadline.title}
+                    <h5
+                      className={`text-[11px] font-bold truncate ${
+                        cal.cal_completed
+                          ? "line-through text-textSecondary"
+                          : "text-textPrimary"
+                      }`}
+                    >
+                      {cal.cal_title}
                     </h5>
                     <p className="text-[9px] text-textSecondary">
-                      {deadline.isDone ? "Completed" : `Due: ${deadline.time}`}
+                      {cal.cal_completed
+                        ? "Completed"
+                        : `Due: ${cal.cal_time}`}
                     </p>
                   </div>
                 </div>
               );
-            })}
-          </div>
-        </Card>
+            })
+          )}
+        </div>
+      </Card>
       </div>
     </div>
   );

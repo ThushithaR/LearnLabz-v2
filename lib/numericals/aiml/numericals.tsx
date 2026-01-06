@@ -1,408 +1,516 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Card } from "@/components/ui/Card";
-import { 
-  CheckCircle, 
-  XCircle, 
-  ChevronDown, 
-  ChevronRight, 
-  Sun, 
-  Star, 
-  ArrowLeft,
-  RotateCcw,
-  Sparkles,
-  Zap,
-  Target,
-  Trophy
-} from "lucide-react";
+import {Calculator, X, CheckCircle, XCircle, ChevronDown, ChevronRight, Sun, Moon, Star, ArrowLeft, AlertCircle  } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/Card";
+import { courses, CourseId } from "@/lib/courses";
 
-// Tree structure for BFS
-type TreeData = {
-  [key: number]: number[];
-};
+// Tree Node Structure
+interface TreeNode {
+  value: number;
+  x: number;
+  y: number;
+  children: number[];
+}
 
-const treeData: TreeData = {
-  1: [2, 3, 4],
-  2: [5, 6],
-  3: [7, 8],
-  4: [9, 10],
-  5: [11, 12],
-  6: [13],
-  7: [14],
-  8: [15],
-  9: [],
-  10: [],
-  11: [],
-  12: [],
-  13: [],
-  14: [],
-  15: []
-};
-
-const correctPath = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-
-// Node positions type
-type NodePositions = {
-  [key: number]: { x: number; y: number };
-};
-
-const nodePositions: NodePositions = {
-  1: { x: 400, y: 50 },
-  2: { x: 200, y: 150 },
-  3: { x: 400, y: 150 },
-  4: { x: 600, y: 150 },
-  5: { x: 100, y: 250 },
-  6: { x: 300, y: 250 },
-  7: { x: 400, y: 250 },
-  8: { x: 500, y: 250 },
-  9: { x: 550, y: 250 },
-  10: { x: 650, y: 250 },
-  11: { x: 50, y: 350 },
-  12: { x: 150, y: 350 },
-  13: { x: 300, y: 350 },
-  14: { x: 400, y: 350 },
-  15: { x: 500, y: 350 }
-};
-
-export default function BFSNumericalSolver() {
-  const [timer, setTimer] = useState<number>(0);
-  const [hintOpen, setHintOpen] = useState<boolean>(false);
-  const [showResults, setShowResults] = useState<boolean>(false);
-  const [isStarred, setIsStarred] = useState<boolean>(false);
-  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(true);
+// Generate tree nodes for values 1-15
+const generateTreeNodes = (): Record<number, TreeNode> => {
+  const nodes: Record<number, TreeNode> = {};
+  const levelGaps = [200, 100, 50, 25];
+  const startX = 400;
   
-  // BFS specific states
-  const [currentNode, setCurrentNode] = useState<number>(1);
-  const [visitedNodes, setVisitedNodes] = useState<number[]>([1]);
+  const positions: Record<number, { x: number; y: number }> = {
+    1: { x: startX, y: 40 },
+    2: { x: startX - 200, y: 120 },
+    3: { x: startX + 200, y: 120 },
+    4: { x: startX - 300, y: 200 },
+    5: { x: startX - 100, y: 200 },
+    6: { x: startX + 100, y: 200 },
+    7: { x: startX + 300, y: 200 },
+    8: { x: startX - 350, y: 280 },
+    9: { x: startX - 250, y: 280 },
+    10: { x: startX - 150, y: 280 },
+    11: { x: startX - 50, y: 280 },
+    12: { x: startX + 50, y: 280 },
+    13: { x: startX + 150, y: 280 },
+    14: { x: startX + 250, y: 280 },
+    15: { x: startX + 350, y: 280 },
+  };
+
+  for (let i = 1; i <= 15; i++) {
+    const children = [];
+    if (2 * i <= 15) children.push(2 * i);
+    if (2 * i + 1 <= 15) children.push(2 * i + 1);
+    
+    nodes[i] = {
+      value: i,
+      x: positions[i].x,
+      y: positions[i].y,
+      children
+    };
+  }
+  
+  return nodes;
+};
+
+const GOAL_NODE = 11;
+const CORRECT_BFS_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+export default function BFSTreeTraversal({params,}: {params: { id: string; course: string };}) {
+  const router = useRouter();
+  const [solution, setSolution] = useState<string>(`// BFS Traversal Notes:\n// Start: Node 1\n// Goal: Node 11\n`);
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [calcDisplay, setCalcDisplay] = useState("0");
+  const [calcEquation, setCalcEquation] = useState("");
+  const [timer, setTimer] = useState(0);
+  const [hintOpen, setHintOpen] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [workspaceTheme, setWorkspaceTheme] = useState<'dark' | 'light'>('dark');
+  const [isTimerRunning, setIsTimerRunning] = useState(true);
+  const [workingPenalty, setWorkingPenalty] = useState(0);
+  const [isStarred, setIsStarred] = useState(false);
+
+  // BFS State
   const [queue, setQueue] = useState<number[]>([1]);
-  const [selectedPath, setSelectedPath] = useState<number[]>([1]);
-  const [availableNodes, setAvailableNodes] = useState<number[]>([]);
-  const [foundGoal, setFoundGoal] = useState<boolean>(false);
-  const [currentStep, setCurrentStep] = useState<number>(1);
-  const [showError, setShowError] = useState<boolean>(false);
+  const [visitedNodes, setVisitedNodes] = useState<number[]>([1]); // Start with node 1 visited
+  const [currentFront, setCurrentFront] = useState<number>(1);
+  const [expandedNodes, setExpandedNodes] = useState<number[]>([1]);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [userTraversalOrder, setUserTraversalOrder] = useState<number[]>([1]); // Start with node 1
+  const [goalReached, setGoalReached] = useState<boolean>(false);
+
+  const treeNodes = generateTreeNodes();
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Load starred state on mount
+  useEffect(() => {
+    const storageKey = `starred_numericals_${params.course}`;
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      const starred = new Set(JSON.parse(saved));
+      setIsStarred(starred.has(params.id));
+    }
+  }, [params.id, params.course]);
+
+  const handleExit = () => {
+    localStorage.setItem(`timer_${params.id}`, timer.toString());
+    router.push(`/dashboard/${params.course}/numericals`);
+  };
+
+  const toggleStar = () => {
+    const storageKey = `starred_numericals_${params.course}`;
+    const saved = localStorage.getItem(storageKey);
+    const starred = saved ? new Set(JSON.parse(saved)) : new Set();
+
+    if (isStarred) {
+      starred.delete(params.id);
+    } else {
+      starred.add(params.id);
+    }
+
+    localStorage.setItem(storageKey, JSON.stringify(Array.from(starred)));
+    setIsStarred(!isStarred);
+  };
 
   useEffect(() => {
-    // Initialize available nodes with children of root
-    setAvailableNodes(treeData[1] || []);
-  }, []);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout | undefined;
+    let interval: NodeJS.Timeout;
     if (isTimerRunning) {
       interval = setInterval(() => {
         setTimer(prev => prev + 1);
       }, 1000);
     }
+
     return () => {
       if (interval) clearInterval(interval);
     };
   }, [isTimerRunning]);
+  
 
-  const formatTime = (seconds: number): string => {
+  const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const handleNodeSelect = (node: number): void => {
-    // Check if node can be selected (must be in available nodes)
-    if (!availableNodes.includes(node)) {
-      setShowError(true);
-      setTimeout(() => setShowError(false), 2000);
+  const handleNodeClick = (nodeValue: number) => {
+    if (goalReached) return;
+    
+    // Check if node is already visited
+    if (visitedNodes.includes(nodeValue)) {
+      setErrorMessage(`Node ${nodeValue} is already visited.`);
       return;
     }
 
-    // Add node to visited path
-    const newPath = [...selectedPath, node];
-    setSelectedPath(newPath);
-    
-    // Update queue (BFS logic)
-    const newQueue = [...queue];
-    newQueue.shift(); // Remove the current node being processed
-    
-    // Add children of the selected node to the queue if not visited
-    const children = treeData[node] || [];
-    children.forEach((child: number) => {
-      if (!visitedNodes.includes(child) && !newQueue.includes(child)) {
-        newQueue.push(child);
-      }
-    });
-    
-    setQueue(newQueue);
-    
-    // Update visited nodes
-    const newVisited = [...visitedNodes, node];
-    setVisitedNodes(newVisited);
+    // Check if node is already in queue
+    if (queue.includes(nodeValue)) {
+      setErrorMessage(`Node ${nodeValue} is already in the queue.`);
+      return;
+    }
+
+    // Check if this node is a child of the current front node
+    const frontNode = treeNodes[currentFront];
+    if (!frontNode.children.includes(nodeValue)) {
+      setErrorMessage(`Error: Node ${nodeValue} is not a direct child of the current front node ${currentFront}. Please select a valid child.`);
+      return;
+    }
+
+    // Add to queue and traversal order
+    setQueue(prev => [...prev, nodeValue]);
+    setUserTraversalOrder(prev => [...prev, nodeValue]);
+    setErrorMessage("");
     
     // Check if goal is reached
-    if (node === 11) {
-      setFoundGoal(true);
+    if (nodeValue === GOAL_NODE) {
+      setGoalReached(true);
     }
-    
-    // Update available nodes (next nodes in queue)
-    const nextAvailable = newQueue.filter(n => !newVisited.includes(n));
-    setAvailableNodes(nextAvailable);
-    
-    setCurrentNode(node);
-    setCurrentStep(prev => prev + 1);
   };
 
-  const handleSubmit = (): void => {
+  const handleDequeue = () => {
+    if (queue.length === 0) {
+      setErrorMessage("Queue is empty. Add nodes to the queue first.");
+      return;
+    }
+
+    const dequeuedNode = queue[0];
+    const newQueue = queue.slice(1);
+    
+    setQueue(newQueue);
+    setVisitedNodes(prev => [...prev, dequeuedNode]);
+    setExpandedNodes(prev => [...prev, dequeuedNode]);
+    
+    // Update current front if queue is not empty
+    if (newQueue.length > 0) {
+      setCurrentFront(newQueue[0]);
+    }
+    
+    setErrorMessage("");
+  };
+
+
+  const handleSubmit = () => {
     setIsTimerRunning(false);
+
+    // Check if goal node is in traversal order
+    const hasGoalNode = userTraversalOrder.includes(GOAL_NODE);
+    
+    // Check workspace content
+    const content = solution.toLowerCase();
+    const hasKeywords = ["bfs", "queue", "breadth", "level"].some(word => content.includes(word));
+    const hasMeaningfulContent = solution.replace(/\/\/ BFS Traversal Notes:[\s\S]*?Goal: Node 11\n/g, '').trim().length > 20;
+
+    if (!hasMeaningfulContent || !hasKeywords) {
+      setWorkingPenalty(15);
+    } else {
+      setWorkingPenalty(0);
+    }
+
     setShowResults(true);
   };
 
-  const handleReset = (): void => {
-    setCurrentNode(1);
-    setVisitedNodes([1]);
-    setQueue([1]);
-    setSelectedPath([1]);
-    setAvailableNodes(treeData[1] || []);
-    setFoundGoal(false);
-    setCurrentStep(1);
-    setShowResults(false);
-    setTimer(0);
-    setIsTimerRunning(true);
-    setShowError(false);
+  const handleCalcInput = (btn: string) => {
+    if (btn === "C") {
+      setCalcDisplay("0");
+      setCalcEquation("");
+      return;
+    }
+    if (btn === "=") {
+      try {
+        const result = eval(calcEquation + calcDisplay);
+        setCalcDisplay(String(result).slice(0, 12));
+        setCalcEquation("");
+      } catch (e) {
+        setCalcDisplay("Error");
+      }
+      return;
+    }
+    if (["+", "-", "*", "/"].includes(btn)) {
+      setCalcEquation(calcDisplay + btn);
+      setCalcDisplay("");
+      return;
+    }
+    if (calcDisplay === "0" && btn !== ".") {
+      setCalcDisplay(btn);
+    } else {
+      setCalcDisplay(prev => prev + btn);
+    }
   };
 
-  const isCorrect = JSON.stringify(selectedPath) === JSON.stringify(correctPath);
-  const accuracy = Math.round((selectedPath.filter((node, idx) => node === correctPath[idx]).length / correctPath.length) * 100);
+  const isTraversalCorrect = () => {
+    // Find the position of goal node in user traversal
+    const goalIndex = userTraversalOrder.indexOf(GOAL_NODE);
+    if (goalIndex === -1) return false;
+    
+    // Get the traversal up to the goal node
+    const userTraversalUpToGoal = userTraversalOrder.slice(0, goalIndex + 1);
+    
+    // Check if it matches the correct BFS order
+    return userTraversalUpToGoal.every((val, idx) => val === CORRECT_BFS_ORDER[idx]);
+  };
+
+  const correctSolution = `// Optimal BFS Solution:
+// Step 1: Initialize queue with start node [1]
+// Step 2: Dequeue 1, enqueue children [2, 3]
+// Step 3: Dequeue 2, enqueue children [4, 5]
+//         Queue: [3, 4, 5]
+// Step 4: Dequeue 3, enqueue children [6, 7]
+//         Queue: [4, 5, 6, 7]
+// Step 5: Dequeue 4, enqueue children [8, 9]
+//         Queue: [5, 6, 7, 8, 9]
+// Step 6: Dequeue 5, enqueue children [10, 11]
+//         Queue: [6, 7, 8, 9, 10, 11]
+// Step 7: Dequeue 6, enqueue children [12, 13]
+//         Queue: [7, 8, 9, 10, 11, 12, 13]
+// Step 8: Dequeue 7, enqueue children [14, 15]
+//         Queue: [8, 9, 10, 11, 12, 13, 14, 15]
+// Step 9: Dequeue 8 (leaf node)
+// Step 10: Dequeue 9 (leaf node)
+// Step 11: Dequeue 10 (leaf node)
+// Step 12: Dequeue 11 (GOAL REACHED!)
+//
+// Final BFS Order: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]`;
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-300 overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-300 overflow-y-auto lg:overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-900/20 via-blue-900/20 to-cyan-900/20 border-b border-white/10 px-4 md:px-6 py-4 flex items-center justify-between shrink-0 backdrop-blur-xl">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
-            <Zap className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-white flex items-center gap-2">
-              BFS Path Discovery
-              <Badge variant="outline" className="border-cyan-400/30 text-cyan-400 text-xs">Interactive</Badge>
-            </h1>
-            <p className="text-sm text-textSecondary">Find the optimal path to Node 11 using Breadth-First Search</p>
-          </div>
+      <div className="bg-surface border-b border-white/5 px-4 md:px-6 py-3 flex items-center justify-between shrink-0 h-16 sticky top-0 z-20 backdrop-blur-md bg-surface/80">
+        <div>
+          <h1 className="text-lg font-bold text-textPrimary">BFS Tree Traversal</h1>
+          <p className="text-sm text-textSecondary">
+            Breadth-First Search • Goal Node 11
+          </p>
         </div>
+
         <div className="flex items-center gap-4 md:gap-6">
           {!showResults && (
             <>
               <button
-                onClick={() => setIsStarred(!isStarred)}
-                className="p-2.5 rounded-xl border border-white/10 bg-white/5 hover:border-cyan-400/40 hover:bg-cyan-400/10 transition-all group"
+                onClick={toggleStar}
+                className="p-2 rounded-lg border border-white/10 bg-surface/40 hover:border-accent/40 hover:bg-accent/10 transition-all group"
+                title={isStarred ? "Remove from important" : "Mark as important"}
               >
-                <Star className={`w-5 h-5 ${isStarred ? 'fill-cyan-400 text-cyan-400' : 'text-textSecondary group-hover:text-cyan-400'} transition-colors`} />
+                <Star className={`w-5 h-5 ${isStarred ? 'fill-accent text-accent' : 'text-textSecondary group-hover:text-accent'} transition-colors`} />
               </button>
               <div className="text-right">
-                <div className="text-[10px] text-textSecondary uppercase tracking-widest font-bold">Time Elapsed</div>
-                <div className="font-mono text-2xl text-cyan-400 font-bold tabular-nums">{formatTime(timer)}</div>
+                <div className="text-[10px] text-textSecondary uppercase tracking-widest font-bold">
+                  Time Elapsed
+                </div>
+                <div className="font-mono text-xl text-accent font-bold tabular-nums">
+                  {formatTime(timer)}
+                </div>
               </div>
             </>
           )}
           <Button
             size="sm"
             variant="outline"
-            className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-400"
-            onClick={() => window.location.href = '/dashboard'}
+            className="border-red-500/20 text-red-400 hover:bg-red-500/10"
+            onClick={handleExit}
           >
-            Exit Challenge
+            {showResults ? "Done" : "Exit"}
           </Button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
         {!showResults ? (
-          <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-0">
-            {/* Left Panel - Instructions */}
-            <div className="lg:col-span-3 bg-gradient-to-br from-purple-950/30 to-blue-950/30 border-r border-white/5 p-6 overflow-y-auto backdrop-blur-sm">
-              <Badge className="mb-4 bg-gradient-to-r from-purple-500 to-cyan-500 text-white border-0 shadow-lg shadow-purple-500/20">
-                Medium Difficulty
-              </Badge>
-              
-              <h2 className="text-2xl font-black mb-4 text-white flex items-center gap-2">
-                <Target className="w-6 h-6 text-cyan-400" />
-                Challenge Brief
-              </h2>
-              
-              <div className="space-y-4 text-sm text-textSecondary leading-relaxed">
-                <p className="bg-white/5 p-4 rounded-xl border border-white/10">
-                  <span className="text-cyan-400 font-bold">🎯 Goal:</span> Traverse the tree using BFS algorithm to reach <span className="text-cyan-400 font-black text-lg px-2 py-0.5 bg-cyan-400/20 rounded">Node 11</span>
-                </p>
-                
-                <div className="bg-gradient-to-br from-purple-500/10 to-cyan-500/10 p-4 rounded-xl border border-purple-500/20">
-                  <h3 className="text-white font-bold mb-2 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-purple-400" />
-                    How It Works
-                  </h3>
-                  <ol className="space-y-2 text-xs">
-                    <li className="flex gap-2">
-                      <span className="text-cyan-400 font-bold">1.</span>
-                      <span>Start from the root node (Node 1)</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="text-cyan-400 font-bold">2.</span>
-                      <span>Select nodes from available options to add to queue</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="text-cyan-400 font-bold">3.</span>
-                      <span>Follow BFS order: explore level by level</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="text-cyan-400 font-bold">4.</span>
-                      <span>Continue until you reach the goal node</span>
-                    </li>
-                  </ol>
-                </div>
+          <div className="flex flex-col lg:grid lg:grid-cols-12 h-fit lg:h-full">
+            {/* Column 1: Problem Statement */}
+            <div className="w-full lg:col-span-3 bg-surface/30 border-r border-white/5 p-6 overflow-y-auto max-h-[40vh] lg:max-h-full shrink-0">
+              <Badge variant="warning" className="mb-4">Medium</Badge>
+              <h2 className="text-xl font-bold mb-4 text-textPrimary">BFS State Space Search</h2>
+              <p className="text-sm text-textSecondary leading-relaxed mb-6">
+                Consider a state space where the start state is 1 and each state k has 2 successors: 2k and 2k+1. 
+                The goal state is 11. List the order in which nodes will be visited using breadth-first search.
+              </p>
 
-                <div className="bg-yellow-500/10 p-4 rounded-xl border border-yellow-500/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sun className="w-4 h-4 text-yellow-400" />
-                    <span className="text-yellow-400 font-bold text-xs">Pro Tip</span>
-                  </div>
-                  <p className="text-xs">In BFS, always process nodes in the order they were added to the queue. Think of it like a line at a ticket counter - first in, first out!</p>
-                </div>
+              <div className="bg-black/20 p-4 rounded-xl border border-white/5 mb-6">
+                <h3 className="text-xs font-bold text-accent mb-3">INSTRUCTIONS</h3>
+                <ol className="text-xs text-textSecondary space-y-2 list-decimal list-inside">
+                  <li>You can click on ANY node in the tree</li>
+                  <li>If selected node is not a child of current front node, you'll get an error</li>
+                  <li>Keep trying until you select valid children of the front node</li>
+                  <li>Click "Dequeue" to process the front node</li>
+                  <li>Continue until you reach node 11</li>
+                  <li>You can submit at any point to check your progress</li>
+                </ol>
               </div>
 
               {/* Collapsible Hint */}
-              <div className="mt-6">
+              <div className="mt-auto">
                 <div
-                  className="flex justify-between items-center cursor-pointer p-3 rounded-xl select-none bg-cyan-500/10 hover:bg-cyan-500/20 transition-all border border-cyan-500/20"
+                  className="flex justify-between items-center cursor-pointer p-2 rounded-lg select-none hover:bg-accent/10 transition-colors"
                   onClick={() => setHintOpen(!hintOpen)}
                 >
-                  <span className="text-xs font-bold text-cyan-400 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4" />
-                    STRATEGIC HINT
+                  <span className="text-xs font-bold text-accent">HINT</span>
+                  <span className={`transition-transform duration-300 ${hintOpen ? "rotate-180" : "rotate-0"}`}>
+                    {hintOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                   </span>
-                  {hintOpen ? <ChevronDown className="w-4 h-4 text-cyan-400" /> : <ChevronRight className="w-4 h-4 text-cyan-400" />}
                 </div>
                 <div className={`overflow-hidden transition-all duration-300 ${hintOpen ? "max-h-40 opacity-100 mt-2" : "max-h-0 opacity-0"}`}>
-                  <div className="p-4 border-l-2 border-cyan-400 bg-cyan-500/5 rounded-r-xl text-xs text-textSecondary leading-relaxed">
-                    Node 11 is a child of Node 5. To reach Node 5, you need to traverse through Node 2 first. Remember: BFS explores all neighbors at the current depth before moving to nodes at the next depth level!
+                  <div className="p-3 border-l-2 border-accent text-xs text-textSecondary">
+                    BFS explores level by level. Process nodes in FIFO order using a queue. For node k, children are 2k and 2k+1.
+                    You can click any node, but only children of the current front node will be accepted.
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Center Panel - Interactive Tree */}
-            <div className="lg:col-span-6 bg-gradient-to-br from-slate-950 via-blue-950/20 to-purple-950/20 relative overflow-hidden">
-              {/* Animated background */}
-              <div className="absolute inset-0 opacity-20">
-                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl animate-pulse"></div>
-                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/30 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
+            {/* Column 2: Interactive Tree Workspace */}
+            <div className={cn(
+              "w-full lg:col-span-6 relative flex flex-col min-h-[50vh] lg:min-h-full overflow-auto transition-colors duration-300",
+              workspaceTheme === 'dark' ? "bg-[#0F0E0D]" : "bg-gray-50"
+            )}>
+              <div className="absolute top-4 right-4 z-10 flex gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setShowCalculator(!showCalculator)}
+                  className={showCalculator ? "bg-accent text-background hover:bg-accentHover" : ""}
+                >
+                  <Calculator className="w-4 h-4 mr-2" />
+                  <span className="hidden md:inline">Calculator</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setWorkspaceTheme(workspaceTheme === 'dark' ? 'light' : 'dark')}
+                  className={cn(
+                    "transition-colors duration-300",
+                    workspaceTheme === 'dark' ? "bg-white/10 hover:bg-white/20 text-white" : "bg-gray-800 hover:bg-gray-700 text-gray-100"
+                  )}
+                >
+                  {workspaceTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  <span className="hidden md:inline ml-2">{workspaceTheme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => setSolution(`// BFS Traversal Notes:\n// Start: Node 1\n// Goal: Node 11\n`)}
+                  className={workspaceTheme === 'dark' ? "" : "bg-gray-200 hover:bg-gray-300 text-gray-900"}
+                >
+                  Clear Notes
+                </Button>
               </div>
 
-              <div className="relative z-10 p-8 h-full flex flex-col">
-                <div className="mb-6 flex items-center justify-between">
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
-                    Step {currentStep}: {foundGoal ? 'Goal Reached! 🎉' : 'Select Next Node'}
-                  </h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReset}
-                    className="text-textSecondary hover:text-white gap-2"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    Reset
-                  </Button>
-                </div>
-
-                {/* Error Message */}
-                {showError && (
-                  <div className="mb-4 p-3 bg-red-500/20 border border-red-500/40 rounded-xl animate-in slide-in-from-top duration-300">
-                    <div className="flex items-center gap-2 text-red-400 text-sm font-medium">
-                      <XCircle className="w-4 h-4" />
-                      Invalid selection! Please select from available nodes.
-                    </div>
+              {showCalculator && (
+                <Card className={cn(
+                  "absolute top-16 right-4 z-20 w-64 shadow-2xl p-4 animate-in zoom-in-95 duration-200 select-none border transition-colors",
+                  workspaceTheme === 'dark' ? "bg-surface border-white/10" : "bg-white border-gray-300"
+                )}>
+                  <div className={cn("flex justify-between items-center mb-4 pb-2",
+                    workspaceTheme === 'dark' ? "border-b border-white/5" : "border-b border-gray-200"
+                  )}>
+                    <span className={cn("text-xs font-bold uppercase", workspaceTheme === 'dark' ? "text-textSecondary" : "text-gray-600")}>
+                      Calculator
+                    </span>
+                    <button onClick={() => setShowCalculator(false)} className={workspaceTheme === 'dark' ? "text-textSecondary hover:text-white" : "text-gray-600 hover:text-gray-900"}>
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                )}
+                  <div className={cn(
+                    "p-3 rounded text-right font-mono text-xl mb-3 overflow-hidden text-ellipsis",
+                    workspaceTheme === 'dark' ? "bg-black/40 text-white" : "bg-gray-100 text-gray-900"
+                  )}>
+                    <div className={cn("text-xs h-4", workspaceTheme === 'dark' ? "text-textSecondary" : "text-gray-500")}>
+                      {calcEquation}
+                    </div>
+                    {calcDisplay}
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {['7', '8', '9', '/', '4', '5', '6', '*', '1', '2', '3', '-', 'C', '0', '.', '+'].map(btn => (
+                      <button
+                        key={btn}
+                        onClick={() => handleCalcInput(btn)}
+                        className={cn(
+                          "h-10 w-full rounded text-sm font-bold transition-colors",
+                          workspaceTheme === 'dark' ?
+                            ['/', '*', '-', '+'].includes(btn) ? 'bg-accent/20 text-accent hover:bg-accent/30' :
+                            btn === 'C' ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' :
+                              'bg-white/5 hover:bg-white/10 text-white'
+                            :
+                            ['/', '*', '-', '+'].includes(btn) ? 'bg-blue-100 text-blue-600 hover:bg-blue-200' :
+                            btn === 'C' ? 'bg-red-100 text-red-600 hover:bg-red-200' :
+                              'bg-gray-200 hover:bg-gray-300 text-gray-900'
+                        )}
+                      >
+                        {btn}
+                      </button>
+                    ))}
+                    <button onClick={() => handleCalcInput('=')} className={cn(
+                      "col-span-4 h-10 font-bold rounded hover:brightness-110 mt-2 transition-colors",
+                      workspaceTheme === 'dark' ? "bg-accent text-background hover:bg-accentHover" : "bg-blue-600 text-white hover:bg-blue-700"
+                    )}>=</button>
+                  </div>
+                </Card>
+              )}
 
-                {/* Tree Visualization */}
-                <div className="flex-1 relative bg-black/20 rounded-2xl border border-white/10 p-8 overflow-auto">
-                  <svg width="800" height="400" className="mx-auto">
+              {/* Tree Visualization */}
+              <div className="flex-1 p-8 overflow-auto">
+                <div className="mb-6">
+                  <h3 className={cn("text-sm font-bold mb-4", workspaceTheme === 'dark' ? "text-accent" : "text-blue-600")}>
+                    Interactive Tree (Click ANY node to try adding to queue)
+                  </h3>
+                  <svg width="800" height="350" className={cn("mx-auto", workspaceTheme === 'light' && "opacity-80")}>
                     {/* Draw edges */}
-                    {Object.entries(treeData).map(([parent, children]) => 
-                      children.map(child => {
-                        const parentNum = parseInt(parent);
-                        const childNum = child;
-                        const parentPos = nodePositions[parentNum];
-                        const childPos = nodePositions[childNum];
-                        const isInPath = visitedNodes.includes(parentNum) && visitedNodes.includes(childNum);
+                    {Object.values(treeNodes).map(node => 
+                      node.children.map(childValue => {
+                        const child = treeNodes[childValue];
                         return (
                           <line
-                            key={`${parent}-${child}`}
-                            x1={parentPos.x}
-                            y1={parentPos.y}
-                            x2={childPos.x}
-                            y2={childPos.y}
-                            stroke={isInPath ? "#06b6d4" : "#ffffff20"}
-                            strokeWidth={isInPath ? "3" : "1"}
-                            className="transition-all duration-500"
+                            key={`${node.value}-${childValue}`}
+                            x1={node.x}
+                            y1={node.y}
+                            x2={child.x}
+                            y2={child.y}
+                            stroke={workspaceTheme === 'dark' ? "rgba(250, 204, 21, 0.2)" : "rgba(59, 130, 246, 0.3)"}
+                            strokeWidth="2"
                           />
                         );
                       })
                     )}
-
-                    {/* Draw nodes */}
-                    {Object.keys(nodePositions).map(nodeNum => {
-                      const node = parseInt(nodeNum);
-                      const pos = nodePositions[node];
-                      const isVisited = visitedNodes.includes(node);
-                      const isGoal = node === 11;
-                      const isAvailable = availableNodes.includes(node);
+                    
+                    {/* Draw nodes - ALL nodes are now clickable */}
+                    {Object.values(treeNodes).map(node => {
+                      const isVisited = visitedNodes.includes(node.value);
+                      const isInQueue = queue.includes(node.value);
+                      const isFront = currentFront === node.value;
+                      const isGoal = node.value === GOAL_NODE;
+                      const isSelectable = !isVisited && !isInQueue;
                       
                       return (
-                        <g key={node}>
-                          {isGoal && (
-                            <circle
-                              cx={pos.x}
-                              cy={pos.y}
-                              r="28"
-                              fill="none"
-                              stroke="#06b6d4"
-                              strokeWidth="2"
-                              className="animate-ping"
-                            />
-                          )}
+                        <g key={node.value}>
                           <circle
-                            cx={pos.x}
-                            cy={pos.y}
-                            r="24"
+                            cx={node.x}
+                            cy={node.y}
+                            r="20"
                             fill={
-                              isGoal && foundGoal ? "#06b6d4" :
-                              isVisited ? "#8b5cf6" :
-                              isAvailable ? "#3b82f6" :
-                              "#ffffff10"
+                              isGoal && goalReached ? "#22c55e" :
+                              isVisited ? "#facc15" :
+                              isFront ? "#f59e0b" :
+                              isInQueue ? "#3b82f6" :
+                              workspaceTheme === 'dark' ? "#1f2937" : "#e5e7eb"
                             }
                             stroke={
-                              isGoal ? "#06b6d4" :
-                              isVisited ? "#a78bfa" :
-                              isAvailable ? "#60a5fa" :
-                              "#ffffff30"
+                              isGoal ? "#22c55e" :
+                              isFront ? "#facc15" :
+                              isSelectable ? "#facc15" :
+                              workspaceTheme === 'dark' ? "rgba(250, 204, 21, 0.3)" : "rgba(250, 204, 21, 0.5)"
                             }
-                            strokeWidth="2"
-                            className={cn(
-                              "transition-all duration-500 cursor-pointer",
-                              isAvailable && "hover:fill-blue-400 hover:stroke-blue-300 animate-pulse"
-                            )}
-                            onClick={() => isAvailable && !foundGoal && handleNodeSelect(node)}
+                            strokeWidth={isFront ? "3" : "2"}
+                            className={isSelectable ? "cursor-pointer hover:opacity-80" : "cursor-not-allowed"}
+                            onClick={() => isSelectable && handleNodeClick(node.value)}
                           />
                           <text
-                            x={pos.x}
-                            y={pos.y + 5}
+                            x={node.x}
+                            y={node.y + 5}
                             textAnchor="middle"
-                            fill="white"
+                            fill={workspaceTheme === 'dark' ? "white" : "#1f2937"}
                             fontSize="14"
                             fontWeight="bold"
-                            className="pointer-events-none select-none"
+                            className="pointer-events-none"
                           >
-                            {node}
+                            {node.value}
                           </text>
                         </g>
                       );
@@ -410,300 +518,419 @@ export default function BFSNumericalSolver() {
                   </svg>
                 </div>
 
-                {/* Legend */}
-                <div className="mt-4 flex flex-wrap gap-4 text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-purple-500 border-2 border-purple-400"></div>
-                    <span className="text-textSecondary">Visited</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-blue-400"></div>
-                    <span className="text-textSecondary">Available</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-white/10 border-2 border-white/30"></div>
-                    <span className="text-textSecondary">Not Explored</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-cyan-400 border-2 border-cyan-300"></div>
-                    <span className="text-textSecondary">Goal Node (11)</span>
+                {/* Queue Visualization */}
+                <div className={cn(
+                  "rounded-xl border p-6 mb-4 transition-colors",
+                  workspaceTheme === 'dark' ? "bg-surface/30 border-white/5" : "bg-gray-100 border-gray-300"
+                )}>
+                  <h3 className={cn("text-sm font-bold mb-3", workspaceTheme === 'dark' ? "text-textSecondary" : "text-gray-700")}>
+                    QUEUE (FIFO)
+                  </h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {queue.length === 0 ? (
+                      <span className={cn("text-sm", workspaceTheme === 'dark' ? "text-textSecondary" : "text-gray-600")}>
+                        Empty
+                      </span>
+                    ) : (
+                      queue.map((node, idx) => (
+                        <div
+                          key={idx}
+                          className={cn(
+                            "px-4 py-2 rounded-lg font-mono font-bold border-2 transition-colors",
+                            idx === 0 ? 
+                              (workspaceTheme === 'dark' ? "bg-accent/20 border-accent text-accent" : "bg-blue-200 border-blue-600 text-blue-600")
+                              : 
+                              (workspaceTheme === 'dark' ? "bg-white/5 border-white/10 text-white" : "bg-gray-200 border-gray-400 text-gray-800")
+                          )}
+                        >
+                          {node}
+                          {idx === 0 && <span className="ml-2 text-xs">(front)</span>}
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
+
+                {/* User Traversal Order */}
+                <div className={cn(
+                  "rounded-xl border p-6 mb-4 transition-colors",
+                  workspaceTheme === 'dark' ? "bg-surface/30 border-white/5" : "bg-gray-100 border-gray-300"
+                )}>
+                  <h3 className={cn("text-sm font-bold mb-3", workspaceTheme === 'dark' ? "text-textSecondary" : "text-gray-700")}>
+                    YOUR TRAVERSAL ORDER
+                  </h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {userTraversalOrder.length === 0 ? (
+                      <span className={cn("text-sm", workspaceTheme === 'dark' ? "text-textSecondary" : "text-gray-600")}>
+                        No nodes selected yet
+                      </span>
+                    ) : (
+                      userTraversalOrder.map((node, idx) => (
+                        <div
+                          key={idx}
+                          className={cn(
+                            "px-4 py-2 rounded-lg font-mono font-bold border-2 transition-colors",
+                            node === GOAL_NODE ? "bg-green-500/20 border-green-500 text-green-400" :
+                            workspaceTheme === 'dark' ? "bg-white/5 border-white/10 text-white" : "bg-gray-200 border-gray-400 text-gray-800"
+                          )}
+                        >
+                          {node}
+                          {node === GOAL_NODE && <span className="ml-2 text-xs">(goal)</span>}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Error Message */}
+                {errorMessage && (
+                  <div className={cn(
+                    "rounded-xl p-4 mb-4 flex items-start gap-3 animate-in slide-in-from-top-2 border transition-colors",
+                    workspaceTheme === 'dark' ? "bg-red-500/10 border-red-500/30" : "bg-red-100 border-red-300"
+                  )}>
+                    <AlertCircle className={cn("w-5 h-5 shrink-0 mt-0.5", workspaceTheme === 'dark' ? "text-red-400" : "text-red-600")} />
+                    <p className={cn("text-sm", workspaceTheme === 'dark' ? "text-red-300" : "text-red-700")}>{errorMessage}</p>
+                  </div>
+                )}
+
+                {/* Current Front Node Info */}
+                <div className={cn(
+                  "rounded-xl border p-4 mb-4 transition-colors",
+                  workspaceTheme === 'dark' ? "bg-accent/5 border-accent/20" : "bg-blue-50 border-blue-200"
+                )}>
+                  <h3 className={cn("text-sm font-bold mb-2", workspaceTheme === 'dark' ? "text-accent" : "text-blue-600")}>
+                    Current Front Node: {currentFront}
+                  </h3>
+                  <p className={cn("text-xs", workspaceTheme === 'dark' ? "text-textSecondary" : "text-gray-600")}>
+                    Valid children to select: {treeNodes[currentFront]?.children.filter(child => 
+                      !visitedNodes.includes(child) && !queue.includes(child)
+                    ).join(', ') || 'None (all children already in queue or visited)'}
+                  </p>
+                </div>
+
+                <textarea
+                  ref={textAreaRef}
+                  value={solution}
+                  onChange={(e) => setSolution(e.target.value)}
+                  className={cn(
+                    "flex-1 w-full p-6 md:p-8 font-mono resize-none focus:outline-none text-sm leading-7 transition-colors duration-300",
+                    workspaceTheme === 'dark' ? "bg-transparent text-white" : "bg-white text-black"
+                  )}
+                  placeholder="// Take notes about your BFS traversal..."
+                />
               </div>
             </div>
 
-            {/* Right Panel - Queue & Controls */}
-            <div className="lg:col-span-3 bg-gradient-to-br from-blue-950/30 to-cyan-950/30 border-l border-white/5 p-6 flex flex-col backdrop-blur-sm overflow-y-auto">
-              <h3 className="font-black text-sm mb-4 uppercase text-cyan-400 tracking-widest flex items-center gap-2">
-                <div className="w-8 h-1 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full"></div>
-                BFS Queue
-              </h3>
+            {/* Column 3: Controls */}
+            <div className="w-full lg:col-span-3 bg-surface/30 border-t lg:border-t-0 lg:border-l border-white/5 p-6 flex flex-col shrink-0">
+              <h3 className="font-bold text-sm mb-6 uppercase text-textSecondary tracking-widest">Controls</h3>
 
-              <Card className="p-4 bg-black/40 border-cyan-500/20 mb-6 backdrop-blur-sm">
-                <div className="text-[10px] text-cyan-400 font-bold mb-2 uppercase tracking-wider">Current Queue State</div>
-                <div className="flex flex-wrap gap-2 min-h-[60px] items-center">
-                  {queue.length > 0 ? (
-                    queue.map((node, idx) => (
-                      <div
-                        key={idx}
-                        className={cn(
-                          "w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold shadow-lg animate-in zoom-in-95 duration-300 relative",
-                          idx === 0 
-                            ? "bg-gradient-to-br from-purple-600 to-cyan-600 ring-2 ring-cyan-400" 
-                            : "bg-gradient-to-br from-purple-500 to-cyan-500"
-                        )}
-                        style={{animationDelay: `${idx * 50}ms`}}
-                      >
-                        {node}
-                        {idx === 0 && (
-                          <div className="absolute -top-2 -right-2 text-[8px] bg-cyan-500 text-white px-1.5 py-0.5 rounded-full">
-                            Next
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-textSecondary italic text-sm">Queue is empty</div>
-                  )}
+              <div className="space-y-4 mb-auto">
+                <div className="bg-black/20 rounded-xl p-4 border border-white/5">
+                  <div className="text-xs text-textSecondary mb-2">Current Front Node</div>
+                  <div className="text-3xl font-bold text-accent">{currentFront}</div>
                 </div>
-              </Card>
 
-              <h3 className="font-black text-sm mb-4 uppercase text-purple-400 tracking-widest flex items-center gap-2">
-                <div className="w-8 h-1 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full"></div>
-                Your Path
-              </h3>
-
-              <Card className="p-4 bg-black/40 border-purple-500/20 mb-6 backdrop-blur-sm">
-                <div className="text-[10px] text-purple-400 font-bold mb-2 uppercase tracking-wider">Nodes Visited: {selectedPath.length}</div>
-                <div className="flex flex-wrap gap-2 min-h-[60px] items-center">
-                  {selectedPath.map((node, idx) => (
-                    <div
-                      key={idx}
-                      className={cn(
-                        "px-3 py-1.5 rounded-lg font-bold text-sm shadow-md animate-in slide-in-from-left duration-300 relative",
-                        node === 11 ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white" : 
-                        node === currentNode ? "bg-gradient-to-r from-purple-600 to-cyan-600 text-white" : 
-                        "bg-white/10 text-white border border-white/20"
-                      )}
-                      style={{animationDelay: `${idx * 30}ms`}}
-                    >
-                      {node}
-                      {idx < selectedPath.length - 1 && (
-                        <div className="absolute -right-2 top-1/2 -translate-y-1/2 text-cyan-400">→</div>
-                      )}
-                    </div>
-                  ))}
+                <div className="bg-black/20 rounded-xl p-4 border border-white/5">
+                  <div className="text-xs text-textSecondary mb-2">Nodes in Queue</div>
+                  <div className="text-3xl font-bold text-white">{queue.length}</div>
                 </div>
-              </Card>
 
-              {availableNodes.length > 0 && !foundGoal && (
-                <Card className="p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-cyan-500/30 mb-6 backdrop-blur-sm">
-                  <div className="text-[10px] text-cyan-400 font-bold mb-3 uppercase tracking-wider flex items-center gap-2">
-                    <Sparkles className="w-3 h-3" />
-                    Available Nodes (Select Next)
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {availableNodes.map(node => (
-                      <button
-                        key={node}
-                        onClick={() => handleNodeSelect(node)}
-                        className="px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold text-sm hover:from-blue-400 hover:to-cyan-400 transition-all transform hover:scale-105 active:scale-95 shadow-lg shadow-blue-500/20 animate-pulse"
-                      >
-                        Node {node}
-                      </button>
-                    ))}
-                  </div>
-                </Card>
-              )}
-
-              <div className="mt-auto space-y-3">
-                {foundGoal && (
-                  <div className="p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-2 border-green-500/50 rounded-xl animate-in slide-in-from-bottom duration-500">
-                    <div className="flex items-center gap-2 text-green-400 font-bold text-sm mb-1">
-                      <CheckCircle className="w-5 h-5" />
-                      Goal Reached!
-                    </div>
-                    <p className="text-xs text-green-300/80">You've found Node 11. Ready to submit?</p>
-                  </div>
-                )}
-
-                <Button
-                  size="lg"
-                  className="w-full gap-2 font-bold py-6 text-base shadow-2xl bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-400 hover:to-cyan-400 border-0"
-                  onClick={handleSubmit}
-                  disabled={!foundGoal}
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  className="w-full gap-2 font-bold py-6 text-base"
+                  onClick={handleDequeue}
+                  disabled={queue.length === 0 || goalReached}
                 >
-                  <Trophy className="w-5 h-5" />
-                  Submit Solution
+                  Dequeue & Next Step →
                 </Button>
 
-                {!foundGoal && (
-                  <div className="text-xs text-center text-textSecondary pt-2">
-                    Reach Node 11 to submit your solution
+                <Button 
+                  size="lg" 
+                  variant="secondary"
+                  className="w-full gap-2 font-bold py-6 text-base"
+                  onClick={handleDequeue}
+                  disabled={queue.length === 0 || goalReached}
+                >
+                  Dequeue Only
+                </Button>
+
+                {goalReached && (
+                  <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 animate-in slide-in-from-bottom-2">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="w-5 h-5 text-green-400" />
+                      <span className="font-bold text-green-400">Goal Reached!</span>
+                    </div>
+                    <p className="text-xs text-green-300">You've successfully found node 11 using BFS.</p>
                   </div>
                 )}
               </div>
+
+              <Button 
+                size="lg" 
+                className="w-full gap-2 font-bold py-6 text-base shadow-lg shadow-accent/20 mt-6"
+                onClick={handleSubmit}
+              >
+                Submit Solution
+              </Button>
             </div>
           </div>
         ) : (
           /* Results View */
-          <div className="h-full overflow-y-auto">
-            <div className="max-w-5xl mx-auto py-12 px-6 animate-in slide-in-from-bottom-4 duration-500">
-              {/* Result Hero */}
-              <div className="flex flex-col items-center text-center mb-16">
-                <div className={cn(
-                  "w-24 h-24 rounded-3xl flex items-center justify-center mb-6 shadow-2xl animate-bounce",
-                  isCorrect ? "bg-gradient-to-br from-green-500 to-emerald-500 shadow-green-500/50" : "bg-gradient-to-br from-orange-500 to-red-500 shadow-orange-500/50"
-                )}>
-                  {isCorrect ? (
-                    <CheckCircle className="w-12 h-12 text-white" />
+          <div className="max-w-5xl mx-auto py-12 px-6 animate-in slide-in-from-bottom-4 duration-500">
+            {/* Result Hero */}
+            <div className="flex flex-col items-center text-center mb-16">
+              <div className={cn(
+                "w-20 h-20 rounded-3xl flex items-center justify-center mb-6 shadow-2xl",
+                userTraversalOrder.includes(GOAL_NODE) && isTraversalCorrect() ? "bg-green-500 shadow-green-500/20 animate-bounce duration-[2000ms]" : 
+                userTraversalOrder.includes(GOAL_NODE) ? "bg-orange-500 shadow-orange-500/20" : "bg-red-500 shadow-red-500/20"
+              )}>
+                {userTraversalOrder.includes(GOAL_NODE) ? (
+                  isTraversalCorrect() ? (
+                    <CheckCircle className="w-10 h-10 text-white" />
                   ) : (
-                    <XCircle className="w-12 h-12 text-white" />
+                    <AlertCircle className="w-10 h-10 text-white" />
+                  )
+                ) : (
+                  <XCircle className="w-10 h-10 text-white" />
+                )}
+              </div>
+              <h2 className="text-4xl font-black text-white mb-2">
+                {userTraversalOrder.includes(GOAL_NODE) 
+                  ? (isTraversalCorrect() ? "Perfect BFS Execution!" : "Goal Reached with Learning Points")
+                  : "Goal Not Reached"}
+              </h2>
+              <p className="text-textSecondary text-lg max-w-xl">
+                {userTraversalOrder.includes(GOAL_NODE)
+                  ? (isTraversalCorrect()
+                    ? "You've correctly implemented the breadth-first search algorithm with perfect node ordering."
+                    : "You successfully reached the goal node! Review the optimal solution below to refine your BFS understanding.")
+                  : "You didn't reach the goal node (11). Your traversal stopped before finding the goal."}
+              </p>
+            </div>
+
+            {/* Performance Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
+              <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5 hover:border-white/10 transition-colors">
+                <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Time Taken</div>
+                <div className="text-2xl font-bold text-white mb-1">{formatTime(timer)}</div>
+                <div className="text-xs text-green-400 font-medium">Efficient traversal</div>
+              </Card>
+              <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5 hover:border-white/10 transition-colors">
+                <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Accuracy Score</div>
+                <div className="text-2xl font-bold text-white mb-1">
+                  {Math.max(0, (userTraversalOrder.includes(GOAL_NODE) ? (isTraversalCorrect() ? 100 : 70) : 50) - workingPenalty)}%
+                </div>
+                <div className={cn("text-xs font-medium", workingPenalty > 0 ? "text-red-400" : "text-textSecondary")}>
+                  {workingPenalty > 0 ? "Penalty: Insufficient notes" : "Well documented"}
+                </div>
+              </Card>
+              <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5 hover:border-white/10 transition-colors">
+                <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Nodes in Traversal</div>
+                <div className="text-2xl font-bold text-accent mb-1">{userTraversalOrder.length}</div>
+                <div className="text-xs text-accent/60 font-medium">
+                  {userTraversalOrder.includes(GOAL_NODE) ? "Goal reached" : "Goal not reached"}
+                </div>
+              </Card>
+            </div>
+
+            {/* Side-by-Side Solution */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between px-2">
+                  <h3 className="text-sm font-bold text-textSecondary uppercase tracking-widest">Your Traversal Order</h3>
+                  <Badge variant="secondary" className="bg-white/5 border-white/10">
+                    {userTraversalOrder.length} nodes
+                  </Badge>
+                </div>
+                <div className="bg-surface/30 rounded-2xl border border-white/5 p-6 h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/5 relative group">
+                  <div className="text-xs text-textSecondary mb-3 font-mono">
+                    Traversal Order: [{userTraversalOrder.join(', ')}]
+                  </div>
+                  <div className="space-y-2">
+                    {solution.split('\n').map((line, i) => (
+                      <div key={i} className="flex gap-4">
+                        <span className="w-4 text-textSecondary/30 text-[10px] pt-1">{i + 1}</span>
+                        <span className="text-sm text-textSecondary font-mono">{line || ' '}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {!userTraversalOrder.includes(GOAL_NODE) && (
+                    <div className="mt-6 p-4 bg-red-500/10 rounded-xl border border-red-500/20">
+                      <h4 className="text-xs font-bold text-red-400 mb-2 uppercase">Goal Not Reached</h4>
+                      <p className="text-xs text-red-300/80">
+                        Your traversal doesn't include the goal node (11). You stopped at node {userTraversalOrder[userTraversalOrder.length - 1]}.
+                      </p>
+                    </div>
+                  )}
+                  {userTraversalOrder.includes(GOAL_NODE) && !isTraversalCorrect() && (
+                    <div className="mt-6 p-4 bg-orange-500/10 rounded-xl border border-orange-500/20">
+                      <h4 className="text-xs font-bold text-orange-400 mb-2 uppercase">Difference Detected</h4>
+                      <p className="text-xs text-orange-300/80">
+                        Your traversal order differs from the optimal BFS sequence. Compare carefully with the solution on the right.
+                      </p>
+                    </div>
                   )}
                 </div>
-                <h2 className="text-5xl font-black text-white mb-3 bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
-                  {isCorrect ? "Perfect Traversal!" : "Almost There!"}
-                </h2>
-                <p className="text-textSecondary text-lg max-w-2xl">
-                  {isCorrect
-                    ? "Outstanding! You've mastered the BFS algorithm and found the optimal path to the goal node. Your systematic approach is exemplary!"
-                    : "You've demonstrated good understanding, but the path isn't quite optimal. Let's review the correct BFS traversal order below."}
-                </p>
               </div>
 
-              {/* Performance Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                <Card className="p-6 bg-gradient-to-br from-purple-500/10 to-cyan-500/10 backdrop-blur-md border border-purple-500/20 hover:border-purple-400/40 transition-all group">
-                  <div className="text-[10px] uppercase tracking-widest font-bold text-purple-400 mb-2">Time Performance</div>
-                  <div className="text-3xl font-black text-white mb-2">{formatTime(timer)}</div>
-                  <div className="text-xs text-cyan-400 font-medium flex items-center gap-1">
-                    <Zap className="w-3 h-3" />
-                    Excellent speed!
-                  </div>
-                </Card>
-                
-                <Card className="p-6 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 backdrop-blur-md border border-cyan-500/20 hover:border-cyan-400/40 transition-all">
-                  <div className="text-[10px] uppercase tracking-widest font-bold text-cyan-400 mb-2">Path Accuracy</div>
-                  <div className="text-3xl font-black text-white mb-2">{accuracy}%</div>
-                  <div className={cn(
-                    "text-xs font-medium flex items-center gap-1",
-                    isCorrect ? "text-green-400" : "text-orange-400"
-                  )}>
-                    <Target className="w-3 h-3" />
-                    {isCorrect ? "Optimal path!" : "Review needed"}
-                  </div>
-                </Card>
-                
-                <Card className="p-6 bg-gradient-to-br from-green-500/10 to-emerald-500/10 backdrop-blur-md border border-green-500/20 hover:border-green-400/40 transition-all">
-                  <div className="text-[10px] uppercase tracking-widest font-bold text-green-400 mb-2">XP Earned</div>
-                  <div className="text-3xl font-black text-white mb-2">+{isCorrect ? 500 : 250}</div>
-                  <div className="text-xs text-emerald-400 font-medium flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" />
-                    {isCorrect ? "Bonus applied!" : "Partial credit"}
-                  </div>
-                </Card>
-              </div>
-
-              {/* Path Comparison */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between px-2">
-                    <h3 className="text-sm font-black text-purple-400 uppercase tracking-widest">Your Path</h3>
-                    <Badge className={cn(
-                      "border-0",
-                      isCorrect ? "bg-green-500/20 text-green-400" : "bg-orange-500/20 text-orange-400"
-                    )}>
-                      {selectedPath.length} nodes
-                    </Badge>
-                  </div>
-                  <Card className="p-6 bg-purple-500/5 border-purple-500/20 min-h-[200px]">
-                    <div className="flex flex-wrap gap-3 items-center">
-                      {selectedPath.map((node, idx) => (
-                        <div
-                          key={idx}
-                          className={cn(
-                            "relative px-4 py-3 rounded-xl font-bold text-lg shadow-lg transition-all",
-                            node === correctPath[idx] 
-                              ? "bg-gradient-to-br from-green-500 to-emerald-500 text-white" 
-                              : "bg-gradient-to-br from-orange-500 to-red-500 text-white"
-                          )}
-                        >
-                          {node}
-                          {idx < selectedPath.length - 1 && (
-                            <div className="absolute -right-3 top-1/2 -translate-y-1/2 text-white/30">→</div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between px-2">
+                  <h3 className="text-sm font-bold text-accent uppercase tracking-widest">Optimal Solution Walkthrough</h3>
+                  <Badge variant="outline" className="border-accent/30 text-accent">Verified</Badge>
                 </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between px-2">
-                    <h3 className="text-sm font-black text-cyan-400 uppercase tracking-widest">Optimal BFS Path</h3>
-                    <Badge className="bg-cyan-500/20 text-cyan-400 border-0">
-                      {correctPath.length} nodes
-                    </Badge>
+                <div className="bg-accent/5 rounded-2xl border border-accent/10 p-6 h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-accent/10">
+                  <div className="text-xs text-accent mb-4 font-mono">
+                    Correct BFS Order: [{CORRECT_BFS_ORDER.join(', ')}]
                   </div>
-                  <Card className="p-6 bg-cyan-500/5 border-cyan-500/20 min-h-[200px]">
-                    <div className="flex flex-wrap gap-3 items-center">
-                      {correctPath.map((node, idx) => (
-                        <div
-                          key={idx}
-                          className="relative px-4 py-3 rounded-xl font-bold text-lg shadow-lg bg-gradient-to-br from-cyan-500 to-blue-500 text-white"
-                        >
-                          {node}
-                          {idx < correctPath.length - 1 && (
-                            <div className="absolute -right-3 top-1/2 -translate-y-1/2 text-white/30">→</div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                </div>
-              </div>
-
-              {/* Feedback Message */}
-              <Card className="p-6 bg-gradient-to-br from-purple-500/5 to-cyan-500/5 border-purple-500/20 mb-8">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center shrink-0">
-                    {isCorrect ? (
-                      <Trophy className="w-6 h-6 text-white" />
-                    ) : (
-                      <Sparkles className="w-6 h-6 text-white" />
-                    )}
+                  <div className="space-y-2 mb-6">
+                    {correctSolution.split('\n').map((line, i) => (
+                      <div key={i} className="flex gap-4">
+                        <span className="w-4 text-accent/30 text-[10px] pt-1">{i + 1}</span>
+                        <span className="text-sm text-textPrimary font-mono">{line || ' '}</span>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <h4 className="text-white font-bold mb-2">
-                      {isCorrect ? "🎉 Perfect Score!" : "📚 Learning Opportunity"}
-                    </h4>
-                    <p className="text-textSecondary text-sm leading-relaxed">
-                      {isCorrect
-                        ? "Your BFS traversal followed the correct level-order sequence. This is essential for many real-world applications like network routing, web crawling, and social network analysis."
-                        : "Remember: BFS explores all nodes at the current depth before moving to the next level. The optimal sequence should be: Level 1 → Level 2 → Level 3, etc."}
+                  <div className="mt-8 p-4 bg-accent/10 rounded-xl border border-accent/20">
+                    <h4 className="text-xs font-bold text-accent mb-2 uppercase">Key Takeaway</h4>
+                    <p className="text-xs text-textSecondary leading-relaxed">
+                      BFS explores nodes level by level using a queue (FIFO). For each node k, its children are 2k and 2k+1. 
+                      The algorithm processes nodes in the exact order they're added to the queue, ensuring all nodes at depth d 
+                      are visited before any node at depth d+1.
                     </p>
                   </div>
                 </div>
-              </Card>
+              </div>
+            </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            {/* In-Depth Feedback Section */}
+            <Card className="p-8 bg-surface/20 border border-white/5 mb-16 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-accent/10 transition-colors duration-1000" />
+              <div className="relative z-10">
+                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                  <Sun className="w-5 h-5 text-accent" /> Algorithm Analysis
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-sm leading-relaxed text-textSecondary">
+                  <div>
+                    <h4 className="font-bold text-textPrimary mb-3 underline decoration-accent/30 underline-offset-4">Traversal Status</h4>
+                    <p className="mb-4">
+                      Your BFS traversal visited <span className="font-bold text-accent">{userTraversalOrder.length}</span> nodes 
+                      in the order: <span className="font-mono text-white">[{userTraversalOrder.join(', ')}]</span>.
+                    </p>
+                    {userTraversalOrder.includes(GOAL_NODE) ? (
+                      isTraversalCorrect() ? (
+                        <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
+                          <p className="text-green-300">
+                            ✓ Your traversal matches the optimal BFS order perfectly! You correctly implemented the 
+                            level-order exploration pattern.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl">
+                          <p className="text-orange-300">
+                            You reached the goal but your traversal order differs from the optimal BFS sequence. 
+                            Remember: BFS explores all nodes at the current level before moving to the next level.
+                          </p>
+                        </div>
+                      )
+                    ) : (
+                      <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+                        <p className="text-red-300">
+                          Your traversal didn't reach the goal node (11). You stopped at node {userTraversalOrder[userTraversalOrder.length - 1]}. 
+                          In BFS, you should continue processing the queue until you find the goal.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-textPrimary mb-3 underline decoration-accent/30 underline-offset-4">Algorithm Properties</h4>
+                    <p className="mb-4">
+                      BFS guarantees the shortest path in unweighted graphs. Time complexity is O(V + E) where V is vertices 
+                      and E is edges. Space complexity is O(V) for the queue.
+                    </p>
+                    {workingPenalty > 0 && (
+                      <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl mb-4 animate-in slide-in-from-top-2">
+                        <h5 className="text-xs font-bold text-red-400 uppercase mb-1 flex items-center gap-2">
+                          <XCircle className="w-3 h-3" /> Documentation Penalty
+                        </h5>
+                        <p className="text-[11px] text-red-300/80">
+                          A {workingPenalty}% penalty was applied due to insufficient documentation. Include notes about 
+                          queue operations, level processing, and BFS strategy for full credit.
+                        </p>
+                      </div>
+                    )}
+                    <p className="text-xs">
+                      <strong className="text-white">State Space:</strong> Each node k generates successors 2k and 2k+1, 
+                      creating a binary tree structure where BFS naturally explores by levels.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Visual Comparison */}
+            <Card className="p-8 bg-surface/20 border border-white/5 mb-12">
+              <h3 className="text-lg font-bold text-white mb-6">BFS Execution Visualization</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <h4 className="text-xs font-bold text-accent mb-3 uppercase">Level 0 (Root)</h4>
+                  <div className="flex gap-2">
+                    <Badge variant="outline" className="border-accent/30 text-accent">1</Badge>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-accent mb-3 uppercase">Level 1</h4>
+                  <div className="flex gap-2">
+                    <Badge variant="outline" className="border-accent/30 text-accent">2</Badge>
+                    <Badge variant="outline" className="border-accent/30 text-accent">3</Badge>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-accent mb-3 uppercase">Level 2</h4>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="outline" className="border-accent/30 text-accent">4</Badge>
+                    <Badge variant="outline" className="border-accent/30 text-accent">5</Badge>
+                    <Badge variant="outline" className="border-accent/30 text-accent">6</Badge>
+                    <Badge variant="outline" className="border-accent/30 text-accent">7</Badge>
+                  </div>
+                </div>
+                <div className="md:col-span-3">
+                  <h4 className="text-xs font-bold text-accent mb-3 uppercase">Level 3 (Goal Level)</h4>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="outline" className="border-accent/30 text-accent">8</Badge>
+                    <Badge variant="outline" className="border-accent/30 text-accent">9</Badge>
+                    <Badge variant="outline" className="border-accent/30 text-accent">10</Badge>
+                    <Badge variant="outline" className="border-green-500/30 text-green-400 bg-green-500/10">11 (Goal)</Badge>
+                    <Badge variant="outline" className="border-white/20 text-white/40">12-15 (not visited)</Badge>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-6 p-4 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                <p className="text-xs text-blue-300">
+                  <strong>BFS Strategy:</strong> The algorithm stops when the goal (11) is dequeued, which occurs after 
+                  exploring all nodes at levels 0, 1, 2, and the first four nodes of level 3. This demonstrates BFS's 
+                  level-by-level exploration pattern.
+                </p>
+              </div>
+            </Card>
+
+            {/* Bottom Navigation */}
+            <div className="flex flex-col md:flex-row items-center justify-center gap-6 pt-8 border-t border-white/5">
+              <div className="flex gap-4 w-full md:w-auto">
                 <Button
-                  size="lg"
-                  className="gap-3 px-8 py-6 text-base font-bold bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-400 hover:to-cyan-400 border-0"
-                  onClick={handleReset}
+                  variant="outline"
+                  className="flex-1 md:flex-none"
+                  onClick={() => window.location.reload()}
                 >
-                  <RotateCcw className="w-5 h-5" />
-                  Try Again
+                  Clear & Try Again
                 </Button>
                 <Button
-                  size="lg"
                   variant="outline"
-                  className="gap-3 px-8 py-6 text-base font-bold border-cyan-400/50 text-cyan-400 hover:bg-cyan-500/10"
-                  onClick={() => window.location.href = '/dashboard'}
+                  className="flex-1 md:flex-none"
+                  onClick={handleExit}
                 >
-                  <ArrowLeft className="w-5 h-5" />
-                  Return to Dashboard
+                  Continue Journey
                 </Button>
               </div>
             </div>

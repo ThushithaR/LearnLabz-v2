@@ -42,7 +42,8 @@ console.log("LEADERBOARD ERROR", error);
     const mapped = data.map((row: any, index: number) => ({
       rank: index + 1,
       name: row.users.user_name,
-      avatar: row.users.avatar_url ?? row.users.user_name[0],
+      avatarUrl: row.users.avatar_url,
+      initial: row.users.user_name?.[0] ?? "U",
       tier: `Level ${row.level}`,
       ep: row.xp,
       isUser: row.user_id === user.user_id,
@@ -113,7 +114,15 @@ console.log("LEADERBOARD ERROR", error);
                 {user.rank}
               </div>
               <div className="h-10 w-10 rounded-full bg-surface border border-white/10 flex items-center justify-center font-bold text-xs ring-2 ring-white/5">
-                {user.avatar}
+                {user.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  user.initial
+                )}
               </div>
               <div className="flex-1">
                 <div className="font-bold text-textPrimary">{user.name}</div>
@@ -131,7 +140,15 @@ console.log("LEADERBOARD ERROR", error);
                 {user.rank}
               </div>
               <div className="h-10 w-10 rounded-full bg-surface border border-white/10 flex items-center justify-center font-bold text-xs">
-                {user.avatar}
+                {user.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  user.initial
+                )}
               </div>
               <div className="flex-1">
                 <div className="font-bold text-textPrimary">{user.name}</div>
