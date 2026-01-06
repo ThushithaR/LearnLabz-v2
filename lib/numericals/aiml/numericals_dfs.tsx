@@ -390,7 +390,6 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
                   <div><span className="text-white">Current Node:</span> {currentNode !== null ? currentNode : "None"}</div>
                   <div><span className="text-white">Stack Size:</span> {stack.length}</div>
                   <div><span className="text-white">Visited Nodes:</span> {visitedNodes.length} / 5</div>
-                  <div><span className="text-white">Traversal Order:</span> [{userTraversalOrder.join(', ')}]</div>
                 </div>
               </div>
 
@@ -587,42 +586,22 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
                   </div>
                 </div>
 
-                {/* Visited Nodes and Traversal Order */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div className="bg-surface/30 rounded-xl border border-white/5 p-6">
-                    <h3 className="text-sm font-bold text-textSecondary mb-3">VISITED NODES</h3>
-                    <div className="flex items-center gap-2 flex-wrap min-h-[60px]">
-                      {visitedNodes.length === 0 ? (
-                        <span className="text-textSecondary text-sm">No nodes visited yet</span>
-                      ) : (
-                        visitedNodes.map((node, idx) => (
-                          <div 
-                            key={idx} 
-                            className="px-4 py-3 rounded-lg font-mono font-bold bg-green-500/20 border-2 border-green-500 text-green-400"
-                          >
-                            Node {node}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="bg-surface/30 rounded-xl border border-white/5 p-6">
-                    <h3 className="text-sm font-bold text-textSecondary mb-3">TRAVERSAL ORDER</h3>
-                    <div className="flex items-center gap-2 flex-wrap min-h-[60px]">
-                      {userTraversalOrder.length === 0 ? (
-                        <span className="text-textSecondary text-sm">Traversal not started</span>
-                      ) : (
-                        userTraversalOrder.map((node, idx) => (
-                          <div 
-                            key={idx} 
-                            className="px-4 py-3 rounded-lg font-mono font-bold bg-blue-500/20 border-2 border-blue-500 text-blue-400"
-                          >
-                            {idx + 1}. {node}
-                          </div>
-                        ))
-                      )}
-                    </div>
+                {/* Visited Nodes */}
+                <div className="bg-surface/30 rounded-xl border border-white/5 p-6 mb-4">
+                  <h3 className="text-sm font-bold text-textSecondary mb-3">VISITED NODES</h3>
+                  <div className="flex items-center gap-2 flex-wrap min-h-[60px]">
+                    {visitedNodes.length === 0 ? (
+                      <span className="text-textSecondary text-sm">No nodes visited yet</span>
+                    ) : (
+                      visitedNodes.map((node, idx) => (
+                        <div 
+                          key={idx} 
+                          className="px-4 py-3 rounded-lg font-mono font-bold bg-green-500/20 border-2 border-green-500 text-green-400"
+                        >
+                          Node {node}
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
 
@@ -801,10 +780,10 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
                 </div>
               </Card>
               <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5 hover:border-white/10 transition-colors">
-                <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Traversal Order</div>
-                <div className="text-2xl font-bold text-accent mb-1">{userTraversalOrder.length} nodes</div>
+                <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Nodes Visited</div>
+                <div className="text-2xl font-bold text-accent mb-1">{visitedNodes.length} / 5</div>
                 <div className="text-xs text-accent/60 font-medium">
-                  [{userTraversalOrder.join(', ')}]
+                  {visitedNodes.length === 5 ? "All nodes visited" : "Partial traversal"}
                 </div>
               </Card>
             </div>
@@ -819,9 +798,6 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
                   </Badge>
                 </div>
                 <div className="bg-surface/30 rounded-2xl border border-white/5 p-6 h-[400px] overflow-y-auto">
-                  <div className="text-xs text-textSecondary mb-3 font-mono">
-                    Final Traversal Order: [{userTraversalOrder.join(', ')}]
-                  </div>
                   <div className="space-y-2">
                     {solution.split('\n').map((line, i) => (
                       <div key={i} className="flex gap-4">
@@ -834,7 +810,7 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
                     <div className="mt-6 p-4 bg-orange-500/10 rounded-xl border border-orange-500/20">
                       <h4 className="text-xs font-bold text-orange-400 mb-2 uppercase">Note</h4>
                       <p className="text-xs text-orange-300/80">
-                        Your traversal order is valid if you followed DFS correctly. 
+                        Your traversal is valid if you followed DFS correctly. 
                         Multiple valid orders exist depending on the order you explored neighbors.
                       </p>
                     </div>
