@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState,useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -40,44 +40,44 @@ export default function CourseDashboardPage({
 
   // get user profile
   useEffect(() => {
-  const loadProfile = async () => {
-    const u = await getCurrentUserProfile();
-    setProfile(u);
-  };
+    const loadProfile = async () => {
+      const u = await getCurrentUserProfile();
+      setProfile(u);
+    };
     loadProfile();
   }, []);
 
   //get user course stats 
   useEffect(() => {
-  const loadStats = async () => {
-    const user = await getCurrentUserProfile();
-    if (!user) return;
-    const { data } = await getUserCourseStats(user.user_id, courseId);
-    setStats(data);
-  };
+    const loadStats = async () => {
+      const user = await getCurrentUserProfile();
+      if (!user) return;
+      const { data } = await getUserCourseStats(user.user_id, courseId);
+      setStats(data);
+    };
     loadStats();
   }, [courseId]);
 
   // continue lesson
   useEffect(() => {
-  const loadContinue = async () => {
-    const user = await getCurrentUserProfile();
-    if (!user) return;
-    const { data } = await getContinueLesson(user.user_id, courseId);
-    setContinueLesson(data);
-  };
+    const loadContinue = async () => {
+      const user = await getCurrentUserProfile();
+      if (!user) return;
+      const { data } = await getContinueLesson(user.user_id, courseId);
+      setContinueLesson(data);
+    };
     loadContinue();
   }, [courseId]);
 
   // completed units count
   useEffect(() => {
-  const loadCompleted = async () => {
-    const user = await getCurrentUserProfile();
-    if (!user) return;
+    const loadCompleted = async () => {
+      const user = await getCurrentUserProfile();
+      if (!user) return;
 
-    const count = await getCompletedUnitsCount(user.user_id, courseId);
-    setCompletedUnits(count);
-  };
+      const count = await getCompletedUnitsCount(user.user_id, courseId);
+      setCompletedUnits(count);
+    };
     loadCompleted();
   }, [courseId]);
 
@@ -175,7 +175,7 @@ export default function CourseDashboardPage({
 
               <div className="flex items-center gap-4">
                 {activeModule && (
-                  <Link href={`/dashboard/${course}/modules/${continueLesson?.lessons.unit_id}`}>
+                  <Link href={`/dashboard/${course}/modules/${continueLesson?.lessons?.unit_id || activeModule.id}`}>
                     <Button size="sm" className="px-5 gap-2 h-9 text-sm">
                       Resume Learning <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -253,78 +253,75 @@ export default function CourseDashboardPage({
 
           <div className="p-3 flex-1 space-y-1.5">
             {deadlines.length === 0 ? (
-                <p className="text-xs text-textSecondary px-2">
-                  No upcoming deadlines 🎉
-                </p>
-              ) : (
-                deadlines.map((cal) => {
-                  const dateObj = new Date(cal.cal_date);
-                  const day = dateObj.getDate();
-                  const month = dateObj.toLocaleString("default", { month: "short" });
+              <p className="text-xs text-textSecondary px-2">
+                No upcoming deadlines 🎉
+              </p>
+            ) : (
+              deadlines.map((cal) => {
+                const dateObj = new Date(cal.cal_date);
+                const day = dateObj.getDate();
+                const month = dateObj.toLocaleString("default", { month: "short" });
 
-              return (
-                <div
-                  key={cal.cal_id}
-                  className={`p-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] flex items-center gap-3 transition-all group border border-transparent hover:border-white/10 ${
-                    cal.cal_completed ? "opacity-40 grayscale" : ""
-                  }`}
-                >
-                  {/* Checkbox */}
+                return (
                   <div
-                    className="cursor-pointer shrink-0"
-                    onClick={() =>
-                      toggleDeadline(cal.cal_id, cal.cal_completed)
-                    }
+                    key={cal.cal_id}
+                    className={`p-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] flex items-center gap-3 transition-all group border border-transparent hover:border-white/10 ${cal.cal_completed ? "opacity-40 grayscale" : ""
+                      }`}
                   >
-                    {cal.cal_completed ? (
-                      <CheckCircle2 className="w-5 h-5 text-success" />
-                    ) : (
-                      <Circle className="w-5 h-5 text-white/20 group-hover:text-accent transition-colors stroke-2" />
-                    )}
-                  </div>
-
-                  {/* Date box */}
-                  <div className="flex flex-col items-center justify-center w-10 h-10 rounded bg-white/5 border border-white/10 shrink-0">
-                    <span
-                      className={`text-[8px] font-bold uppercase tracking-wider ${
-                        cal.cal_completed
-                          ? "text-textSecondary"
-                          : "text-red-400"
-                      }`}
+                    {/* Checkbox */}
+                    <div
+                      className="cursor-pointer shrink-0"
+                      onClick={() =>
+                        toggleDeadline(cal.cal_id, cal.cal_completed)
+                      }
                     >
-                      {dateObj.toDateString() ===
-                      new Date().toDateString()
-                        ? "Today"
-                        : month}
-                    </span>
-                    <span className="text-sm font-bold text-textPrimary leading-none mt-0.5">
-                      {day}
-                    </span>
-                  </div>
+                      {cal.cal_completed ? (
+                        <CheckCircle2 className="w-5 h-5 text-success" />
+                      ) : (
+                        <Circle className="w-5 h-5 text-white/20 group-hover:text-accent transition-colors stroke-2" />
+                      )}
+                    </div>
 
-                  {/* Deadline info */}
-                  <div className="flex-1 min-w-0">
-                    <h5
-                      className={`text-[11px] font-bold truncate ${
-                        cal.cal_completed
-                          ? "line-through text-textSecondary"
-                          : "text-textPrimary"
-                      }`}
-                    >
-                      {cal.cal_title}
-                    </h5>
-                    <p className="text-[9px] text-textSecondary">
-                      {cal.cal_completed
-                        ? "Completed"
-                        : `Due: ${cal.cal_time}`}
-                    </p>
+                    {/* Date box */}
+                    <div className="flex flex-col items-center justify-center w-10 h-10 rounded bg-white/5 border border-white/10 shrink-0">
+                      <span
+                        className={`text-[8px] font-bold uppercase tracking-wider ${cal.cal_completed
+                            ? "text-textSecondary"
+                            : "text-red-400"
+                          }`}
+                      >
+                        {dateObj.toDateString() ===
+                          new Date().toDateString()
+                          ? "Today"
+                          : month}
+                      </span>
+                      <span className="text-sm font-bold text-textPrimary leading-none mt-0.5">
+                        {day}
+                      </span>
+                    </div>
+
+                    {/* Deadline info */}
+                    <div className="flex-1 min-w-0">
+                      <h5
+                        className={`text-[11px] font-bold truncate ${cal.cal_completed
+                            ? "line-through text-textSecondary"
+                            : "text-textPrimary"
+                          }`}
+                      >
+                        {cal.cal_title}
+                      </h5>
+                      <p className="text-[9px] text-textSecondary">
+                        {cal.cal_completed
+                          ? "Completed"
+                          : `Due: ${cal.cal_time}`}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </Card>
+                );
+              })
+            )}
+          </div>
+        </Card>
       </div>
     </div>
   );

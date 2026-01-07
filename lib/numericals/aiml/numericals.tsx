@@ -4,10 +4,12 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import {Calculator, X, CheckCircle, XCircle, ChevronDown, ChevronRight, Sun, Moon, Star, ArrowLeft, AlertCircle  } from "lucide-react";
+import { Calculator, X, CheckCircle, XCircle, ChevronDown, ChevronRight, Sun, Moon, Star, ArrowLeft, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
 import { courses, CourseId } from "@/lib/courses";
+import { getCurrentUserProfile } from "@/lib/supabase/profile";
+import { submitNumericalAttempt } from "@/lib/supabase/numericals";
 
 // Tree Node Structure
 interface TreeNode {
@@ -22,7 +24,7 @@ const generateTreeNodes = (): Record<number, TreeNode> => {
   const nodes: Record<number, TreeNode> = {};
   const levelGaps = [200, 100, 50, 25];
   const startX = 400;
-  
+
   const positions: Record<number, { x: number; y: number }> = {
     1: { x: startX, y: 40 },
     2: { x: startX - 200, y: 120 },
@@ -45,7 +47,7 @@ const generateTreeNodes = (): Record<number, TreeNode> => {
     const children = [];
     if (2 * i <= 15) children.push(2 * i);
     if (2 * i + 1 <= 15) children.push(2 * i + 1);
-    
+
     nodes[i] = {
       value: i,
       x: positions[i].x,
@@ -53,14 +55,14 @@ const generateTreeNodes = (): Record<number, TreeNode> => {
       children
     };
   }
-  
+
   return nodes;
 };
 
 const GOAL_NODE = 11;
 const CORRECT_BFS_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
-export default function BFSTreeTraversal({params,}: {params: { id: string; course: string };}) {
+export default function BFSTreeTraversal({ params, }: { params: { id: string; course: string }; }) {
   const router = useRouter();
   const [solution, setSolution] = useState<string>(`// BFS Traversal Notes:\n// Start: Node 1\n// Goal: Node 11\n`);
   const [showCalculator, setShowCalculator] = useState(false);
@@ -73,6 +75,16 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
   const [isTimerRunning, setIsTimerRunning] = useState(true);
   const [workingPenalty, setWorkingPenalty] = useState(0);
   const [isStarred, setIsStarred] = useState(false);
+  const [userId, setUserId] = useState<number | null>(null);
+
+  // Fetch User
+  useEffect(() => {
+    const fetchUser = async () => {
+      const user = await getCurrentUserProfile();
+      if (user) setUserId(user.user_id);
+    };
+    fetchUser();
+  }, []);
 
   // BFS State
   const [queue, setQueue] = useState<number[]>([1]);
@@ -128,7 +140,7 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
       if (interval) clearInterval(interval);
     };
   }, [isTimerRunning]);
-  
+
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -138,7 +150,7 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
 
   const handleNodeClick = (nodeValue: number) => {
     if (goalReached) return;
-    
+
     // Check if node is already visited
     if (visitedNodes.includes(nodeValue)) {
       setErrorMessage(`Node ${nodeValue} is already visited.`);
@@ -162,7 +174,7 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
     setQueue(prev => [...prev, nodeValue]);
     setUserTraversalOrder(prev => [...prev, nodeValue]);
     setErrorMessage("");
-    
+
     // Check if goal is reached
     if (nodeValue === GOAL_NODE) {
       setGoalReached(true);
@@ -177,16 +189,16 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
 
     const dequeuedNode = queue[0];
     const newQueue = queue.slice(1);
-    
+
     setQueue(newQueue);
     setVisitedNodes(prev => [...prev, dequeuedNode]);
     setExpandedNodes(prev => [...prev, dequeuedNode]);
-    
+
     // Update current front if queue is not empty
     if (newQueue.length > 0) {
       setCurrentFront(newQueue[0]);
     }
-    
+
     setErrorMessage("");
   };
 
@@ -196,7 +208,7 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
 
     // Check if goal node is in traversal order
     const hasGoalNode = userTraversalOrder.includes(GOAL_NODE);
-    
+
     // Check workspace content
     const content = solution.toLowerCase();
     const hasKeywords = ["bfs", "queue", "breadth", "level"].some(word => content.includes(word));
@@ -207,6 +219,35 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
     } else {
       setWorkingPenalty(0);
     }
+
+    // Submit to DB
+    const submit = async () => {
+      if (!userId) return;
+
+      const isCorrect = userTraversalOrder.includes(GOAL_NODE) && isTraversalCorrect();
+
+      // Calculate score based on correctness and penalty (using logic similar to render)
+      const maxXp = 15; // From aiml.ts for ID 101
+      let finalScore = 0;
+      if (userTraversalOrder.includes(GOAL_NODE)) {
+        // Base score
+        const base = isTraversalCorrect() ? 100 : 70;
+        // Apply penalty
+        const penalized = Math.max(0, base - (hasMeaningfulContent && hasKeywords ? 0 : 15));
+        // Scale to XP
+        finalScore = Math.floor((penalized / 100) * maxXp);
+      }
+
+      await submitNumericalAttempt({
+        user_id: userId,
+        numerical_id: parseInt(params.id),
+        is_correct: isCorrect,
+        penalty_percent: hasMeaningfulContent && hasKeywords ? 0 : 15,
+        cp: finalScore,
+        time_taken: timer
+      });
+    };
+    submit();
 
     setShowResults(true);
   };
@@ -243,10 +284,10 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
     // Find the position of goal node in user traversal
     const goalIndex = userTraversalOrder.indexOf(GOAL_NODE);
     if (goalIndex === -1) return false;
-    
+
     // Get the traversal up to the goal node
     const userTraversalUpToGoal = userTraversalOrder.slice(0, goalIndex + 1);
-    
+
     // Check if it matches the correct BFS order
     return userTraversalUpToGoal.every((val, idx) => val === CORRECT_BFS_ORDER[idx]);
   };
@@ -315,15 +356,15 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 overflow-hidden h-full">
         {!showResults ? (
-          <div className="flex flex-col lg:grid lg:grid-cols-12 h-fit lg:h-full">
+          <>
             {/* Column 1: Problem Statement */}
             <div className="w-full lg:col-span-3 bg-surface/30 border-r border-white/5 p-6 overflow-y-auto max-h-[40vh] lg:max-h-full shrink-0">
               <Badge variant="warning" className="mb-4">Medium</Badge>
               <h2 className="text-xl font-bold mb-4 text-textPrimary">BFS State Space Search</h2>
               <p className="text-sm text-textSecondary leading-relaxed mb-6">
-                Consider a state space where the start state is 1 and each state k has 2 successors: 2k and 2k+1. 
+                Consider a state space where the start state is 1 and each state k has 2 successors: 2k and 2k+1.
                 The goal state is 11. List the order in which nodes will be visited using breadth-first search.
               </p>
 
@@ -426,12 +467,12 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
                           "h-10 w-full rounded text-sm font-bold transition-colors",
                           workspaceTheme === 'dark' ?
                             ['/', '*', '-', '+'].includes(btn) ? 'bg-accent/20 text-accent hover:bg-accent/30' :
-                            btn === 'C' ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' :
-                              'bg-white/5 hover:bg-white/10 text-white'
+                              btn === 'C' ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' :
+                                'bg-white/5 hover:bg-white/10 text-white'
                             :
                             ['/', '*', '-', '+'].includes(btn) ? 'bg-blue-100 text-blue-600 hover:bg-blue-200' :
-                            btn === 'C' ? 'bg-red-100 text-red-600 hover:bg-red-200' :
-                              'bg-gray-200 hover:bg-gray-300 text-gray-900'
+                              btn === 'C' ? 'bg-red-100 text-red-600 hover:bg-red-200' :
+                                'bg-gray-200 hover:bg-gray-300 text-gray-900'
                         )}
                       >
                         {btn}
@@ -446,14 +487,14 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
               )}
 
               {/* Tree Visualization */}
-              <div className="flex-1 p-8 overflow-auto">
-                <div className="mb-6">
-                  <h3 className={cn("text-sm font-bold mb-4", workspaceTheme === 'dark' ? "text-accent" : "text-blue-600")}>
+              <div className="flex-1 p-4 lg:p-8 overflow-y-auto">
+                <div className="mb-6 flex flex-col items-center">
+                  <h3 className={cn("text-sm font-bold mb-4 self-start", workspaceTheme === 'dark' ? "text-accent" : "text-blue-600")}>
                     Interactive Tree (Click ANY node to try adding to queue)
                   </h3>
-                  <svg width="800" height="350" className={cn("mx-auto", workspaceTheme === 'light' && "opacity-80")}>
+                  <svg viewBox="0 0 800 350" className={cn("w-full h-auto max-h-[300px] lg:max-h-[350px]", workspaceTheme === 'light' && "opacity-80")}>
                     {/* Draw edges */}
-                    {Object.values(treeNodes).map(node => 
+                    {Object.values(treeNodes).map(node =>
                       node.children.map(childValue => {
                         const child = treeNodes[childValue];
                         return (
@@ -469,7 +510,7 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
                         );
                       })
                     )}
-                    
+
                     {/* Draw nodes - ALL nodes are now clickable */}
                     {Object.values(treeNodes).map(node => {
                       const isVisited = visitedNodes.includes(node.value);
@@ -477,7 +518,7 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
                       const isFront = currentFront === node.value;
                       const isGoal = node.value === GOAL_NODE;
                       const isSelectable = !isVisited && !isInQueue;
-                      
+
                       return (
                         <g key={node.value}>
                           <circle
@@ -486,16 +527,16 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
                             r="20"
                             fill={
                               isGoal && goalReached ? "#22c55e" :
-                              isVisited ? "#facc15" :
-                              isFront ? "#f59e0b" :
-                              isInQueue ? "#3b82f6" :
-                              workspaceTheme === 'dark' ? "#1f2937" : "#e5e7eb"
+                                isVisited ? "#facc15" :
+                                  isFront ? "#f59e0b" :
+                                    isInQueue ? "#3b82f6" :
+                                      workspaceTheme === 'dark' ? "#1f2937" : "#e5e7eb"
                             }
                             stroke={
                               isGoal ? "#22c55e" :
-                              isFront ? "#facc15" :
-                              isSelectable ? "#facc15" :
-                              workspaceTheme === 'dark' ? "rgba(250, 204, 21, 0.3)" : "rgba(250, 204, 21, 0.5)"
+                                isFront ? "#facc15" :
+                                  isSelectable ? "#facc15" :
+                                    workspaceTheme === 'dark' ? "rgba(250, 204, 21, 0.3)" : "rgba(250, 204, 21, 0.5)"
                             }
                             strokeWidth={isFront ? "3" : "2"}
                             className={isSelectable ? "cursor-pointer hover:opacity-80" : "cursor-not-allowed"}
@@ -537,9 +578,9 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
                           key={idx}
                           className={cn(
                             "px-4 py-2 rounded-lg font-mono font-bold border-2 transition-colors",
-                            idx === 0 ? 
+                            idx === 0 ?
                               (workspaceTheme === 'dark' ? "bg-accent/20 border-accent text-accent" : "bg-blue-200 border-blue-600 text-blue-600")
-                              : 
+                              :
                               (workspaceTheme === 'dark' ? "bg-white/5 border-white/10 text-white" : "bg-gray-200 border-gray-400 text-gray-800")
                           )}
                         >
@@ -571,7 +612,7 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
                           className={cn(
                             "px-4 py-2 rounded-lg font-mono font-bold border-2 transition-colors",
                             node === GOAL_NODE ? "bg-green-500/20 border-green-500 text-green-400" :
-                            workspaceTheme === 'dark' ? "bg-white/5 border-white/10 text-white" : "bg-gray-200 border-gray-400 text-gray-800"
+                              workspaceTheme === 'dark' ? "bg-white/5 border-white/10 text-white" : "bg-gray-200 border-gray-400 text-gray-800"
                           )}
                         >
                           {node}
@@ -602,7 +643,7 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
                     Current Front Node: {currentFront}
                   </h3>
                   <p className={cn("text-xs", workspaceTheme === 'dark' ? "text-textSecondary" : "text-gray-600")}>
-                    Valid children to select: {treeNodes[currentFront]?.children.filter(child => 
+                    Valid children to select: {treeNodes[currentFront]?.children.filter(child =>
                       !visitedNodes.includes(child) && !queue.includes(child)
                     ).join(', ') || 'None (all children already in queue or visited)'}
                   </p>
@@ -636,8 +677,8 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
                   <div className="text-3xl font-bold text-white">{queue.length}</div>
                 </div>
 
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   variant="outline"
                   className="w-full gap-2 font-bold py-6 text-base"
                   onClick={handleDequeue}
@@ -646,8 +687,8 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
                   Dequeue & Next Step →
                 </Button>
 
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   variant="secondary"
                   className="w-full gap-2 font-bold py-6 text-base"
                   onClick={handleDequeue}
@@ -667,24 +708,25 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
                 )}
               </div>
 
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="w-full gap-2 font-bold py-6 text-base shadow-lg shadow-accent/20 mt-6"
                 onClick={handleSubmit}
               >
                 Submit Solution
               </Button>
             </div>
-          </div>
+          </>
         ) : (
           /* Results View */
-          <div className="max-w-5xl mx-auto py-12 px-6 animate-in slide-in-from-bottom-4 duration-500">
+          /* Results View */
+          <div className="lg:col-span-12 max-w-5xl mx-auto py-12 px-6 animate-in slide-in-from-bottom-4 duration-500 w-full overflow-y-auto">
             {/* Result Hero */}
             <div className="flex flex-col items-center text-center mb-16">
               <div className={cn(
                 "w-20 h-20 rounded-3xl flex items-center justify-center mb-6 shadow-2xl",
-                userTraversalOrder.includes(GOAL_NODE) && isTraversalCorrect() ? "bg-green-500 shadow-green-500/20 animate-bounce duration-[2000ms]" : 
-                userTraversalOrder.includes(GOAL_NODE) ? "bg-orange-500 shadow-orange-500/20" : "bg-red-500 shadow-red-500/20"
+                userTraversalOrder.includes(GOAL_NODE) && isTraversalCorrect() ? "bg-green-500 shadow-green-500/20 animate-bounce duration-[2000ms]" :
+                  userTraversalOrder.includes(GOAL_NODE) ? "bg-orange-500 shadow-orange-500/20" : "bg-red-500 shadow-red-500/20"
               )}>
                 {userTraversalOrder.includes(GOAL_NODE) ? (
                   isTraversalCorrect() ? (
@@ -697,7 +739,7 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
                 )}
               </div>
               <h2 className="text-4xl font-black text-white mb-2">
-                {userTraversalOrder.includes(GOAL_NODE) 
+                {userTraversalOrder.includes(GOAL_NODE)
                   ? (isTraversalCorrect() ? "Perfect BFS Execution!" : "Goal Reached with Learning Points")
                   : "Goal Not Reached"}
               </h2>
@@ -795,8 +837,8 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
                   <div className="mt-8 p-4 bg-accent/10 rounded-xl border border-accent/20">
                     <h4 className="text-xs font-bold text-accent mb-2 uppercase">Key Takeaway</h4>
                     <p className="text-xs text-textSecondary leading-relaxed">
-                      BFS explores nodes level by level using a queue (FIFO). For each node k, its children are 2k and 2k+1. 
-                      The algorithm processes nodes in the exact order they're added to the queue, ensuring all nodes at depth d 
+                      BFS explores nodes level by level using a queue (FIFO). For each node k, its children are 2k and 2k+1.
+                      The algorithm processes nodes in the exact order they're added to the queue, ensuring all nodes at depth d
                       are visited before any node at depth d+1.
                     </p>
                   </div>
@@ -815,21 +857,21 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
                   <div>
                     <h4 className="font-bold text-textPrimary mb-3 underline decoration-accent/30 underline-offset-4">Traversal Status</h4>
                     <p className="mb-4">
-                      Your BFS traversal visited <span className="font-bold text-accent">{userTraversalOrder.length}</span> nodes 
+                      Your BFS traversal visited <span className="font-bold text-accent">{userTraversalOrder.length}</span> nodes
                       in the order: <span className="font-mono text-white">[{userTraversalOrder.join(', ')}]</span>.
                     </p>
                     {userTraversalOrder.includes(GOAL_NODE) ? (
                       isTraversalCorrect() ? (
                         <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
                           <p className="text-green-300">
-                            ✓ Your traversal matches the optimal BFS order perfectly! You correctly implemented the 
+                            ✓ Your traversal matches the optimal BFS order perfectly! You correctly implemented the
                             level-order exploration pattern.
                           </p>
                         </div>
                       ) : (
                         <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl">
                           <p className="text-orange-300">
-                            You reached the goal but your traversal order differs from the optimal BFS sequence. 
+                            You reached the goal but your traversal order differs from the optimal BFS sequence.
                             Remember: BFS explores all nodes at the current level before moving to the next level.
                           </p>
                         </div>
@@ -837,7 +879,7 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
                     ) : (
                       <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
                         <p className="text-red-300">
-                          Your traversal didn't reach the goal node (11). You stopped at node {userTraversalOrder[userTraversalOrder.length - 1]}. 
+                          Your traversal didn't reach the goal node (11). You stopped at node {userTraversalOrder[userTraversalOrder.length - 1]}.
                           In BFS, you should continue processing the queue until you find the goal.
                         </p>
                       </div>
@@ -846,7 +888,7 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
                   <div>
                     <h4 className="font-bold text-textPrimary mb-3 underline decoration-accent/30 underline-offset-4">Algorithm Properties</h4>
                     <p className="mb-4">
-                      BFS guarantees the shortest path in unweighted graphs. Time complexity is O(V + E) where V is vertices 
+                      BFS guarantees the shortest path in unweighted graphs. Time complexity is O(V + E) where V is vertices
                       and E is edges. Space complexity is O(V) for the queue.
                     </p>
                     {workingPenalty > 0 && (
@@ -855,13 +897,13 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
                           <XCircle className="w-3 h-3" /> Documentation Penalty
                         </h5>
                         <p className="text-[11px] text-red-300/80">
-                          A {workingPenalty}% penalty was applied due to insufficient documentation. Include notes about 
+                          A {workingPenalty}% penalty was applied due to insufficient documentation. Include notes about
                           queue operations, level processing, and BFS strategy for full credit.
                         </p>
                       </div>
                     )}
                     <p className="text-xs">
-                      <strong className="text-white">State Space:</strong> Each node k generates successors 2k and 2k+1, 
+                      <strong className="text-white">State Space:</strong> Each node k generates successors 2k and 2k+1,
                       creating a binary tree structure where BFS naturally explores by levels.
                     </p>
                   </div>
@@ -908,8 +950,8 @@ export default function BFSTreeTraversal({params,}: {params: { id: string; cours
               </div>
               <div className="mt-6 p-4 bg-blue-500/10 rounded-xl border border-blue-500/20">
                 <p className="text-xs text-blue-300">
-                  <strong>BFS Strategy:</strong> The algorithm stops when the goal (11) is dequeued, which occurs after 
-                  exploring all nodes at levels 0, 1, 2, and the first four nodes of level 3. This demonstrates BFS's 
+                  <strong>BFS Strategy:</strong> The algorithm stops when the goal (11) is dequeued, which occurs after
+                  exploring all nodes at levels 0, 1, 2, and the first four nodes of level 3. This demonstrates BFS's
                   level-by-level exploration pattern.
                 </p>
               </div>

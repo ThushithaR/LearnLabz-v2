@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
-import { courses, CourseId } from "@/lib/courses";
+import { courses, CourseId, COURSE_ID_MAP } from "@/lib/courses";
+import { getQuizzesByCourse } from "@/lib/supabase/quizzes";
+import { Quiz } from "@/lib/types/course";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -24,35 +26,54 @@ export default function CourseQuizzesPage({
 }) {
   const router = useRouter();
   const [courseData, setCourseData] = useState<any>(null);
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [loading, setLoading] = useState(true);
   const [expandedUnits, setExpandedUnits] = useState<string[]>([]);
 
   useEffect(() => {
-    const course = courses[params.course as CourseId];
-    if (!course || !course.features.quizzes) {
-      router.push("/404");
-      return;
-    }
-    setCourseData(course);
+    const loadData = async () => {
+      // 1. Load static course data (for name/features)
+      const course = courses[params.course as CourseId];
+      if (!course || !course.features.quizzes) {
+        router.push("/404");
+        return;
+      }
+      setCourseData(course);
+
+      // 2. Load dynamic quizzes from backend
+      try {
+        const courseId = COURSE_ID_MAP[params.course as CourseId];
+        const dbQuizzes = await getQuizzesByCourse(courseId);
+        setQuizzes(dbQuizzes);
+      } catch (error) {
+        console.error("Failed to load quizzes:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, [params.course, router]);
 
   /* Group quizzes -> Unit -> Difficulty */
   const units = useMemo(() => {
-    if (!courseData?.quizzes) return [];
+    if (!quizzes || quizzes.length === 0) return [];
 
-    const map: Record<string, any[]> = {};
-    courseData.quizzes.forEach((quiz: any) => {
+    const map: Record<string, Quiz[]> = {};
+    quizzes.forEach((quiz) => {
+      // "Unit 1" -> "Unit 1" key
       if (!map[quiz.unit]) map[quiz.unit] = [];
       map[quiz.unit].push(quiz);
     });
 
-    return Object.entries(map).map(([unit, quizzes]) => ({
+    return Object.entries(map).map(([unit, unitQuizzes]) => ({
       id: unit,
-      title: unit,
+      title: unit, // e.g. "Unit 1"
       quizzes: ["Easy", "Medium", "Hard"].map(level =>
-        quizzes.find(q => q.difficulty === level)
-      ).filter(Boolean),
+        unitQuizzes.find(q => q.difficulty === level)
+      ).filter(Boolean) as Quiz[],
     }));
-  }, [courseData]);
+  }, [quizzes]);
 
   // Auto-expand all units on load
   useEffect(() => {
@@ -69,13 +90,15 @@ export default function CourseQuizzesPage({
     );
   };
 
-  if (!courseData) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />
       </div>
     );
   }
+
+  if (!courseData) return null;
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto p-6">
@@ -125,8 +148,8 @@ export default function CourseQuizzesPage({
                     <Card
                       key={quiz.id}
                       className={`p-5 flex flex-col gap-4 border-2 transition-all ${quiz.status === "Locked"
-                          ? "opacity-50 bg-white/5 border-transparent"
-                          : "bg-surface border-white/5 hover:border-accent/40"
+                        ? "opacity-50 bg-white/5 border-transparent"
+                        : "bg-surface border-white/5 hover:border-accent/40"
                         }`}
                     >
                       {/* Top */}

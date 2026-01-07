@@ -83,6 +83,8 @@ export interface Module {
 export interface Quiz {
   id: number;
   unit: string;
+  unitId?: number; // Added for DB consistency
+  courseId?: number; // Added for DB consistency
   title: string;
   difficulty: string;
   time: string;
@@ -132,14 +134,16 @@ export interface Note {
 }
 
 export interface Numerical {
-  id: number; // Unique identifier for the numerical problem
-  title: string; // Title of the numerical problem
-  description: string; // Description of the problem
-  topic: string // Type of numerical: Theory or Practical
-  difficulty: "Easy" | "Medium" | "Hard"; // Difficulty level
-  solution?: string; // Solution or steps to solve the problem (optional)
-  status: "Locked" | "New" | "Completed" | "Completing" | "Pending"; // Current status of the problem
-  xp: number
+  id: number; // numerical_id
+  courseId?: number;
+  lessonId?: number;
+  title: string; // numerical_title
+  description: string; // numerical_problem_statement
+  topic: string; // NOT in DB, default to "General"
+  difficulty: "Easy" | "Medium" | "Hard"; // numerical_difficulty
+  solution?: string;
+  status: "Locked" | "New" | "Completed" | "Completing" | "Pending";
+  xp: number; // numerical_max_cp
   topics?: string[];
 }
 

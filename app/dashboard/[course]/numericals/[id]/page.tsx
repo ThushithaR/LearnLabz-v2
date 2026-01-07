@@ -8,6 +8,9 @@ import { Calculator, X, CheckCircle, XCircle, ChevronDown, ChevronRight, Sun, Mo
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
 import { courses, CourseId } from "@/lib/courses";
+import { getNumericalById, submitNumericalAttempt } from "@/lib/supabase/numericals";
+import { getCurrentUserProfile } from "@/lib/supabase/profile";
+import BFSTreeTraversal from "@/lib/numericals/aiml/numericals";
 
 export default function NumericalsSolvePage({ params }: { params: { id: string, course: string } }) {
   const router = useRouter();
@@ -105,8 +108,24 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
   };
 
   // Handle submission (show results on same page)
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setIsTimerRunning(false);
+
+    // Calculate score/correctness (Mock logic preserved as per original file, assuming FE validation for now)
+    // Ideally this validation should also verify against backend or secure hash
+    const isCorrect = isRootNodeCorrect && isNodesPrunedCorrect;
+    const cpEarned = isCorrect ? numerical.xp : 0;
+
+    if (userId) {
+      await submitNumericalAttempt({
+        user_id: userId,
+        numerical_id: numerical.id,
+        is_correct: isCorrect,
+        penalty_percent: 0, // Logic for penalty?
+        cp: cpEarned,
+        time_taken: timer
+      });
+    }
 
     setShowResults(true);
     setShowModal(true);
@@ -116,25 +135,36 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
   const isRootNodeCorrect = parseInt(rootNodeValue as string) === 5;
   const isNodesPrunedCorrect = parseInt(nodesPruned as string) === 0;
 
-  // Fetch the course data dynamically based on the course param
-  const courseData = courses[params.course.toLowerCase() as CourseId];
+  // Fetch numerical data
+  const [numerical, setNumerical] = useState<any>(null);
+  const [userId, setUserId] = useState<number | null>(null);
 
-  // If the course is invalid, we can redirect them to an error page or show a message
-  if (!courseData) {
-    return <div>Course not found!</div>;
-  }
+  useEffect(() => {
+    const loadData = async () => {
+      // 1. Fetch Numerical
+      const numData = await getNumericalById(parseInt(params.id));
+      if (!numData) {
+        // Fallback for static dev or redirect
+        console.error("Numerical not found");
+        // router.push("/404");
+        return;
+      }
+      setNumerical(numData);
 
-  // If numericals are not available for this course
-  if (!courseData.numericals) {
-    return <div>Numericals not available for this course!</div>;
-  }
+      // 2. Fetch User for submission
+      const user = await getCurrentUserProfile();
+      if (user) setUserId(user.user_id);
+    };
+    loadData();
+  }, [params.id]);
 
-  // Fetch the numerical data based on the id param
-  const numerical = courseData.numericals.find(n => n.id.toString() === params.id);
-
-  // If the numerical is not found, show an error
   if (!numerical) {
-    return <div>Numerical not found!</div>;
+    return <div className="p-8 text-center text-textSecondary">Loading numerical data...</div>;
+  }
+
+  // Route to specific solvers based on ID
+  if (numerical.id === 101) {
+    return <BFSTreeTraversal params={params} />;
   }
 
   return (
