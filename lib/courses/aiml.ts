@@ -1,6 +1,6 @@
-// lib/courses/courseA.ts
-import { Lesson } from "@/lib/types/course";
-import { aimlQuizzes } from "@/lib/quizzes/aiml/quizzes";
+import { heuristicsContent } from "@/lib/content/aiml/unit2/InformedSearch/heuristics";
+import { astarLessonContent } from "@/lib/content/aiml/unit2/InformedSearch/Astar";
+import { aimlQuizzes } from "../quizzes/aiml/quizzes";
 
 export const aiml = {
   id: "aiml", // use a URL-safe id
@@ -51,8 +51,8 @@ export const aiml = {
       isLocked: false,
       active: true,
       lessons: [
-        { id: "2.1", title: "Heuristic Functions", duration: "20 min" },
-        { id: "2.2", title: "A* Search Algorithm", duration: "35 min", isInteractive: true },
+        { id: "2.1", title: "Heuristic Functions", duration: "20 min", content: heuristicsContent },
+        { id: "2.2", title: "A* Search Algorithm", duration: "35 min", isInteractive: true, content: astarLessonContent },
       ],
     },
     {
@@ -105,8 +105,8 @@ export const aiml = {
     { rank: 5, name: "Grace Hopper", tier: "Curious Scholar", ep: 11000, avatar: "GH" },
     { rank: 142, name: "Alex Chen (You)", tier: "Algorithm Adept", ep: 1250, isUser: true, avatar: "AC" },
   ],
-    numericals : [
-    { id: 402, title: "Optimal Move - Minimax", description: "Game Theory", topic: "Practical", difficulty: "Hard" as const, status: "Pending" as const, xp: 50, topics :["Minimax","Alpha-beta pruning"]},
+  numericals: [
+    { id: 402, title: "Optimal Move - Minimax", description: "Game Theory", topic: "Practical", difficulty: "Hard" as const, status: "Pending" as const, xp: 50, topics: ["Minimax", "Alpha-beta pruning"] },
     { id: 105, title: "A* Heuristic Estimation", description: "Informed Search", topic: "Practical", difficulty: "Medium" as const, status: "Completing" as const, xp: 30 },
     { id: 208, title: "Alpha-Beta Pruning Count", description: "Game Theory", topic: "Practical", difficulty: "Hard" as const, status: "Locked" as const, xp: 50 },
     { id: 101, title: "BFS Path Cost", description: "Uninformed Search", topic: "Practical", difficulty: "Easy" as const, status: "Completed" as const, xp: 15 },
@@ -118,5 +118,5 @@ export const aiml = {
     { id: 3, title: "AI Ethics Discussion", date: "2025-12-25", importance: "Normal" as const, time: "10:00" },
   ],
   important: [],
-  notes:[]
+  notes: []
 }
