@@ -76,7 +76,6 @@ export async function onQuizCompleted(
   courseId: number,
   xpGained: number
 ) {
-  // Get current row
   const { data, error } = await getUserCourseStats(userId, courseId);
   if (error || !data) throw error;
 
@@ -89,7 +88,6 @@ export async function onQuizCompleted(
       xp: newXp,
       level: newLevel,
       quizzes_passed: (data.quizzes_passed || 0) + 1,
-      last_active: new Date().toISOString(),
     })
     .eq("user_id", userId)
     .eq("course_id", courseId)

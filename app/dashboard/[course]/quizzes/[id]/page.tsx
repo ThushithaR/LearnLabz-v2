@@ -11,6 +11,8 @@ import { courses, CourseId } from "@/lib/courses";
 import { getQuizById, submitQuizAttempt } from "@/lib/supabase/quizzes";
 import { getCurrentUserProfile } from "@/lib/supabase/profile";
 import { Quiz } from "@/lib/types/course";
+import { onQuizCompleted } from "@/lib/supabase/user-courses";
+
 
 export default function QuizSolvePage({ params }: { params: { course: string; id: string } }) {
     const router = useRouter();
@@ -28,6 +30,7 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
     const [calcPrevious, setCalcPrevious] = useState("");
     const [quizTimeTaken, setQuizTimeTaken] = useState(0);
     const [userId, setUserId] = useState<number | null>(null);
+    
 
     useEffect(() => {
         const course = courses[params.course as CourseId];
@@ -126,6 +129,7 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
         setQuizTimeTaken(timeTaken);
 
         const scoreVal = calculateScore();
+        const passed = scoreVal >= 60 //(quizData as any).quiz_pass_score;
 
         // Calculate correct count
         let correctCount = 0;
@@ -148,6 +152,15 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
                     total: quizData.questionData?.length || 0,
                     time_taken: timeTaken
                 });
+                
+                const passed = scoreVal >= 60;
+                if (passed) {
+                await onQuizCompleted(
+                    userId,
+                    quizData.courseId,
+                    quizData.xp // 🎯 XP COMES FROM DB
+                );
+                }
             } catch (error) {
                 console.error("Failed to submit quiz:", error);
             }
