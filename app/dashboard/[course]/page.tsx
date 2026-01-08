@@ -24,6 +24,7 @@ import { COURSE_ID_MAP } from "@/lib/courses";
 import { getUserCourseStats } from "@/lib/supabase/user-courses";
 import { getContinueLesson } from "@/lib/supabase/progress";
 import { getCompletedUnitsCount } from "@/lib/supabase/progress";
+import { getUserMaxStreak } from "@/lib/supabase/streak";
 
 export default function CourseDashboardPage({
   params,
@@ -37,6 +38,7 @@ export default function CourseDashboardPage({
   const [continueLesson, setContinueLesson] = useState<any>(null);
   const [completedUnits, setCompletedUnits] = useState<number>(0);
   const [profile, setProfile] = useState<any>(null);
+  const [maxStreak, setMaxStreak] = useState<number>(0);
 
   // get user profile
   useEffect(() => {
@@ -53,9 +55,11 @@ export default function CourseDashboardPage({
       const user = await getCurrentUserProfile();
       if (!user) return;
       const { data } = await getUserCourseStats(user.user_id, courseId);
+      const streak = await getUserMaxStreak(user.user_id);
       setStats(data);
+      setMaxStreak(streak);
     };
-    loadStats();
+    loadStats();  
   }, [courseId]);
 
   // continue lesson
@@ -129,7 +133,7 @@ export default function CourseDashboardPage({
           </h1>
           <p className="text-xs text-textSecondary mt-1 font-light flex items-center gap-2">
             <Flame className="w-3.5 h-3.5 text-accent" />
-            <span className="text-accent font-medium">{stats?.streak_days} day streak</span>
+            <span className="text-accent font-medium">{maxStreak} day streak</span>
             <span className="text-white/20">|</span>
             <span>Keep the momentum.</span>
           </p>
