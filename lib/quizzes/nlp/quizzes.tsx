@@ -2,34 +2,6 @@ import React from 'react';
 
 export const nlpQuizzes = [
   {
-    id: 101,
-    title: 'Introduction to NLP - Easy',
-    unit: 'Unit I',
-    difficulty: 'Easy',
-    time: '15 min',
-    questions: 10,
-    xp: 50,
-    status: 'Completed',
-    score: '90%',
-    questionData: [
-      {
-        id: 1,
-        question: 'What does NLP stand for?',
-        options: ['Natural Language Processing', 'Neural Language Programming', 'Network Language Protocol', 'Natural Learning Process'],
-        correct: 0,
-        explanation: 'NLP stands for Natural Language Processing, which involves the interaction between computers and human language.'
-      },
-      {
-        id: 2,
-        question: 'Which of the following is a common NLP task?',
-        options: ['Image recognition', 'Speech synthesis', 'Data compression', 'Network routing'],
-        correct: 1,
-        explanation: 'Speech synthesis is a common NLP task where text is converted to spoken language.'
-      },
-      // Add more questions...
-    ]
-  },
-  {
     id: 102,
     title: 'Introduction to NLP - Medium',
     unit: 'Unit I',

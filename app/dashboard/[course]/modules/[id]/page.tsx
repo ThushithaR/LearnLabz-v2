@@ -1173,6 +1173,7 @@ const handleSaveSelection = () => {
                         <Button variant="outline" onClick={handleQuizExit}>
                           Back to Lesson
                         </Button>
+
                         <Button onClick={() => window.location.href = `/dashboard/${course}/modules`}>
                           Next Module
                         </Button>
