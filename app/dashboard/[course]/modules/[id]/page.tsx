@@ -14,6 +14,8 @@ import InteractiveCodeWalkthrough from "@/lib/content/nlp/unit2/InteractiveCodeW
 import {ChevronLeft,ChevronRight,Clock,BookOpen,CheckCircle2,Save,FileText,ArrowLeft,X,PauseCircle,PlayCircle,Image as ImageIcon,Star,RotateCw} from "lucide-react";
 import { ModuleProgress } from "@/lib/types/progress";
 import { getLessonProgress, getLessonProgressByUnit, upsertLessonProgress, updateUnitProgress } from "@/lib/supabase/progress";
+import { supabase } from "@/lib/supabase/client";
+import { getUserNotes, createNote } from "@/lib/supabase/notes";
 
 export default function LessonPage({ params }: { params: { course: string; id: string } }) {
   const { course, id } = params;
@@ -82,12 +84,12 @@ export default function LessonPage({ params }: { params: { course: string; id: s
   
   // Timer for current lesson only
   useEffect(() => {
-    if (!hasStarted || isPaused || showQuizResults) return;
+    if (!hasStarted || isPaused || showQuizResults || activeTab === "quiz") return;
     const interval = setInterval(() => {
       setLessonTime(prev => prev + 1);
     }, 1000);
     return () => clearInterval(interval);
-  }, [hasStarted, isPaused, showQuizResults]);
+  }, [hasStarted, isPaused, showQuizResults, activeTab]);
 
   // Load userId from localStorage
   useEffect(() => {
@@ -331,7 +333,9 @@ export default function LessonPage({ params }: { params: { course: string; id: s
       scrollRef.current?.scrollTo(0, 0);
       window.scrollTo(0, 0); // Also scroll the window to top
     } else {
-      // All lessons completed - navigate to next module
+      // All lessons completed - stop the timer
+      setIsPaused(true);
+      // Navigate to next module
       const currentModuleIdx = courseData.modules.findIndex(m => m.id === moduleData.id);
       if (currentModuleIdx < courseData.modules.length - 1) {
         const nextModule = courseData.modules[currentModuleIdx + 1];
@@ -519,6 +523,30 @@ export default function LessonPage({ params }: { params: { course: string; id: s
     }
   };
 
+  // Fetch existing notes
+  useEffect(() => {
+    const loadNotes = async () => {
+      if (!userId) return;
+
+      const { data } = await getUserNotes(userId, COURSE_ID_MAP[course as keyof typeof COURSE_ID_MAP]);
+
+      if (data) setNotes(data);
+    };
+    loadNotes();
+  }, [userId, course]);
+
+  // Reload notes function
+  const reloadNotes = async () => {
+    if (!userId) return;
+
+    const { data } = await getUserNotes(userId, COURSE_ID_MAP[course as keyof typeof COURSE_ID_MAP]);
+
+    if (data) {
+      setNotes(data);
+      setShowNotesModal(true); // Open modal to display reloaded notes
+    }
+  };
+
   const handleInsertSmartImage = () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -539,36 +567,42 @@ export default function LessonPage({ params }: { params: { course: string; id: s
     input.click();
   };
 
-  const handleSaveNotes = () => {
-    const editor = document.getElementById('module-notes-editor');
-    if (editor) {
-      const content = editor.innerHTML;
-      if (content.trim()) {
-        if (editingNote) {
-          // Update existing note
-          setNotes(prev => prev.map(note =>
-            note.id === editingNote.id
-              ? { ...note, content: content, createdAt: new Date().toISOString() }
-              : note
-          ));
-          setEditingNote(null);
-          alert("Note updated successfully!");
-        } else {
-          // Create new note
-          const newNote = {
-            id: Date.now().toString(),
-            title: `Note ${notes.length + 1}`,
-            content: content,
-            createdAt: new Date().toISOString(),
-          };
-          setNotes(prev => [...prev, newNote]);
-          alert("Note saved successfully!");
-        }
-        editor.innerHTML = ''; // Clear editor after saving
-      } else {
-        alert("Please add some content before saving.");
-      }
-    }
+  const handleSaveNotes = async () => {
+  if (!userId || !moduleData) {
+    alert("User not loaded yet");
+    return;
+  }
+  const editor = document.getElementById("module-notes-editor");
+  if (!editor) return;
+  const content = editor.innerHTML;
+  if (!content.trim()) {
+    alert("Please write something first.");
+    return;
+  }
+  const courseId = COURSE_ID_MAP[course as keyof typeof COURSE_ID_MAP];
+  const { error } = await supabase.from("notes").insert({
+    user_id: userId,
+    course_id: courseId,
+    note_type: "MODULE",
+    title: lessonData.title,
+    subtitle: "",
+    content: {
+      html: content,
+      module_id: moduleData.id,
+      lesson_id: lessonData.id,
+    },
+    note_attachments: null,
+    source: "MANUAL",
+  });
+  if (error) {
+    console.error("Error saving note:", error);
+    alert("Failed to save note");
+    return;
+  }
+  alert("Note saved successfully!");
+  editor.innerHTML = "";
+  // Reload notes to reflect the new note
+  reloadNotes();
   };
 
   const handleTextSelection = () => {
@@ -859,7 +893,7 @@ const handleSaveSelection = () => {
                   </div>
 
                   {/* Track Bar */}
-                  {sidebarOpen && active && (
+                  {sidebarOpen && active && activeTab !== 'quiz' && (
                     <div className="mt-2 w-full h-1 bg-white/5 rounded-full overflow-hidden">
                       <div
                         className={cn("h-full rounded-full bg-accent")}
@@ -887,7 +921,7 @@ const handleSaveSelection = () => {
 
             <div className="flex items-center gap-4 shrink-0">
               {/* Timer Display */}
-              {!showQuizResults && (
+              {!showQuizResults && activeTab !== 'quiz' && (
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 rounded-full border border-white/5 shadow-inner">
                   <Clock className={cn("w-3.5 h-3.5 text-accent", !isPaused && "animate-pulse")} />
                   <span className="text-sm font-mono font-bold text-white">{formatTime(lessonTime)}</span>
@@ -1089,10 +1123,6 @@ const handleSaveSelection = () => {
                       <div className="text-center mb-8">
                         <h1 className="text-3xl font-bold text-textPrimary mb-4">Lesson Quiz</h1>
                         <div className="flex items-center justify-center gap-6 text-textSecondary">
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-5 h-5" />
-                            <span>{formatTime(lessonTime)}</span>
-                          </div>
                           <Badge variant="warning">3 Questions</Badge>
                         </div>
                       </div>
@@ -1102,8 +1132,6 @@ const handleSaveSelection = () => {
                         <ul className="text-sm text-textSecondary space-y-1">
                           <li>• Answer all questions based on the lesson content</li>
                           <li>• You can navigate between questions</li>
-                          <li>• Your score will be calculated automatically</li>
-                          <li>• Timer continues from your reading session</li>
                         </ul>
                       </div>
 
@@ -1228,9 +1256,8 @@ const handleSaveSelection = () => {
 
                     {/* Navigation & Progress */}
                     <div className="w-full lg:col-span-3 bg-surface/30 border-t lg:border-t-0 lg:border-l border-white/5 p-6 flex flex-col shrink-0">
-                      <h3 className="font-bold text-xs mb-6 uppercase text-textSecondary tracking-widest flex justify-between items-center">
+                      <h3 className="font-bold text-xs mb-6 uppercase text-textSecondary tracking-widest">
                         Navigator
-                        <span className="text-accent">{formatTime(lessonTime)}</span>
                       </h3>
 
                       <div className="grid grid-cols-3 gap-2 mb-8">
@@ -1297,6 +1324,7 @@ const handleSaveSelection = () => {
         </div>
 
         {/* RIGHT PANEL: Notes - Resizable */}
+        {activeTab !== 'quiz' && (
         <div
           className={cn(
             "bg-surface border-l border-white/5 hidden xl:flex flex-col transition-all duration-300 relative",
@@ -1529,6 +1557,7 @@ const handleSaveSelection = () => {
           {/* {!notesOpen} block removed as per request to remove duplicate icons - the header icon is sufficient */}
 
         </div>
+        )}
       </div>
 
 
@@ -1558,43 +1587,53 @@ const handleSaveSelection = () => {
                     ← Back to Notes List
                   </Button>
                   <div className="p-4 bg-surface/50 rounded-lg border border-white/5">
-                    <div className="flex items-start gap-2 mb-4">
-                      {selectedNote.emoji && <span className="text-lg">{selectedNote.emoji}</span>}
-                      <div className="flex-1">
-                        <h3 className="font-medium text-textPrimary">{selectedNote.title}</h3>
-                        {selectedNote.subtitle && <p className="text-sm text-textSecondary">{selectedNote.subtitle}</p>}
-                      </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-textPrimary">{selectedNote.note_title || selectedNote.title || 'Untitled Note'}</h3>
                     </div>
-                    <div className="text-textSecondary prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: selectedNote.content }} />
-                    {selectedNote.createdAt && (
+                    <div className="text-textSecondary prose prose-sm max-w-none mt-4">
+                      {typeof selectedNote.note_content === 'object' && selectedNote.note_content?.html ? (
+                        <div dangerouslySetInnerHTML={{ __html: selectedNote.note_content.html }} />
+                      ) : typeof selectedNote.content === 'object' && selectedNote.content?.html ? (
+                        <div dangerouslySetInnerHTML={{ __html: selectedNote.content.html }} />
+                      ) : (
+                        <div dangerouslySetInnerHTML={{ __html: selectedNote.note_content || selectedNote.content || '' }} />
+                      )}
+                    </div>
+                    {(selectedNote.created_at || selectedNote.note_created_at) && (
                       <p className="text-xs text-textSecondary mt-4">
-                        Created: {new Date(selectedNote.createdAt).toLocaleDateString()}
+                        Created: {new Date(selectedNote.created_at || selectedNote.note_created_at).toLocaleDateString()}
                       </p>
                     )}
                   </div>
                 </div>
               ) : (
                 <>
-                  {courseData.notes && courseData.notes.length > 0 ? (
-                    courseData.notes.map((note, index) => (
+                  {notes && notes.length > 0 ? (
+                    notes.map((note, index) => (
                       <div
-                        key={note.id}
+                        key={note.note_id || note.id}
                         className="p-4 bg-surface/50 rounded-lg border border-white/5 cursor-pointer hover:bg-surface/70 transition-colors"
                         onClick={() => setSelectedNote(note)}
                       >
                         <div className="flex items-start gap-2 mb-2">
-                          {note.emoji && <span className="text-lg">{note.emoji}</span>}
                           <div className="flex-1">
-                            <h3 className="font-medium text-textPrimary">{note.title}</h3>
-                            {note.subtitle && <p className="text-sm text-textSecondary">{note.subtitle}</p>}
+                            <h3 className="font-medium text-textPrimary">{note.note_title || note.title || 'Untitled Note'}</h3>
                           </div>
-                          <Button size="sm" variant="ghost" className="text-xs" onClick={(e) => { e.stopPropagation(); setShowNotesModal(false); const editor = document.getElementById('module-notes-editor'); if (editor) { editor.innerHTML = note.content; } }}>
+                          <Button size="sm" variant="ghost" className="text-xs" onClick={(e) => { 
+                            e.stopPropagation(); 
+                            setShowNotesModal(false); 
+                            const editor = document.getElementById('module-notes-editor'); 
+                            if (editor) { 
+                              const htmlContent = typeof note.note_content === 'object' ? note.note_content?.html : (typeof note.content === 'object' ? note.content?.html : note.note_content || note.content || '');
+                              editor.innerHTML = htmlContent || ''; 
+                            } 
+                          }}>
                             Edit
                           </Button>
                         </div>
-                        {note.createdAt && (
+                        {(note.created_at || note.note_created_at) && (
                           <p className="text-xs text-textSecondary mt-2">
-                            Created: {new Date(note.createdAt).toLocaleDateString()}
+                            Created: {new Date(note.created_at || note.note_created_at).toLocaleDateString()}
                           </p>
                         )}
                       </div>

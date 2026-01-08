@@ -8,11 +8,16 @@ import { Card } from "@/components/ui/Card";
 import { ArrowLeft, Clock, CheckCircle, XCircle, RotateCcw, ChevronLeft, ChevronRight, Star, Calculator } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { courses, CourseId } from "@/lib/courses";
+import { getQuizById, submitQuizAttempt } from "@/lib/supabase/quizzes";
+import { getCurrentUserProfile } from "@/lib/supabase/profile";
+import { Quiz } from "@/lib/types/course";
+import { onQuizCompleted } from "@/lib/supabase/user-courses";
+
 
 export default function QuizSolvePage({ params }: { params: { course: string; id: string } }) {
     const router = useRouter();
     const [courseData, setCourseData] = useState<any>(null);
-    const [quizData, setQuizData] = useState<any>(null);
+    const [quizData, setQuizData] = useState<Quiz | null>(null);
     const [currentQuestion, setCurrentQuestion] = useState(0);
     const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
     const [showResults, setShowResults] = useState(false);
@@ -24,6 +29,8 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
     const [calcDisplay, setCalcDisplay] = useState("0");
     const [calcPrevious, setCalcPrevious] = useState("");
     const [quizTimeTaken, setQuizTimeTaken] = useState(0);
+    const [userId, setUserId] = useState<number | null>(null);
+    
 
     useEffect(() => {
         const course = courses[params.course as CourseId];
@@ -33,19 +40,32 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
         }
         setCourseData(course);
 
-        // Find the quiz
-        const quiz = course.quizzes?.find((q: any) => q.id === parseInt(params.id));
-        if (!quiz) {
-            router.push("/404");
-            return;
-        }
-        setQuizData(quiz);
+        // Fetch quiz from Backend
+        const fetchQuiz = async () => {
+            const quiz = await getQuizById(parseInt(params.id));
+            if (!quiz) {
+                console.error("Quiz not found in DB with ID:", params.id);
+                router.push("/404");
+                return;
+            }
+            setQuizData(quiz);
 
-        // Set timer (parse time like "15 min" to seconds)
-        const timeMatch = quiz.time.match(/(\d+)/);
-        if (timeMatch) {
-            setTimeLeft(parseInt(timeMatch[1]) * 60);
-        }
+            // Set timer
+            const timeMatch = quiz.time.match(/(\d+)/);
+            if (timeMatch) {
+                setTimeLeft(parseInt(timeMatch[1]) * 60);
+            }
+        };
+        fetchQuiz();
+
+        // Fetch User
+        const fetchUser = async () => {
+            const user = await getCurrentUserProfile();
+            if (user) {
+                setUserId(user.user_id);
+            }
+        };
+        fetchUser();
 
         // Load starred questions from localStorage
         const storageKey = `starred_questions_${params.course}_${params.id}`;
@@ -72,6 +92,7 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
     };
 
     const handleStartQuiz = () => {
+        if (!quizData) return;
         setQuizStarted(true);
         setSelectedAnswers(new Array(quizData.questionData?.length || 0).fill(-1));
     };
@@ -83,6 +104,7 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
     };
 
     const handleNext = () => {
+        if (!quizData) return;
         if (currentQuestion < (quizData.questionData?.length || 0) - 1) {
             setCurrentQuestion(currentQuestion + 1);
         }
@@ -94,14 +116,56 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
         }
     };
 
-    const handleSubmitQuiz = () => {
+    const handleSubmitQuiz = async () => {
+        if (!quizData || !courseData) return;
+
         // Calculate time taken
         let initialTime = 0;
         const timeMatch = quizData.time.match(/(\d+)/);
         if (timeMatch) {
             initialTime = parseInt(timeMatch[1]) * 60;
         }
-        setQuizTimeTaken(initialTime - timeLeft);
+        const timeTaken = initialTime - timeLeft;
+        setQuizTimeTaken(timeTaken);
+
+        const scoreVal = calculateScore();
+        const passed = scoreVal >= 60 //(quizData as any).quiz_pass_score;
+
+        // Calculate correct count
+        let correctCount = 0;
+        selectedAnswers.forEach((answer, index) => {
+            if (quizData.questionData && answer === quizData.questionData[index]?.correct) {
+                correctCount++;
+            }
+        });
+
+        // Submit to Backend
+        if (userId && quizData.unitId && quizData.courseId) {
+            try {
+                await submitQuizAttempt({
+                    user_id: userId,
+                    course_id: quizData.courseId,
+                    unit_id: quizData.unitId,
+                    quiz_id: quizData.id,
+                    score: scoreVal,
+                    correct: correctCount,
+                    total: quizData.questionData?.length || 0,
+                    time_taken: timeTaken
+                });
+                
+                const passed = scoreVal >= 60;
+                if (passed) {
+                await onQuizCompleted(
+                    userId,
+                    quizData.courseId,
+                    quizData.xp // 🎯 XP COMES FROM DB
+                );
+                }
+            } catch (error) {
+                console.error("Failed to submit quiz:", error);
+            }
+        }
+
         setShowResults(true);
     };
 
@@ -162,10 +226,10 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
     };
 
     const calculateScore = () => {
-        if (!quizData.questionData) return 0;
+        if (!quizData || !quizData.questionData) return 0;
         let correct = 0;
         selectedAnswers.forEach((answer, index) => {
-            if (answer === quizData.questionData[index]?.correct) {
+            if (quizData.questionData && answer === quizData.questionData[index]?.correct) {
                 correct++;
             }
         });
@@ -179,6 +243,7 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
     };
 
     const handleRetake = () => {
+        if (!quizData) return;
         setCurrentQuestion(0);
         setSelectedAnswers(new Array(quizData.questionData?.length || 0).fill(-1));
         setShowResults(false);
@@ -317,7 +382,7 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
     }
 
 
-    const currentQ = quizData.questionData?.[currentQuestion];
+    const currentQ = quizData?.questionData?.[currentQuestion];
 
     return (
         <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-300 overflow-y-auto lg:overflow-hidden">

@@ -13,6 +13,7 @@ import {
   toggleCalendarEventComplete,
 } from "@/lib/supabase/calendar";
 import { getCurrentUserProfile } from "@/lib/supabase/profile";
+import { getUserMaxStreak } from "@/lib/supabase/streak";
 
 /* =========================
    Types
@@ -57,19 +58,12 @@ export default function CalendarPage() {
       if (data) setEvents(data);
 
       // 🔥 get streak count from Supabase
-      const { data: course } = await supabase
-        .from("user_courses")
-        .select("streak_days")
-        .eq("user_id", user.user_id)
-        .single();
-
-      if (!course?.streak_days) return;
-
+      const maxStreak = await getUserMaxStreak(user.user_id);
+      if (!maxStreak || maxStreak <= 0) return;
       const streakSet = new Set<string>();
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-
-      for (let i = 0; i < course.streak_days; i++) {
+      for (let i = 0; i < maxStreak; i++) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
         const y = d.getFullYear();
@@ -77,10 +71,8 @@ export default function CalendarPage() {
         const day = String(d.getDate()).padStart(2, "0");
         streakSet.add(`${y}-${m}-${day}`);
       }
-
       setActiveDays(streakSet);
     }
-
     load();
   }, []);
 

@@ -11,7 +11,6 @@ import { courses, CourseId } from "@/lib/courses";
 import { getNumericalById, submitNumericalAttempt } from "@/lib/supabase/numericals";
 import { getCurrentUserProfile } from "@/lib/supabase/profile";
 import BFSTreeTraversal from "@/lib/numericals/aiml/numericals";
-import DFSGraphTraversal from "@/lib/numericals/aiml/numerical_dfs";
 
 export default function NumericalsSolvePage({ params }: { params: { id: string, course: string } }) {
   const router = useRouter();
@@ -166,10 +165,6 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
   // Route to specific solvers based on ID
   if (numerical.id === 101) {
     return <BFSTreeTraversal params={params} />;
-  }
-
-  if (numerical.id === 102) {
-    return <DFSGraphTraversal params={params} />;
   }
 
   return (
