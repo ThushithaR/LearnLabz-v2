@@ -7,6 +7,9 @@ import { Card } from "@/components/ui/Card";
 import { ArrowLeft, Calculator, Clock, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { courses, CourseId } from "@/lib/courses";
+import { COURSE_ID_MAP } from "@/lib/courses";
+import { getNumericalsByCourse } from "@/lib/supabase/numericals";
+import { Numerical } from "@/lib/types/course";
 
 export default function CourseNumericalsPage({
   params,
@@ -15,18 +18,36 @@ export default function CourseNumericalsPage({
 }) {
   const router = useRouter();
   const [courseData, setCourseData] = useState<any>(null);
+  const [numericals, setNumericals] = useState<Numerical[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'All' | 'Difficulty' | 'Topic'>('All');
 
   useEffect(() => {
+    // 1. Static check first
     const course = courses[params.course as CourseId];
-    if (!course || !course.features.numericals) {
+    if (!course) {
       router.push("/404");
       return;
     }
     setCourseData(course);
+
+    // 2. Fetch from Backend
+    const fetchNumericals = async () => {
+      try {
+        const courseId = COURSE_ID_MAP[params.course as CourseId] || (params.course === 'aiml' ? 1 : 2);
+        const data = await getNumericalsByCourse(courseId);
+        setNumericals(data);
+      } catch (error) {
+        console.error("Failed to load numericals", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchNumericals();
   }, [params.course, router]);
 
-  if (!courseData) {
+  if (isLoading || !courseData) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -37,16 +58,16 @@ export default function CourseNumericalsPage({
     );
   }
 
-  const completedCount = courseData.numericals?.filter((n: any) => n.status === "Completed").length || 0;
-  const totalCount = courseData.numericals?.length || 0;
+  const completedCount = numericals.filter((n) => n.status === "Completed").length || 0;
+  const totalCount = numericals.length || 0;
 
   const getDisplayData = () => {
-    let data = [...(courseData.numericals || [])];
+    let data = [...numericals];
     if (filter === 'Difficulty') {
       const priority = { Easy: 1, Medium: 2, Hard: 3 };
       data.sort((a, b) => (priority[a.difficulty as keyof typeof priority] || 0) - (priority[b.difficulty as keyof typeof priority] || 0));
     } else if (filter === 'Topic') {
-      data.sort((a, b) => a.topic.localeCompare(b.topic));
+      data.sort((a, b) => (a.topic || "").localeCompare(b.topic || ""));
     }
     return data;
   };
@@ -109,17 +130,16 @@ export default function CourseNumericalsPage({
 
       {/* Challenges Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {displayData.map((numerical: any) => {
+        {displayData.map((numerical) => {
           const isLocked = numerical.status === "Locked";
 
           return (
             <Card
               key={numerical.id}
-              className={`p-5 flex flex-col gap-4 border-2 transition-all ${
-                isLocked
+              className={`p-5 flex flex-col gap-4 border-2 transition-all ${isLocked
                   ? "opacity-50 bg-white/5 border-transparent pointer-events-none"
                   : "bg-surface border-white/5 hover:border-accent/40"
-              }`}
+                }`}
               onClick={() => {
                 if (!isLocked) {
                   router.push(`/dashboard/${params.course}/numericals/${numerical.id}`);
@@ -134,8 +154,8 @@ export default function CourseNumericalsPage({
                       numerical.difficulty === "Hard"
                         ? "warning"
                         : numerical.difficulty === "Medium"
-                        ? "default"
-                        : "secondary" // Easy
+                          ? "default"
+                          : "secondary" // Easy
                     }
                     className="uppercase text-[10px]"
                   >
@@ -148,12 +168,8 @@ export default function CourseNumericalsPage({
               {/* Info */}
               <div>
                 <h4 className="font-bold text-lg text-textPrimary">{numerical.title}</h4>
-                <p className="text-sm text-textSecondary mb-2">{numerical.description}</p>
+                <p className="text-sm text-textSecondary mb-2 line-clamp-2">{numerical.description}</p>
                 <div className="flex gap-3 text-xs text-textSecondary">
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {numerical.time || "N/A"}
-                  </div>
                   <div className="flex items-center gap-1 text-accent">
                     <Trophy className="w-3 h-3" />
                     {numerical.xp} XP
@@ -177,7 +193,7 @@ export default function CourseNumericalsPage({
         })}
       </div>
 
-      {(!courseData.numericals || courseData.numericals.length === 0) && (
+      {(!numericals || numericals.length === 0) && (
         <div className="text-center py-12">
           <Calculator className="w-16 h-16 text-textSecondary mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-textPrimary mb-2">No Challenges Available</h3>
