@@ -905,7 +905,7 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
                   className="flex-1 md:flex-none"
                   onClick={() => window.location.reload()}
                 >
-                  Try Again
+                  Clear & Try Again
                 </Button>
                 <Button
                   variant="outline"
