@@ -1,3 +1,4 @@
+import { apply } from 'assert/strict';
 import React from 'react';
 
 export const nlpQuizzes = [
@@ -316,7 +317,7 @@ export const nlpQuizzes = [
       {
         id: 1,
         question: 'A company wants to automatically analyze customer opinions from thousands of social media posts to understand public sentiment about its brand.\n Which NLP application is most suitable for this task?',
-        options: ['Machine translation', 'Social media feed analysis', 'Grammar correction', 'Knowledge graph construction'],
+        options: ['Machine translation', 'Feed analysis', 'Grammar correction', 'Knowledge graph construction'],
         correct: 1,
         explanation: 'The content states that organizations analyze their social media feeds using NLP to gain a better understanding of customer opinions and sentiment. This makes social media feed analysis the most appropriate NLP application for this scenario.',
         topics: ['NLP in Real World']
@@ -411,7 +412,7 @@ export const nlpQuizzes = [
   },
   {
     id: 201,
-    title: 'Text Preprocessing - Easy',
+    title: 'Text Corpora & Text Preprocessing - Easy',
     unit: 'Unit II',
     difficulty: 'Easy',
     time: '18 min',
@@ -420,7 +421,220 @@ export const nlpQuizzes = [
     status: 'Available',
     score: '-',
     questionData: [
+      {
+        id: 1,
+        question: 'A text corpus is best described as:',
+        options: ['A single sentence used for testing', 'A small collection of words', 'A large structured body of text', 'A dictionary of meanings'],
+        correct: 2,
+        explanation: 'A corpus is a large body of text, often organized by genre, topic, or time.',
+        topics: ['Accessing Text Corpora']
+      },
+      {
+        id: 2,
+        question: 'Which NLTK function returns the list of file identifiers in a corpus?',
+        options: ['raw()', 'words()', 'fileids()', 'categories()'],
+        correct: 2,
+        explanation: 'fileids() lists all available files in a corpus.',
+        topics: ['Accessing Text Corpora']
+      },
+      {
+        id: 3,
+        question: 'The Gutenberg Corpus in NLTK is derived from which source?',
+        options: ['Wikipedia', 'Brown University', 'Project Gutenberg', 'Reuters'],
+        correct: 2,
+        explanation: 'The Gutenberg Corpus contains texts from Project Gutenberg, which hosts thousands of free electronic books.',
+        topics: ['Accessing Text Corpora']
+      },
+      {
+        id: 4,
+        question: 'What does gutenberg.raw(fileid) return?',
+        options: ['Tokenized words', 'Parsed syntax trees', 'Raw text including spaces', 'Lemmatized text'],
+        correct: 2,
+        explanation: 'raw() returns the original text without tokenization, including spaces and punctuation.',
+        topics: ['Accessing Text Corpora']
+      },
+      {
+        id: 5,
+        question: 'Regular expressions are primarily used in NLP for:',
+        options: ['Statistical modeling',
+                  'Pattern matching in text',
+                  'Semantic role labeling',
+                  'Machine translation'],
+        correct: 1,
+        explanation: 'Regular expressions provide a flexible way to describe and match character patterns, which is essential for many linguistic processing tasks.',
+        topics: ['Regular Expressions for Detecting Word Patterns']
+      },
+      {
+        id: 6,
+        question: 'Which Python library must be imported to use regular expressions?',
+        options: ['re',
+                  'regex',
+                  'nltk',
+                  'pandas'],
+        correct: 0,
+        explanation: 'Python’s built-in re library provides functions such as re.search() for working with regular expressions.',
+        topics: ['Regular Expressions for Detecting Word Patterns']
+      },
+      {
+        id: 7,
+        question: 'The regular expression symbol $ is used to match the ______ of a string.',
+        options: ['end',
+                  'beginning',
+                  'middle',
+                  'all'],
+        correct: 0,
+        explanation: 'The $ metacharacter matches the end of a word or string, e.g., ed$ matches words ending with ed.',
+        topics: ['Regular Expressions for Detecting Word Patterns']
+      }, 
+      {
+        id: 8,
+        question: 'The wildcard symbol . in regular expressions matches:',
+        options: ['A punctuation mark',
+                  'Any digit',
+                  'Any single character',
+                  'Only alphabetic characters'],
+        correct: 2,
+        explanation: 'The . metacharacter matches any single character except newline.',
+        topics: ['Regular Expressions for Detecting Word Patterns']
+      }, 
+      {
+        id: 9,
+        question: 'In the regex [ghi], what does it represent?',
+        options: ['The exact string "ghi"',
+                  'Any one of g, h, or i',
+                  'A range from g to i',
+                  'Zero or more characters'],
+        correct: 1,
+        explanation: 'The [ghi] character class matches any one of the characters g, h, or i.',
+        topics: ['Regular Expressions for Detecting Word Patterns']
+      },  
+      {
+        id: 10,
+        question: 'Which regular expression will match both email and e-mail?',
+        options: ['^email$',
+                  '^e-mail$',
+                  '^e?mail$',
+                  '^e-?mail$'],
+        correct: 3,
+        explanation: 'The ? symbol makes the preceding character optional, so -? matches zero or one hyphen.',
+        topics: ['Regular Expressions for Detecting Word Patterns']
+      }, 
+      {
+        id: 11,
+        question: 'The regular expression ^[0-9]{4}$ will match:',
+        options: ['Any number',
+                  'Exactly four digits',
+                  'At least four digits',
+                  'A year followed by text'],
+        correct: 1,
+        explanation: '{4} specifies exactly four repetitions of the preceding item ([0-9]).',
+        topics: ['Regular Expressions for Detecting Word Patterns']
+      }, 
+      {
+        id: 12,
+        question: 'Why are raw strings (r\'...\') recommended for regular expressions in Python?',
+        options: ['They improve execution speed',
+                  'They allow Unicode processing',
+                  'They prevent Python from interpreting backslashes',
+                  'They remove punctuation'],
+        correct: 2,
+        explanation: 'Raw strings prevent Python from interpreting backslashes, which is essential for regular expressions.',
+        topics: ['Regular Expressions for Detecting Word Patterns']
+      }, 
       // Easy questions for Unit II
+    ]
+  },
+  {
+    id: 202,
+    title: 'Text Corpora & Text Preprocessing - Medium',
+    unit: 'Unit II',
+    difficulty: 'Medium',
+    time: '18 min',
+    questions: 11,
+    xp: 55,
+    status: 'Available',
+    score: '-',
+    questionData: [
+      {
+        id: 1,
+        question: 'Assertion (A): Categories in the Reuters Corpus do not overlap.\nReason (R): News articles usually discuss only one topic.',
+        options: ['Both A and R are true, and R explains A', 'Both A and R are true, but R does not explain A', 'A is true, R is false', 'A is false, R is true'],
+        correct: 3,
+        explanation: 'Reuters articles are often multi-topic (e.g., barley + wheat), hence overlapping categories.',
+        topics: ['Accessing Text Corpora']
+      },
+      {
+        id: 2,
+        question: 'Assertion (A): The Brown Corpus is useful for stylistic analysis.\nReason (R): It allows comparison of linguistic features across genres.',
+        options: ['Both A and R are true, and R explains A', 'Both A and R are true, but R does not explain A', 'A is true, R is false', 'A is false, R is true'],
+        correct: 0,
+        explanation: 'Stylistics studies genre-based language variation, which the Brown Corpus directly supports.',
+        topics: ['Accessing Text Corpora']
+      },
+      {
+        id: 3,
+        question: 'Assertion (A): The regex ^[^aeiouAEIOU]+$ matches only consonant-based tokens.\nReason (R): The caret inside square brackets negates the character set.',
+        options: ['Both A and R are true, and R explains A', 'Both A and R are true, but R does not explain A', 'A is true, R is false', 'A is false, R is true'],
+        correct: 0,
+        explanation: 'The negation ensures any character except vowels, including digits and symbols.',
+        topics: ['Regular Expressions for Detecting Word Patterns']
+      },
+      {
+        id: 4,
+        question: 'Assertion (A): [A-Z]+\$ matches words with uppercase letters.\nReason (R): The backslash removes the special meaning of $',
+        options: ['Both A and R are true, and R explains A', 'Both A and R are true, but R does not explain A', 'A is true, R is false', 'A is false, R is true'],
+        correct: 3,
+        explanation: '\$ forces $ to be treated as a literal character, not an end-of-string marker.',
+        topics: ['Regular Expressions for Detecting Word Patterns']
+      },
+      // Medium questions for Unit II
+    ]
+  },
+  {
+    id: 203,
+    title: 'Text Corpora & Text Preprocessing - Hard',
+    unit: 'Unit II',
+    difficulty: 'Hard',
+    time: '18 min',
+    questions: 11,
+    xp: 55,
+    status: 'Available',
+    score: '-',
+    questionData: [
+      {
+        id: 1,
+        question: 'A researcher wants a dataset for training and testing an automatic topic classifier.Which corpus is most appropriate?',
+        options: ['Gutenberg', 'Brown', 'Reuters', 'Inaugural'],
+        correct: 2,
+        explanation: 'The Reuters Corpus provides predefined training and test splits and labeled topics.',
+        topics: ['Accessing Text Corpora']
+      },
+      {
+        id: 2,
+        question: 'You want to analyze changes in the use of the word “citizen” over centuries.\nWhich corpus should be selected?',
+        options: ['Gutenberg', 'Brown', 'Reuters', 'Inaugural'],
+        correct: 3,
+        explanation: 'The Inaugural Corpus has a time dimension, ideal for diachronic linguistic analysis.',
+        topics: ['Accessing Text Corpora']
+      },
+      {
+        id: 3,
+        question: 'Why do raw(), words(), and sents() return different outputs for the same file?',
+        options: ['They use different files', 'They apply different levels of linguistic processing', 'They use different encodings', 'They remove stop words differently'],
+        correct: 1,
+        explanation: 'Each method represents a different abstraction level: raw text, word tokens, or sentence tokens.',
+        topics: ['Accessing Text Corpora']
+      },
+      {
+        id: 4,
+        question: 'You have a directory of your own .txt files and want to apply NLTK corpus methods.Which reader should you use?',
+        options: ['GutenbergCorpusReader', 'ReutersCorpusReader', 'PlaintextCorpusReader', 'BracketParseCorpusReader'],
+        correct: 2,
+        explanation: 'PlaintextCorpusReader allows loading custom text collections with standard corpus functions.',
+        topics: ['Accessing Text Corpora']
+      }, 
+      
+      // Hard questions for Unit II
     ]
   },
   // Add more quizzes for other units...
