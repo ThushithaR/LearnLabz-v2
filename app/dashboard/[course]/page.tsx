@@ -16,14 +16,12 @@ import {
   Circle,
 } from "lucide-react";
 import { courses, CourseId } from "@/lib/courses";
-import { supabase } from "@/lib/supabase/client";
 import { getCurrentUserProfile } from "@/lib/supabase/profile";
 import { getUpcomingDeadlines, toggleCalendarEventComplete } from "@/lib/supabase/calendar";
 import { getDailyQuiz } from "@/lib/supabase/quizzes";
 import { COURSE_ID_MAP } from "@/lib/courses";
 import { getUserCourseStats } from "@/lib/supabase/user-courses";
-import { getContinueLesson } from "@/lib/supabase/progress";
-import { getCompletedUnitsCount } from "@/lib/supabase/progress";
+import { getContinueLesson, getCompletedUnitsCount, getCourseUnitProgress } from "@/lib/supabase/progress";
 import { getUserMaxStreak } from "@/lib/supabase/streak";
 
 export default function CourseDashboardPage({
@@ -49,7 +47,7 @@ export default function CourseDashboardPage({
     loadProfile();
   }, []);
 
-  //get user course stats 
+  // get user course stats
   useEffect(() => {
     const loadStats = async () => {
       const user = await getCurrentUserProfile();
@@ -59,19 +57,40 @@ export default function CourseDashboardPage({
       setStats(data);
       setMaxStreak(streak);
     };
-    loadStats();  
+    loadStats();
   }, [courseId]);
 
-  // continue lesson
+  // continue lesson + fallback unit selection
+  const activeModule = courseData.modules.find((m) => m.active);
+  const [resumeModuleId, setResumeModuleId] = useState<number | undefined>(activeModule?.id);
+  const [resumeLessonId, setResumeLessonId] = useState<number | undefined>(undefined);
+
   useEffect(() => {
     const loadContinue = async () => {
       const user = await getCurrentUserProfile();
       if (!user) return;
+
       const { data } = await getContinueLesson(user.user_id, courseId);
       setContinueLesson(data);
+
+      if (data) {
+        setResumeModuleId(data.lessons?.unit_id ?? activeModule?.id);
+        setResumeLessonId(data.lesson_id ?? data.lessons?.lesson_id ?? undefined);
+        return;
+      }
+
+      const { data: unitsData } = await getCourseUnitProgress({ user_id: user.user_id, course_id: courseId } as any).catch(() => ({ data: null }));
+      if (unitsData && Array.isArray(unitsData) && unitsData.length > 0) {
+        const partial = unitsData.find((u: any) => u.unit_progress_percent > 0 && u.unit_progress_percent < 100);
+        const unlocked = unitsData.find((u: any) => u.unit_unlocked);
+        const chosen = partial || unlocked || unitsData[0];
+        if (chosen) setResumeModuleId(chosen.unit_id ?? activeModule?.id);
+      } else {
+        setResumeModuleId(activeModule?.id);
+      }
     };
     loadContinue();
-  }, [courseId]);
+  }, [courseId, activeModule]);
 
   // completed units count
   useEffect(() => {
@@ -85,7 +104,7 @@ export default function CourseDashboardPage({
     loadCompleted();
   }, [courseId]);
 
-  // Initialize deadlines from course calendar, add `isDone` default
+  // Initialize deadlines
   const [deadlines, setDeadlines] = useState<any[]>([]);
   useEffect(() => {
     const loadDeadlines = async () => {
@@ -99,16 +118,9 @@ export default function CourseDashboardPage({
     loadDeadlines();
   }, [courseId]);
 
-
   const toggleDeadline = async (id: number, current: boolean) => {
     await toggleCalendarEventComplete(id, !current);
-    setDeadlines((prev) =>
-      prev.map((d) =>
-        d.cal_id === id
-          ? { ...d, cal_completed: !current }
-          : d
-      )
-    );
+    setDeadlines((prev) => prev.map((d) => (d.cal_id === id ? { ...d, cal_completed: !current } : d)));
   };
 
   // daily challenges
@@ -120,8 +132,6 @@ export default function CourseDashboardPage({
     };
     loadDaily();
   }, [courseId]);
-
-  const activeModule = courseData.modules.find((m) => m.active);
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-4 pb-4">
@@ -170,7 +180,7 @@ export default function CourseDashboardPage({
               </div>
 
               <h2 className="text-xl md:text-2xl font-bold mb-1">
-                {continueLesson?.lessons.lesson_title || "Start Learning"}
+                {continueLesson?.lessons?.lesson_title || "Start Learning"}
               </h2>
               <p className="text-textSecondary text-xs mb-4 leading-relaxed max-w-md line-clamp-2">
                 {activeModule?.description || ""}
@@ -179,7 +189,7 @@ export default function CourseDashboardPage({
 
               <div className="flex items-center gap-4">
                 {activeModule && (
-                  <Link href={`/dashboard/${course}/modules/${continueLesson?.lessons?.unit_id || activeModule.id}`}>
+                  <Link href={`/dashboard/${course}/modules/${resumeModuleId}${resumeLessonId ? `?lessonId=${resumeLessonId}` : ''}`}>
                     <Button size="sm" className="px-5 gap-2 h-9 text-sm">
                       Resume Learning <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -269,8 +279,7 @@ export default function CourseDashboardPage({
                 return (
                   <div
                     key={cal.cal_id}
-                    className={`p-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] flex items-center gap-3 transition-all group border border-transparent hover:border-white/10 ${cal.cal_completed ? "opacity-40 grayscale" : ""
-                      }`}
+                    className={`p-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] flex items-center gap-3 transition-all group border border-transparent hover:border-white/10 ${cal.cal_completed ? "opacity-40 grayscale" : ""}`}
                   >
                     {/* Checkbox */}
                     <div
@@ -330,3 +339,4 @@ export default function CourseDashboardPage({
     </div>
   );
 }
+

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -12,6 +13,8 @@ import { useCourse } from "@/lib/context/CourseContext";
 import { ProblemStatement } from "@/lib/content/nlp/unit1/problemStatement";
 import InteractiveCodeWalkthrough from "@/lib/content/nlp/unit2/InteractiveCodeWalkthrough";
 import AStarVisualizer from "@/lib/content/aiml/unit2/InformedSearch/Astar";
+import HillClimbingVisualizer from "@/lib/content/aiml/unit2/InformedSearch/HillClimbing";
+import AlphaBetaVisualizer from "@/lib/content/aiml/unit3/AdversarialSearch/AlphaBeta";
 import { ChevronLeft, ChevronRight, Clock, BookOpen, CheckCircle2, Save, FileText, ArrowLeft, X, PauseCircle, PlayCircle, Image as ImageIcon, Star, RotateCw } from "lucide-react";
 import { ModuleProgress } from "@/lib/types/progress";
 import { getLessonProgress, getLessonProgressByUnit, upsertLessonProgress, updateUnitProgress } from "@/lib/supabase/progress";
@@ -20,6 +23,7 @@ import { getUserNotes, createNote } from "@/lib/supabase/notes";
 
 export default function LessonPage({ params }: { params: { course: string; id: string } }) {
   const { course, id } = params;
+  const searchParams = useSearchParams();
 
   const courseData: Course = courses[course as CourseId];
   const moduleData: Module | undefined = courseData.modules.find(m => m.id.toString() === id);
@@ -147,12 +151,27 @@ export default function LessonPage({ params }: { params: { course: string; id: s
           setCompletedLessons(completed);
           setLessonTimeMap(timeMap);
 
-          // Start from the next incomplete lesson or the first incomplete one
-          if (lastCompletedIdx !== -1 && lastCompletedIdx < moduleData.lessons.length - 1) {
+          // If a specific lessonId was provided in the URL (resume link), prefer that
+          const urlLessonId = searchParams?.get?.('lessonId');
+          if (urlLessonId) {
+            const urlIdx = moduleData.lessons.findIndex(l => l.id.toString() === urlLessonId);
+            if (urlIdx !== -1) {
+              setSelectedLessonIdx(urlIdx);
+              return;
+            }
+          }
+
+          // Start from the first incomplete lesson if any
+          const nextIncomplete = completed.findIndex(c => !c);
+          if (nextIncomplete !== -1) {
+            setSelectedLessonIdx(nextIncomplete);
+          } else if (lastCompletedIdx !== -1 && lastCompletedIdx < moduleData.lessons.length - 1) {
             setSelectedLessonIdx(lastCompletedIdx + 1);
           } else if (completed.every(c => c)) {
             // All lessons completed, stay at the last one
             setSelectedLessonIdx(moduleData.lessons.length - 1);
+          } else {
+            setSelectedLessonIdx(0);
           }
         }
       } catch (err) {
@@ -161,7 +180,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
     };
 
     loadProgress();
-  }, [userId, moduleData]);
+  }, [userId, moduleData, searchParams]);
 
   // Scroll to top when lesson changes
   useEffect(() => {
@@ -1129,13 +1148,21 @@ export default function LessonPage({ params }: { params: { course: string; id: s
             {/* Interactive Tab */}
             {activeTab === 'interactive' && lessonData.isInteractive && (
               <div className="h-full min-h-[600px] flex flex-col animate-fade-in bg-background">
-                {/* Check for A_STAR content marker (either in sections or as a top-level property) */}
+                {/* Check for Interactive Visualizers based on marker */}
                 {lessonData.content && typeof lessonData.content === 'object' && (
                   (lessonData.content as any).interactiveMarker === "A_STAR" ||
+                  (lessonData.content as any).interactiveMarker === "HILL_CLIMBING" ||
+                  (lessonData.content as any).interactiveMarker === "ALPHA_BETA" ||
                   ('sections' in lessonData.content && (lessonData.content as any).sections.some((s: any) => s.content === "A_STAR"))
                 ) ? (
                   <div className="w-full h-full p-4 overflow-hidden flex-1">
-                    <AStarVisualizer />
+                    {(lessonData.content as any).interactiveMarker === "A_STAR" || (lessonData.content as any).sections?.some((s: any) => s.content === "A_STAR") ? (
+                      <AStarVisualizer />
+                    ) : (lessonData.content as any).interactiveMarker === "HILL_CLIMBING" ? (
+                      <HillClimbingVisualizer />
+                    ) : (lessonData.content as any).interactiveMarker === "ALPHA_BETA" ? (
+                      <AlphaBetaVisualizer />
+                    ) : null}
                   </div>
                 ) : (
                   <div className="h-full flex items-center justify-center">
@@ -1364,241 +1391,240 @@ export default function LessonPage({ params }: { params: { course: string; id: s
           </div>
         </div>
         {/* RIGHT PANEL: Notes - Resizable */}
-        {activeTab !== 'quiz' && (
-          {!(activeTab === 'interactive' || activeTab === 'quiz') && (
-            <div
-              className={cn(
-                "bg-surface border-l border-white/5 hidden xl:flex flex-col transition-all duration-300 relative",
-                notesOpen ? "" : "w-16"
-              )}
-              style={notesOpen ? { width: notesWidth } : {}}
+        {!(activeTab === 'interactive' || activeTab === 'quiz') && (
+          <div
+            className={cn(
+              "bg-surface border-l border-white/5 hidden xl:flex flex-col transition-all duration-300 relative",
+              notesOpen ? "" : "w-16"
+            )}
+            style={notesOpen ? { width: notesWidth } : {}}
+          >
+            {/* Resize Handle */}
+            {notesOpen && (
+              <div
+                className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-accent/50 z-20"
+                onMouseDown={() => setIsResizing(true)}
+              ></div>
+            )}
+
+            <button
+              onClick={() => setNotesOpen(!notesOpen)}
+              className="absolute -left-3 top-4 z-10 bg-surface border border-white/10 rounded-full p-1 text-textSecondary hover:text-white shadow-sm hover:scale-110 transition-all"
+              title={notesOpen ? "Collapse Notes" : "Expand Notes"}
             >
-              {/* Resize Handle */}
-              {notesOpen && (
-                <div
-                  className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-accent/50 z-20"
-                  onMouseDown={() => setIsResizing(true)}
-                ></div>
+              {notesOpen ? (
+                <ChevronRight className="w-3 h-3" />
+              ) : (
+                <ChevronLeft className="w-3 h-3" />
               )}
+            </button>
 
-              <button
-                onClick={() => setNotesOpen(!notesOpen)}
-                className="absolute -left-3 top-4 z-10 bg-surface border border-white/10 rounded-full p-1 text-textSecondary hover:text-white shadow-sm hover:scale-110 transition-all"
-                title={notesOpen ? "Collapse Notes" : "Expand Notes"}
-              >
-                {notesOpen ? (
-                  <ChevronRight className="w-3 h-3" />
-                ) : (
-                  <ChevronLeft className="w-3 h-3" />
-                )}
-              </button>
+            <div className={cn(
+              "p-4 font-bold border-b border-white/5 text-sm uppercase tracking-wider text-textSecondary h-14 flex items-center overflow-hidden whitespace-nowrap",
+              !notesOpen && "justify-center px-0"
+            )}>
+              {notesOpen ? (
+                activeTab === 'reading' ? 'Smart Notes' : activeTab === 'interactive' ? 'Controls' : 'Review'
+              ) : (
+                <FileText className="w-5 h-5 text-textSecondary" />
+              )}
+            </div>
 
-              <div className={cn(
-                "p-4 font-bold border-b border-white/5 text-sm uppercase tracking-wider text-textSecondary h-14 flex items-center overflow-hidden whitespace-nowrap",
-                !notesOpen && "justify-center px-0"
-              )}>
-                {notesOpen ? (
-                  activeTab === 'reading' ? 'Smart Notes' : activeTab === 'interactive' ? 'Controls' : 'Review'
-                ) : (
-                  <FileText className="w-5 h-5 text-textSecondary" />
-                )}
-              </div>
+            {notesOpen && (
+              <div className="p-4 space-y-4 flex-1 flex flex-col">
+                {activeTab === 'reading' && (
+                  <div className="flex flex-col gap-2 h-full border border-white/10 rounded-xl overflow-visible relative">
+                    {/* Rich Text Toolbar */}
+                    <div className="flex items-center gap-1 bg-surface/50 backdrop-blur-md p-1.5 overflow-visible relative">
+                      <button
+                        onClick={() => document.execCommand('bold')}
+                        onMouseDown={(e) => e.preventDefault()}
+                        className="p-2 hover:bg-white/10 rounded-lg text-[10px] font-bold w-7 h-7 flex items-center justify-center transition-all hover:scale-110"
+                        title="Bold"
+                      >
+                        B
+                      </button>
+                      <button
+                        onClick={() => document.execCommand('italic')}
+                        onMouseDown={(e) => e.preventDefault()}
+                        className="p-2 hover:bg-white/10 rounded-lg text-[10px] italic w-7 h-7 flex items-center justify-center transition-all hover:scale-110"
+                        title="Italic"
+                      >
+                        I
+                      </button>
+                      <button
+                        onClick={() => document.execCommand('underline')}
+                        onMouseDown={(e) => e.preventDefault()}
+                        className="p-2 hover:bg-white/10 rounded-lg text-[10px] underline w-7 h-7 flex items-center justify-center transition-all hover:scale-110"
+                        title="Underline"
+                      >
+                        U
+                      </button>
 
-              {notesOpen && (
-                <div className="p-4 space-y-4 flex-1 flex flex-col">
-                  {activeTab === 'reading' && (
-                    <div className="flex flex-col gap-2 h-full border border-white/10 rounded-xl overflow-visible relative">
-                      {/* Rich Text Toolbar */}
-                      <div className="flex items-center gap-1 bg-surface/50 backdrop-blur-md p-1.5 overflow-visible relative">
-                        <button
-                          onClick={() => document.execCommand('bold')}
-                          onMouseDown={(e) => e.preventDefault()}
-                          className="p-2 hover:bg-white/10 rounded-lg text-[10px] font-bold w-7 h-7 flex items-center justify-center transition-all hover:scale-110"
-                          title="Bold"
-                        >
-                          B
-                        </button>
-                        <button
-                          onClick={() => document.execCommand('italic')}
-                          onMouseDown={(e) => e.preventDefault()}
-                          className="p-2 hover:bg-white/10 rounded-lg text-[10px] italic w-7 h-7 flex items-center justify-center transition-all hover:scale-110"
-                          title="Italic"
-                        >
-                          I
-                        </button>
-                        <button
-                          onClick={() => document.execCommand('underline')}
-                          onMouseDown={(e) => e.preventDefault()}
-                          className="p-2 hover:bg-white/10 rounded-lg text-[10px] underline w-7 h-7 flex items-center justify-center transition-all hover:scale-110"
-                          title="Underline"
-                        >
-                          U
-                        </button>
+                      <button
+                        ref={buttonRef}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setShowSmartColorPicker(!showSmartColorPicker);
+                        }}
+                        className={cn(
+                          "p-2 rounded-lg w-7 h-7 flex items-center justify-center transition-all hover:scale-110",
+                          showSmartColorPicker ? "bg-white/20" : "hover:bg-white/10"
+                        )}
+                        title="Highlight"
+                      >
+                        <div className="w-2.5 h-2.5 rounded-full bg-accent"></div>
+                      </button>
 
-                        <button
-                          ref={buttonRef}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setShowSmartColorPicker(!showSmartColorPicker);
-                          }}
-                          className={cn(
-                            "p-2 rounded-lg w-7 h-7 flex items-center justify-center transition-all hover:scale-110",
-                            showSmartColorPicker ? "bg-white/20" : "hover:bg-white/10"
-                          )}
-                          title="Highlight"
-                        >
-                          <div className="w-2.5 h-2.5 rounded-full bg-accent"></div>
-                        </button>
+                      <div className="h-4 w-[1px] bg-white/10 mx-1"></div>
+                      <button
+                        onClick={handleInsertSmartImage}
+                        onMouseDown={(e) => e.preventDefault()}
+                        className="p-1 hover:bg-white/10 rounded text-[10px] w-6 h-6 flex items-center justify-center transition-all hover:scale-110 text-textSecondary hover:text-white"
+                        title="Upload Image"
+                      >
+                        <ImageIcon className="w-3 h-3" />
+                      </button>
+                      <div className="h-4 w-[1px] bg-white/10 mx-1"></div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleSaveSelection}
+                        onMouseDown={(e) => e.preventDefault()}
+                        className="h-7 text-[9px] px-2 text-textPrimary hover:bg-accent/20 border border-white/10 rounded-lg"
+                      >
+                        + Capture
+                      </Button>
+                      <button
+                        onClick={() => setShowNotesModal(true)}
+                        onMouseDown={(e) => e.preventDefault()}
+                        className="p-1 hover:bg-white/10 rounded text-[10px] w-6 h-6 flex items-center justify-center transition-all hover:scale-110 text-textSecondary hover:text-white"
+                        title="View All Notes"
+                      >
+                        <RotateCw className="w-3 h-3" />
+                      </button>
+                    </div>
 
-                        <div className="h-4 w-[1px] bg-white/10 mx-1"></div>
+                    {/* Smart Color Picker */}
+                    {showSmartColorPicker && (
+                      <div
+                        className="smart-color-picker absolute z-[100] bg-surface/95 backdrop-blur-xl border border-white/20 rounded-xl p-2 shadow-2xl min-w-[140px] animate-in zoom-in slide-in-from-left-1 duration-200"
+                        style={smartPickerPosition}
+                      >
+                        <div className="grid grid-cols-3 gap-1.5 mb-2">
+                          {smartHighlightColors.map((color) => (
+                            <button
+                              key={color.value}
+                              onClick={() => applySmartColor(color.value)}
+                              onMouseDown={(e) => e.preventDefault()}
+                              className="w-8 h-8 rounded-lg border border-white/10 hover:scale-110 active:scale-95 transition-all shadow-sm flex items-center justify-center group"
+                              style={{ backgroundColor: color.value }}
+                              title={color.name}
+                            >
+                              <div className="w-1.5 h-1.5 rounded-full bg-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </button>
+                          ))}
+                        </div>
                         <button
-                          onClick={handleInsertSmartImage}
+                          onClick={() => applySmartColor('transparent')}
                           onMouseDown={(e) => e.preventDefault()}
-                          className="p-1 hover:bg-white/10 rounded text-[10px] w-6 h-6 flex items-center justify-center transition-all hover:scale-110 text-textSecondary hover:text-white"
-                          title="Upload Image"
+                          className="w-full py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-textSecondary hover:text-white transition-all text-[9px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 border border-white/5"
                         >
-                          <ImageIcon className="w-3 h-3" />
+                          <X className="w-3 h-3" /> Clear
                         </button>
-                        <div className="h-4 w-[1px] bg-white/10 mx-1"></div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={handleSaveSelection}
-                          onMouseDown={(e) => e.preventDefault()}
-                          className="h-7 text-[9px] px-2 text-textPrimary hover:bg-accent/20 border border-white/10 rounded-lg"
-                        >
-                          + Capture
-                        </Button>
-                        <button
-                          onClick={() => setShowNotesModal(true)}
-                          onMouseDown={(e) => e.preventDefault()}
-                          className="p-1 hover:bg-white/10 rounded text-[10px] w-6 h-6 flex items-center justify-center transition-all hover:scale-110 text-textSecondary hover:text-white"
-                          title="View All Notes"
-                        >
-                          <RotateCw className="w-3 h-3" />
-                        </button>
+                        {/* Arrow pointing left, aligned with the bottom corner */}
+                        <div className={`absolute bottom-2 ${arrowDirection === 'left' ? '-left-1' : '-right-1'} w-2 h-2 bg-surface border-l border-b border-white/20 ${arrowDirection === 'left' ? 'rotate-45' : '-rotate-45'}`} />
                       </div>
+                    )}
 
-                      {/* Smart Color Picker */}
-                      {showSmartColorPicker && (
-                        <div
-                          className="smart-color-picker absolute z-[100] bg-surface/95 backdrop-blur-xl border border-white/20 rounded-xl p-2 shadow-2xl min-w-[140px] animate-in zoom-in slide-in-from-left-1 duration-200"
-                          style={smartPickerPosition}
-                        >
-                          <div className="grid grid-cols-3 gap-1.5 mb-2">
-                            {smartHighlightColors.map((color) => (
-                              <button
-                                key={color.value}
-                                onClick={() => applySmartColor(color.value)}
-                                onMouseDown={(e) => e.preventDefault()}
-                                className="w-8 h-8 rounded-lg border border-white/10 hover:scale-110 active:scale-95 transition-all shadow-sm flex items-center justify-center group"
-                                style={{ backgroundColor: color.value }}
-                                title={color.name}
-                              >
-                                <div className="w-1.5 h-1.5 rounded-full bg-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                              </button>
-                            ))}
-                          </div>
-                          <button
-                            onClick={() => applySmartColor('transparent')}
-                            onMouseDown={(e) => e.preventDefault()}
-                            className="w-full py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-textSecondary hover:text-white transition-all text-[9px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 border border-white/5"
-                          >
-                            <X className="w-3 h-3" /> Clear
-                          </button>
-                          {/* Arrow pointing left, aligned with the bottom corner */}
-                          <div className={`absolute bottom-2 ${arrowDirection === 'left' ? '-left-1' : '-right-1'} w-2 h-2 bg-surface border-l border-b border-white/20 ${arrowDirection === 'left' ? 'rotate-45' : '-rotate-45'}`} />
+                    {/* Highlight Color Picker in Sidebar */}
+                    {showColorPicker && (
+                      <div className="bg-surface/50 backdrop-blur-md p-3 rounded-lg border border-white/10">
+                        <h5 className="text-xs font-bold text-textSecondary uppercase mb-2">Highlight Colors</h5>
+                        <div className="grid grid-cols-3 gap-1">
+                          {highlightColors.map((color) => (
+                            <button
+                              key={color.value}
+                              onClick={() => applyHighlight(color.value)}
+                              className="w-8 h-8 rounded border border-white/20 hover:scale-110 transition-transform"
+                              style={{ backgroundColor: color.value }}
+                              title={color.name}
+                            />
+                          ))}
                         </div>
-                      )}
 
-                      {/* Highlight Color Picker in Sidebar */}
-                      {showColorPicker && (
-                        <div className="bg-surface/50 backdrop-blur-md p-3 rounded-lg border border-white/10">
-                          <h5 className="text-xs font-bold text-textSecondary uppercase mb-2">Highlight Colors</h5>
-                          <div className="grid grid-cols-3 gap-1">
-                            {highlightColors.map((color) => (
-                              <button
-                                key={color.value}
-                                onClick={() => applyHighlight(color.value)}
-                                className="w-8 h-8 rounded border border-white/20 hover:scale-110 transition-transform"
-                                style={{ backgroundColor: color.value }}
-                                title={color.name}
-                              />
-                            ))}
-                          </div>
-
-                          {highlights.length > 0 && (
-                            <div className="mt-4 pt-4 border-t border-white/10">
-                              <h6 className="text-[10px] font-bold text-textSecondary uppercase mb-2">Active Highlights</h6>
-                              <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
-                                {highlights.map(h => (
-                                  <div key={h.id} className="flex items-center justify-between gap-2 p-1.5 bg-black/20 rounded border border-white/5 group">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: h.color }}></div>
-                                      <span className="text-[10px] text-textSecondary truncate">{h.text}</span>
-                                    </div>
-                                    <button
-                                      onClick={() => removeHighlight(h.id)}
-                                      className="text-textSecondary hover:text-red-400 transition-opacity"
-                                    >
-                                      <X className="w-3 h-3" />
-                                    </button>
+                        {highlights.length > 0 && (
+                          <div className="mt-4 pt-4 border-t border-white/10">
+                            <h6 className="text-[10px] font-bold text-textSecondary uppercase mb-2">Active Highlights</h6>
+                            <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                              {highlights.map(h => (
+                                <div key={h.id} className="flex items-center justify-between gap-2 p-1.5 bg-black/20 rounded border border-white/5 group">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: h.color }}></div>
+                                    <span className="text-[10px] text-textSecondary truncate">{h.text}</span>
                                   </div>
-                                ))}
-                              </div>
+                                  <button
+                                    onClick={() => removeHighlight(h.id)}
+                                    className="text-textSecondary hover:text-red-400 transition-opacity"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ))}
                             </div>
-                          )}
-
-                          <button
-                            onClick={() => setShowColorPicker(false)}
-                            className="mt-2 w-full text-xs text-textSecondary hover:text-white transition-colors"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      )}
-
-                      <h4 className="sr-only">My Notes</h4>
-                      <div className="relative flex-1 min-h-[160px]">
-                        <div
-                          className="w-full h-full bg-black/20 rounded-b border border-white/10 p-2 text-sm text-white overflow-y-auto focus:outline-none focus:ring-1 focus:ring-accent [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-2 [&_img]:border [&_img]:border-white/10 [&_img]:cursor-pointer [&_img:hover]:ring-1 [&_img:hover]:ring-accent"
-                          contentEditable
-                          suppressContentEditableWarning
-                          onClick={handleSmartEditorClick}
-                          id="module-notes-editor"
-                        ></div>
-
-                        {selectedSmartImg && (
-                          <div
-                            className="absolute z-40 bg-red-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-xl cursor-pointer hover:bg-red-600 transition-all flex items-center gap-1.5 animate-in fade-in slide-in-from-bottom-1"
-                            style={{
-                              left: `${selectedSmartImg.offsetLeft + selectedSmartImg.offsetWidth / 2}px`,
-                              top: `${selectedSmartImg.offsetTop + 10}px`,
-                              transform: 'translateX(-50%)'
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteSmartImage();
-                            }}
-                          >
-                            <X className="w-2.5 h-2.5" /> Remove
                           </div>
                         )}
+
+                        <button
+                          onClick={() => setShowColorPicker(false)}
+                          className="mt-2 w-full text-xs text-textSecondary hover:text-white transition-colors"
+                        >
+                          Cancel
+                        </button>
                       </div>
+                    )}
 
-                      <Button size="sm" onClick={handleSaveNotes} className="w-full">
-                        <Save className="w-4 h-4 mr-2" /> Save Notes
-                      </Button>
+                    <h4 className="sr-only">My Notes</h4>
+                    <div className="relative flex-1 min-h-[160px]">
+                      <div
+                        className="w-full h-full bg-black/20 rounded-b border border-white/10 p-2 text-sm text-white overflow-y-auto focus:outline-none focus:ring-1 focus:ring-accent [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-2 [&_img]:border [&_img]:border-white/10 [&_img]:cursor-pointer [&_img:hover]:ring-1 [&_img:hover]:ring-accent"
+                        contentEditable
+                        suppressContentEditableWarning
+                        onClick={handleSmartEditorClick}
+                        id="module-notes-editor"
+                      ></div>
+
+                      {selectedSmartImg && (
+                        <div
+                          className="absolute z-40 bg-red-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-xl cursor-pointer hover:bg-red-600 transition-all flex items-center gap-1.5 animate-in fade-in slide-in-from-bottom-1"
+                          style={{
+                            left: `${selectedSmartImg.offsetLeft + selectedSmartImg.offsetWidth / 2}px`,
+                            top: `${selectedSmartImg.offsetTop + 10}px`,
+                            transform: 'translateX(-50%)'
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSmartImage();
+                          }}
+                        >
+                          <X className="w-2.5 h-2.5" /> Remove
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {/* Controls for other tabs omitted for brevity */}
-                </div>
-              )}
 
-              {/* {!notesOpen} block removed as per request to remove duplicate icons - the header icon is sufficient */}
+                    <Button size="sm" onClick={handleSaveNotes} className="w-full">
+                      <Save className="w-4 h-4 mr-2" /> Save Notes
+                    </Button>
+                  </div>
+                )}
+                {/* Controls for other tabs omitted for brevity */}
+              </div>
+            )}
 
-            </div>
-          )}
+            {/* {!notesOpen} block removed as per request to remove duplicate icons - the header icon is sufficient */}
+
+          </div>
+        )}
       </div>
 
 

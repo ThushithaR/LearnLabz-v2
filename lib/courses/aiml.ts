@@ -1,4 +1,6 @@
 import { heuristicsContent } from "@/lib/content/aiml/unit2/InformedSearch/heuristics";
+import { hillClimbingContent } from "@/lib/content/aiml/unit2/InformedSearch/HillClimbing";
+import { alphabetaContent } from "@/lib/content/aiml/unit3/AdversarialSearch/AlphaBeta";
 import { astarLessonContent } from "@/lib/content/aiml/unit2/InformedSearch/Astar";
 import { aimlQuizzes } from "../quizzes/aiml/quizzes";
 
@@ -53,6 +55,7 @@ export const aiml = {
       lessons: [
         { id: "2.1", title: "Heuristic Functions", duration: "20 min", content: heuristicsContent },
         { id: "2.2", title: "A* Search Algorithm", duration: "35 min", isInteractive: true, content: astarLessonContent },
+        { id: "2.3", title: "Hill Climbing Search", duration: "25 min", isInteractive: true, content: hillClimbingContent },
       ],
     },
     {
@@ -64,6 +67,7 @@ export const aiml = {
       lessons: [
         { id: "3.1", title: "Game Theory Basics", duration: "25 min" },
         { id: "3.2", title: "Minimax Algorithm", duration: "30 min" },
+        { id: "3.3", title: "Alpha-Beta Pruning", duration: "35 min", isInteractive: true, content: alphabetaContent },
       ],
     },
     {
