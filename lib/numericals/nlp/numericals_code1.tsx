@@ -3,11 +3,11 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Calculator, X, CheckCircle, XCircle, ChevronDown, ChevronRight, Sun, Star, AlertCircle } from "lucide-react";
+import { Calculator, X, CheckCircle, XCircle, ChevronDown, ChevronRight, Sun, Star, AlertCircle, Code, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
 
-export default function CodingChallengePage({ params }: { params: { id: string, course: string } }) {
+export default function CodingChallengePageOne({ params }: { params: { id: string, course: string } }) {
   const [solution, setSolution] = useState<string>("");
   const [showCalculator, setShowCalculator] = useState(false);
   const [calcDisplay, setCalcDisplay] = useState("0");
@@ -20,12 +20,21 @@ export default function CodingChallengePage({ params }: { params: { id: string, 
   const [isStarred, setIsStarred] = useState(false);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
 
+  // New state for Try It Yourself feature
+  const [showTryItYourself, setShowTryItYourself] = useState(false);
+  const [userTypedCode, setUserTypedCode] = useState<string[]>([""]);
+  const [currentTypingLine, setCurrentTypingLine] = useState(0);
+  const [typingFeedback, setTypingFeedback] = useState<{line: number, correct: boolean, message: string}[]>([]);
+  const [typingComplete, setTypingComplete] = useState(false);
+
   // Coding challenge state
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [codeVariables, setCodeVariables] = useState<{[key: string]: any}>({});
-
+  // Add this new state at the top with other states
+const [correctAttempts, setCorrectAttempts] = useState(0);
+const [totalAttempts, setTotalAttempts] = useState(0);
   // Define the complete correct answer
   const correctAnswer = `from nltk.corpus import brown
 news_text = brown.words(categories='news')
@@ -33,6 +42,8 @@ fdist = nltk.FreqDist(w.lower() for w in news_text)
 modals = ['can', 'could', 'may', 'might', 'must', 'will']
 for m in modals:
     print(m + ':', fdist[m], end=' ')`;
+
+  const correctAnswerLines = correctAnswer.split('\n');
 
   // Define steps with options
   const steps = [
@@ -56,7 +67,7 @@ for m in modals:
     },
     {
       prompt: "Define the modal words list:",
-      options: ["modals = ['can', 'could', 'may', 'might', 'must', 'will']", "modals = ('can', 'could', 'may', 'might', 'must', 'will')", "modals = {'can', 'could', 'may', 'might', 'must', 'will'}", "modal_words = ['can', 'could', 'may', 'might', 'must', 'will']"],
+      options: ["modals = ['can', 'could', 'may', 'might', 'must', 'will']", "modals = ('can', 'could', 'may', 'might', 'must', 'will')", "modals = {'can', 'could', 'may', 'might', 'must', 'will'}"],
       correct: "modals = ['can', 'could', 'may', 'might', 'must', 'will']",
       variables: { modals: "['can', 'could', 'may', 'might', 'must', 'will']" }
     },
@@ -68,11 +79,22 @@ for m in modals:
     },
     {
       prompt: "Print the frequency with formatting:",
-      options: ["    print(m + ':', fdist[m], end=' ')", "    print(m, fdist[m])", "    print(f'{m}: {fdist[m]}')", "    print(m + ':', fdist.get(m))"],
-      correct: "    print(m + ':', fdist[m], end=' ')",
+      options: ["print(m + ':', fdist[m], end=' ')", "print(m, fdist[m])", "print(f'{m}: {fdist[m]}')", "    print(m + ':', fdist.get(m))"],
+      correct: "print(m + ':', fdist[m], end=' ')",
       variables: {}
     }
   ];
+  useEffect(() => {
+  if (showTryItYourself) {
+    // Small delay to ensure modal is rendered
+    setTimeout(() => {
+      const activeInput = document.querySelector('input:not([disabled])');
+      if (activeInput) {
+        (activeInput as HTMLInputElement).focus();
+      }
+    }, 100);
+  }
+}, [showTryItYourself, currentTypingLine]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -173,12 +195,96 @@ for m in modals:
   };
 
   const handleSubmit = () => {
-    setIsTimerRunning(false);
+  setIsTimerRunning(false);
+  
+  // Show alert with Try it yourself option
+  const userWantsToTry = window.confirm(
+    "Great job completing the challenge!\n\nWould you like to try typing the code yourself line by line?\n\nClick OK for 'Try it yourself' or Cancel to see results."
+  );
+  
+  if (userWantsToTry) {
+    setShowTryItYourself(true);
+    setUserTypedCode([""]);
+    setCurrentTypingLine(0);
+    setTypingFeedback([]);
+    setTypingComplete(false);
+  } else {
     setShowResults(true);
-  };
+  }
+};
+
+  // New functions for Try It Yourself feature
+  const handleTryItYourself = () => {
+  setShowTryItYourself(true);
+  setUserTypedCode([""]);
+  setCurrentTypingLine(0);
+  setTypingFeedback([]);
+  setTypingComplete(false);
+  setCorrectAttempts(0);  // Add this
+  setTotalAttempts(0);    // Add this
+};
+
+  const handleCodeLineChange = (value: string, lineIndex: number) => {
+  const newCode = [...userTypedCode];
+  newCode[lineIndex] = value;
+  setUserTypedCode(newCode);
+};
+
+const handleVerifyLine = () => {
+  const correctAnswerLines = correctAnswer.split('\n');
+  const userLine = userTypedCode[currentTypingLine].trim();
+  const correctLine = correctAnswerLines[currentTypingLine].trim();
+  
+  setTotalAttempts(prev => prev + 1);
+  
+  if (userLine === correctLine) {
+    setCorrectAttempts(prev => prev + 1);
+    setTypingFeedback([
+      {
+        line: currentTypingLine + 1,
+        correct: true,
+        message: "✓ Line is correct!"
+      }
+    ]);
+    
+    if (currentTypingLine < correctAnswerLines.length - 1) {
+      setUserTypedCode([...userTypedCode, ""]);
+      setCurrentTypingLine(currentTypingLine + 1);
+    } else {
+      setTypingComplete(true);
+      setTypingFeedback([
+        {
+          line: currentTypingLine + 1,
+          correct: true,
+          message: "✓ All lines completed! Code is perfect!"
+        }
+      ]);
+    }
+  } else {
+    setTypingFeedback([
+      {
+        line: currentTypingLine + 1,
+        correct: false,
+        message: `✗ Incorrect. Expected: ${correctLine}`
+      }
+    ]);
+  }
+};
+
+const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  if (e.key === 'Enter' && e.ctrlKey) {
+    e.preventDefault();
+    handleVerifyLine();
+  }
+};
+
+const calculateTypingAccuracy = () => {
+  if (totalAttempts === 0) return 0;
+  return Math.round((correctAttempts / totalAttempts) * 100);
+};
 
   const matchPercentage = calculateMatchPercentage();
-  const isComplete = currentStep === steps.length;
+  const isComplete = selectedOptions.length === steps.length;
 
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-300 overflow-y-auto lg:overflow-hidden">
@@ -236,16 +342,15 @@ might: 38 must: 53 will: 389
               <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 mb-6">
                 <h3 className="text-xs font-bold text-accent mb-2">Progress:</h3>
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-black/20 rounded-full h-2 overflow-hidden">
+                    <div className="flex-1 bg-black/20 rounded-full h-2 overflow-hidden">
                     <div 
-                      className="bg-accent h-full transition-all duration-300"
-                      style={{ width: `${(currentStep / steps.length) * 100}%` }}
+                        className="bg-accent h-full transition-all duration-300"
+                        style={{ width: `${(selectedOptions.length / steps.length) * 100}%` }}
                     />
-                  </div>
-                  <span className="text-xs font-mono text-textPrimary">{currentStep}/{steps.length}</span>
+                    </div>
+                    <span className="text-xs font-mono text-textPrimary">{selectedOptions.length}/{steps.length}</span>
                 </div>
-              </div>
-
+                </div>
               {/* Collapsible Hint */}
               <div className="mt-auto">
                 <div
@@ -284,13 +389,21 @@ might: 38 must: 53 will: 389
                 >
                   {workspaceTheme === 'dark' ? 'Light' : 'Dark'}
                 </Button>
-                <Button size="sm" variant="secondary" onClick={() => {
-                  setSolution('');
-                  setSelectedOptions([]);
-                  setCurrentStep(0);
-                  setCodeVariables({});
-                }}>
-                  Reset
+                <Button 
+                size="sm" 
+                variant="secondary" 
+                onClick={() => {
+                    setSolution('');
+                    setSelectedOptions([]);
+                    setCurrentStep(0);
+                    setCodeVariables({});
+                    setErrorMessage('');
+                    setTimer(0);
+                    setIsTimerRunning(true);
+                }}
+                className={workspaceTheme === 'dark' ? "" : "bg-gray-200 hover:bg-gray-300 text-gray-900"}
+                >
+                Reset
                 </Button>
               </div>
 
@@ -326,26 +439,33 @@ might: 38 must: 53 will: 389
               )}
 
               <div className="flex-1 p-6 md:p-8 font-mono text-sm leading-7 overflow-y-auto">
-                {solution.split('\n').map((line, i) => (
-                  <div key={i} className="flex gap-4 text-white">
-                    <span className="w-6 text-textSecondary/30 text-right">{i + 1}</span>
-                    <span>{line || ' '}</span>
-                  </div>
-                ))}
-                {!isComplete && (
-                  <div className="flex gap-4 mt-2">
-                    <span className="w-6 text-accent/50 text-right">{selectedOptions.length + 1}</span>
-                    <span className="text-accent/50 animate-pulse">▊</span>
-                  </div>
+                {solution ? (
+                    solution.split('\n').map((line, i) => (
+                    <div key={i} className="flex gap-4 text-white">
+                        <span className="w-6 text-textSecondary/30 text-right">{i + 1}</span>
+                        <span>{line || ' '}</span>
+                    </div>
+                    ))
+                ) : (
+                    <div className="flex gap-4 text-white">
+                    <span className="w-6 text-textSecondary/30 text-right">1</span>
+                    <span className="text-textSecondary/50">// Select options to build your code...</span>
+                    </div>
                 )}
-              </div>
+                {!isComplete && (
+                    <div className="flex gap-4 mt-2">
+                    <span className="w-6 text-accent/50 text-right">{solution ? solution.split('\n').length + 1 : 1}</span>
+                    <span className="text-accent/50 animate-pulse">▊</span>
+                    </div>
+                )}
+                </div>
             </div>
 
             {/* Column 3: Step Selection */}
             <div className="w-full lg:col-span-3 bg-surface/30 border-t lg:border-t-0 lg:border-l border-white/5 p-6 flex flex-col shrink-0 overflow-y-auto">
               <h3 className="font-bold text-sm mb-4 uppercase text-textSecondary tracking-widest">
-                {isComplete ? "Challenge Complete!" : `Step ${currentStep + 1}`}
-              </h3>
+                {isComplete ? "Challenge Complete!" : `Step ${selectedOptions.length + 1}`}
+                </h3>
 
               {errorMessage && (
                 <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-2 animate-in slide-in-from-top-2">
@@ -407,9 +527,10 @@ might: 38 must: 53 will: 389
                 size="lg" 
                 className="w-full gap-2 font-bold py-6 text-base shadow-lg shadow-accent/20 mt-4" 
                 onClick={handleSubmit}
-              >
+                disabled={!isComplete}
+                >
                 Submit Solution
-              </Button>
+                </Button>
             </div>
           </div>
         ) : (
@@ -436,51 +557,15 @@ might: 38 must: 53 will: 389
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
-              <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
+            <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5">
                 <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Time Taken</div>
                 <div className="text-2xl font-bold text-white">{formatTime(timer)}</div>
-              </Card>
-              <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5">
-                <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Code Match</div>
-                <div className="text-2xl font-bold text-white">{matchPercentage}%</div>
-              </Card>
-              <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5">
+            </Card>
+            <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5">
                 <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Experience</div>
                 <div className="text-2xl font-bold text-accent">+{matchPercentage * 5} XP</div>
-              </Card>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between px-2">
-                  <h3 className="text-sm font-bold text-textSecondary uppercase tracking-widest">Your Code</h3>
-                  <Badge variant="secondary">Submitted</Badge>
-                </div>
-                <div className="bg-surface/30 rounded-2xl border border-white/5 p-6 h-[400px] overflow-y-auto font-mono text-sm leading-relaxed text-textSecondary">
-                  {solution.split('\n').map((line, i) => (
-                    <div key={i} className="flex gap-4">
-                      <span className="w-4 text-textSecondary/30 text-[10px] pt-1">{i + 1}</span>
-                      <span>{line || ' '}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between px-2">
-                  <h3 className="text-sm font-bold text-accent uppercase tracking-widest">Correct Solution</h3>
-                  <Badge variant="outline" className="border-accent/30 text-accent">Reference</Badge>
-                </div>
-                <div className="bg-accent/5 rounded-2xl border border-accent/10 p-6 h-[400px] overflow-y-auto font-mono text-sm leading-relaxed text-textPrimary">
-                  {correctAnswer.split('\n').map((line, i) => (
-                    <div key={i} className="flex gap-4">
-                      <span className="w-4 text-accent/30 text-[10px] pt-1">{i + 1}</span>
-                      <span>{line || ' '}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            </Card>
             </div>
 
             <div className="flex gap-4 justify-center">
@@ -494,6 +579,203 @@ might: 38 must: 53 will: 389
           </div>
         )}
       </div>
+
+      {/* Try It Yourself Modal */}
+      {showTryItYourself && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <Card className="w-full max-w-4xl bg-surface border border-white/10 shadow-2xl animate-in zoom-in-95 duration-300 h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-white/5">
+              <div>
+                <h2 className="text-xl font-bold text-white">Try It Yourself</h2>
+                <p className="text-sm text-textSecondary">Type the code line by line. Press Ctrl+Enter or click Verify Line to check each line.</p>
+              </div>
+              <button
+                onClick={() => setShowTryItYourself(false)}
+                className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+              >
+                <X className="w-5 h-5 text-textSecondary" />
+              </button>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="px-6 pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-accent">Progress: Line {currentTypingLine + 1} of {correctAnswerLines.length}</span>
+                <span className="text-xs font-mono text-textPrimary">
+                  Accuracy: {calculateTypingAccuracy()}%
+                </span>
+              </div>
+              <div className="flex-1 bg-black/20 rounded-full h-2 overflow-hidden">
+                <div 
+                  className="bg-accent h-full transition-all duration-300"
+                  style={{ width: `${((currentTypingLine) / correctAnswerLines.length) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Main Content */}
+            {/* Main Content */}
+            <div className="flex-1 overflow-y-auto p-6 min-h-0">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-4">
+                {/* Left: Code Editor */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-textSecondary uppercase tracking-widest">Type Here</h3>
+                    <div className="text-xs text-textSecondary">
+                      Line {currentTypingLine + 1}
+                    </div>
+                  </div>
+                  <div className="bg-black/40 rounded-xl border border-white/10 p-4 max-h-[300px] overflow-y-auto font-mono">
+                    {userTypedCode.map((line, index) => (
+                      <div key={index} className="flex items-start gap-3 mb-2">
+                        <span className={`w-6 text-right text-sm pt-1 ${
+                          index === currentTypingLine ? 'text-accent' : 'text-textSecondary/50'
+                        }`}>
+                          {index + 1}
+                        </span>
+                        <input
+                          type="text"
+                          value={line}
+                          onChange={(e) => handleCodeLineChange(e.target.value, index)}
+                          onKeyDown={handleKeyDown}
+                          className={`flex-1 bg-transparent outline-none text-sm font-mono py-1 px-2 rounded ${
+                            index === currentTypingLine 
+                              ? 'border border-accent/30 bg-accent/5' 
+                              : 'border-transparent'
+                          } ${typingFeedback.find(f => f.line === index + 1)?.correct ? 'text-green-400' : 'text-white'}`}
+                          disabled={index !== currentTypingLine || typingComplete}
+                          ref={index === currentTypingLine ? (el) => { if (el) el.focus(); } : undefined}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={handleVerifyLine}
+                      disabled={typingComplete}
+                      className="flex-1 gap-2"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Verify Line {currentTypingLine + 1} (Ctrl+Enter)
+                    </Button>
+                    <Button
+                    variant="outline"
+                    onClick={() => {
+                        setUserTypedCode([""]);
+                        setCurrentTypingLine(0);
+                        setTypingFeedback([]);
+                        setTypingComplete(false);
+                        setCorrectAttempts(0);
+                        setTotalAttempts(0);
+                    }}
+                    >
+                    Reset
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Right: Feedback & Instructions */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-accent uppercase tracking-widest">Feedback</h3>
+                    {typingComplete && (
+                      <Badge variant="outline" className="border-green-500/30 text-green-400">
+                        Complete!
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="bg-black/40 rounded-xl border border-white/10 p-4 max-h-[300px] overflow-y-auto">
+                    {typingFeedback.length === 0 ? (
+                      <div className="text-center text-textSecondary h-full flex items-center justify-center">
+                        <div>
+                          <Code className="w-12 h-12 mx-auto mb-3 text-textSecondary/50" />
+                          <p className="text-sm">Start typing the first line of code.</p>
+                          <p className="text-xs mt-1">Press Ctrl+Enter to verify each line.</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {typingFeedback.map((feedback, index) => (
+                          <div
+                            key={index}
+                            className={`p-3 rounded-lg border ${
+                              feedback.correct
+                                ? 'bg-green-500/10 border-green-500/20'
+                                : 'bg-red-500/10 border-red-500/20'
+                            }`}
+                          >
+                            <div className="flex items-start gap-2">
+                              {feedback.correct ? (
+                                <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                              ) : (
+                                <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+                              )}
+                              <div>
+                                <div className="text-sm font-medium text-white">
+                                  Line {feedback.line}: {feedback.correct ? 'Correct' : 'Needs Correction'}
+                                </div>
+                                <div className="text-xs text-textSecondary mt-1">
+                                  {feedback.message}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="bg-accent/5 rounded-xl border border-accent/10 p-4">
+                    <h4 className="text-xs font-bold text-accent mb-2">Instructions:</h4>
+                    <ul className="text-xs text-textSecondary space-y-1">
+                      <li>• Type each line exactly as shown in the correct solution</li>
+                      <li>• Press <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-xs">Ctrl + Enter</kbd> or click "Verify Line" to check</li>
+                      <li>• Correct lines will turn green and you'll move to the next line</li>
+                      <li>• Complete all {correctAnswerLines.length} lines to finish</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-white/5">
+              <div className="flex items-center justify-between">
+                <div>
+                  {typingComplete ? (
+                    <div className="flex items-center gap-2 text-green-400">
+                      <CheckCircle className="w-5 h-5" />
+                      <span className="text-sm font-medium">All lines completed successfully!</span>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-textSecondary">
+                      {typingFeedback.length > 0 ? `${typingFeedback.filter(f => f.correct).length} of ${correctAnswerLines.length} lines correct` : 'Start typing...'}
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowTryItYourself(false)}
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    onClick={() => {
+                        setShowTryItYourself(false);
+                        setShowResults(true);
+                    }}
+                    disabled={!typingComplete}
+                    className={typingComplete ? "bg-green-600 hover:bg-green-700" : ""}
+                  >
+                    View Full Results
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

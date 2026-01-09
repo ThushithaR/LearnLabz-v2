@@ -465,9 +465,9 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
                     "w-full bg-background relative flex flex-col min-h-[50vh] lg:min-h-full transition-all duration-300",
                     navigatorOpen ? "lg:col-span-9" : "lg:col-span-12"
                 )}>
-                    <div className="flex-1 p-6 md:p-10 flex flex-col justify-center">
+                    <div className="flex-1 p-6 md:p-10 overflow-y-auto">
                         {currentQ && (
-                            <div className="max-w-4xl mx-auto w-full">
+                            <div className="max-w-4xl mx-auto w-full py-6">
                                 <div className="flex items-start justify-between mb-6">
                                     <h2 className="text-2xl md:text-3xl font-bold text-textPrimary leading-relaxed flex-1">{currentQ.question}</h2>
                                     <button
