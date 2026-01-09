@@ -4,6 +4,7 @@ import { problemStatementContent } from "@/lib/content/nlp/unit1/problemStatemen
 import { nlpQuizzes } from "@/lib/quizzes/nlp/quizzes";
 import { AccessingTextCorpora } from "@/lib/content/nlp/unit2/AccessingTextCorpora";
 import {BrownCorpus} from "@/lib/content/nlp/unit2/BrownCorpus";
+import { lessonQuizzesData } from "@/lib/quizzes/nlp/lessonQuizzes";
 
 
 export const nlp = {
@@ -44,7 +45,7 @@ export const nlp = {
             active: true,
             lessons: [
                 {
-                    id: 1,
+                    id: "1.1",
                     title: "What is NLP?",
                     duration: "10 min",
                     content: {
@@ -66,10 +67,11 @@ export const nlp = {
                                 content: 'Common NLP applications include machine translation, sentiment analysis, chatbots, speech recognition, and text summarization.'
                             }
                         ]
-                    }
+                    },
+                    quiz: lessonQuizzesData["1.1"]
                 },
                 {
-                    id: 2,
+                    id: "1.2",
                     title: "History of NLP",
                     duration: "15 min",
                     content: {
@@ -94,13 +96,13 @@ export const nlp = {
                     }
                 },
                 {
-                    id: 3,
+                    id: "1.3",
                     title: "Data Acquisition Strategies",
                     duration: "25 min",
                     content: dataAcquisitionContent
                 },
                 {
-                    id: 4,
+                    id: "1.4",
                     title: "Real-world Problem Statement",
                     duration: "20 min",
                     content: {
@@ -128,8 +130,20 @@ export const nlp = {
             progress: 0,
             isLocked: false,
             lessons: [
-                { id: 1, title: "Accessing Text Corpora", duration: "20 min", content: AccessingTextCorpora },
-                { id: 2, title: "Brown Corpus", duration: "10 min", content: BrownCorpus },
+                { 
+                    id: "2.1", 
+                    title: "Accessing Text Corpora", 
+                    duration: "20 min", 
+                    content: AccessingTextCorpora,
+                    quiz: lessonQuizzesData["2.1"]
+                },
+                { 
+                    id: "2.2", 
+                    title: "Brown Corpus", 
+                    duration: "10 min", 
+                    content: BrownCorpus,
+                    quiz: lessonQuizzesData["2.2"]
+                },
             ]
         },
         {

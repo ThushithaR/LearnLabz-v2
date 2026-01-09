@@ -1,4 +1,6 @@
 import { LessonSection } from "@/lib/types/course";
+import Link from "next/link";
+import { Button } from "@/components/ui/Button";
 
 export const AccessingTextCorpora = {
   quoteOfTheDay: "Data! Data! Data! I can't make bricks without clay.",
@@ -733,12 +735,11 @@ export const AccessingTextCorpora = {
       'Demonstrates how to access raw sentence structures from a text corpus, inspect individual sentences, and analyze sentence length to identify the longest sentence in a literary work.'
   }
 },
-{
-    type:'text' as const,
-    title:'',
-    content: `By working with sentences instead of just words, we can learn more about how an author writes. For example, finding the longest sentence in a text can show how complex the writing style is. This helps us move from simple counts to understanding structure in language.`
-}
-
+  {
+                type:'text' as const,
+                title:'',
+                content: `By working with sentences instead of just words, we can learn more about how an author writes. For example, finding the longest sentence in a text can show how complex the writing style is. This helps us move from simple counts to understanding structure in language.`
+            }
 
 
   ]

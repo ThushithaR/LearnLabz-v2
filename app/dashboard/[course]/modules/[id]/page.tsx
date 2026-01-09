@@ -12,6 +12,8 @@ import { useCourse } from "@/lib/context/CourseContext";
 import { ProblemStatement } from "@/lib/content/nlp/unit1/problemStatement";
 import InteractiveCodeWalkthrough from "@/lib/content/nlp/unit2/InteractiveCodeWalkthrough";
 import {ChevronLeft,ChevronRight,Clock,BookOpen,CheckCircle2,Save,FileText,ArrowLeft,X,PauseCircle,PlayCircle,Image as ImageIcon,Star,RotateCw} from "lucide-react";
+import { GutenbergExplorerProvider } from "@/lib/context/GutenbergExplorerContext";
+import { GutenbergExplorerPanel, ExplorerButton } from "@/components/GutenbergExplorer";
 import { ModuleProgress } from "@/lib/types/progress";
 import { getLessonProgress, getLessonProgressByUnit, upsertLessonProgress, updateUnitProgress } from "@/lib/supabase/progress";
 import { supabase } from "@/lib/supabase/client";
@@ -53,6 +55,11 @@ export default function LessonPage({ params }: { params: { course: string; id: s
   const [quizTimeTaken, setQuizTimeTaken] = useState(0);
   const [quizLocked, setQuizLocked] = useState(false); // Prevent switching back to reading
 
+  // Add to your existing state declarations
+  const [isModuleQuiz, setIsModuleQuiz] = useState(false); // Track if we're showing module quiz
+  const [lessonQuizScores, setLessonQuizScores] = useState<number[]>([]);
+  const [lessonQuizCompleted, setLessonQuizCompleted] = useState<boolean[]>([]);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const [highlights, setHighlights] = useState<any[]>([]);
   const [showColorPicker, setShowColorPicker] = useState(false);
@@ -69,6 +76,28 @@ export default function LessonPage({ params }: { params: { course: string; id: s
   // Lesson time tracking - per lesson
   const [lessonTime, setLessonTime] = useState(0);
   const [lessonTimeMap, setLessonTimeMap] = useState<Record<string, number>>({}); // Track time for each lesson
+
+  // Initialize these states
+    useEffect(() => {
+      if (moduleData) {
+        setLessonQuizScores(new Array(moduleData.lessons.length).fill(0));
+        setLessonQuizCompleted(new Array(moduleData.lessons.length).fill(false));
+      }
+    }, [moduleData]);
+
+  useEffect(() => {
+    // Reset quiz state when lesson changes
+    if (activeTab === 'quiz') {
+      // Only reset if we're not in the middle of a quiz
+      if (!quizStarted || showQuizResults) {
+        setQuizStarted(false);
+        setShowQuizResults(false);
+        setCurrentQuizQuestion(0);
+        setQuizAnswers([]);
+        setQuizLocked(false);
+      }
+    }
+  }, [selectedLessonIdx, activeTab]);
   
   // Reset lesson time when switching lessons
   useEffect(() => {
@@ -168,6 +197,15 @@ export default function LessonPage({ params }: { params: { course: string; id: s
     window.scrollTo(0, 0);
   }, [selectedLessonIdx]);
 
+  // Reset quiz state when lesson changes
+  useEffect(() => {
+    setQuizStarted(false);
+    setShowQuizResults(false);
+    setCurrentQuizQuestion(0);
+    setQuizAnswers([]);
+    setQuizLocked(false);
+  }, [selectedLessonIdx]);
+
   // Load starred questions from localStorage
   useEffect(() => {
     const storageKey = `starred_questions_${course}_${id}`;
@@ -206,7 +244,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
   };
 
   const handleQuizNext = () => {
-    if (currentQuizQuestion < 2) {
+    if (lessonData.quiz && currentQuizQuestion < lessonData.quiz.length - 1) {
       setCurrentQuizQuestion(currentQuizQuestion + 1);
     } else {
       setShowQuizResults(true);
@@ -236,12 +274,14 @@ export default function LessonPage({ params }: { params: { course: string; id: s
   };
 
   const calculateQuizScore = () => {
-    // Mock calculation - in real implementation, check against correct answers
+    if (!lessonData.quiz || lessonData.quiz.length === 0) return 0;
     let correct = 0;
     quizAnswers.forEach((answer, index) => {
-      if (answer === 0) correct++; // Mock: first option is correct
+      if (index < lessonData.quiz!.length && answer === lessonData.quiz![index].correctAnswer) {
+        correct++;
+      }
     });
-    return Math.round((correct / quizAnswers.length) * 100);
+    return Math.round((correct / lessonData.quiz.length) * 100);
   };
 
   if (!moduleData) return <div>Module not found</div>;
@@ -344,19 +384,52 @@ export default function LessonPage({ params }: { params: { course: string; id: s
     }
   };
 
-  const handleTabChange = (tab: 'reading' | 'interactive' | 'quiz') => {
-    if (tab === 'quiz' && !readCompleted) {
-      alert("Please finish reading the lesson content first!");
+  const handleStartLessonQuiz = () => {
+    // Set lesson quiz as started
+    setQuizStarted(true);
+    setQuizLocked(true);
+    setIsModuleQuiz(false); // Important: track this is a LESSON quiz
+    
+    // Initialize answers for lesson quiz
+    if (lessonData.quiz) {
+      setQuizAnswers(new Array(lessonData.quiz.length).fill(-1));
+    }
+    setCurrentQuizQuestion(0);
+  };
+
+  const handleStartModuleQuiz = () => {
+    const allLessonsCompleted = completedLessons.every(c => c);
+    
+    if (!allLessonsCompleted) {
+      alert("Please complete all lessons before taking the module quiz!");
       return;
     }
+    
+    setQuizStarted(true);
+    setQuizLocked(true);
+    setIsModuleQuiz(true);
+    setQuizAnswers(new Array(3).fill(-1));
+    setCurrentQuizQuestion(0);
+  };
 
+  const handleTabChange = (tab: 'reading' | 'interactive' | 'quiz') => {
     if (quizLocked && tab !== 'quiz') {
       alert("Cannot switch tabs during quiz. Please complete or exit the quiz first.");
       return;
     }
 
-    if (tab === 'quiz' && !quizStarted) {
-      handleStartQuiz();
+    if (tab === 'quiz') {
+      // Check if this is the final lesson AND all lessons are completed
+      const isFinalLesson = selectedLessonIdx === moduleData.lessons.length - 1;
+      const allLessonsCompleted = completedLessons.every(c => c);
+      
+      if (isFinalLesson && allLessonsCompleted) {
+        // Show module quiz (requires completion)
+        handleStartModuleQuiz();
+      } else {
+        // Show lesson quiz immediately (no completion required)
+        handleStartLessonQuiz();
+      }
     }
 
     setActiveTab(tab);
@@ -393,6 +466,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
     };
   }, [hasStarted, userId, moduleData, lessonData, lessonTime, scrollProgress, readCompleted, course]);
 
+  // Additional UI state declarations
   const [colorPickerPosition, setColorPickerPosition] = useState({ x: 0, y: 0 });
 
   const highlightColors = [
@@ -826,7 +900,8 @@ const handleSaveSelection = () => {
   }
 
   return (
-    <div className={cn("flex flex-col animate-in fade-in duration-700", isFullscreen ? "h-screen fixed inset-0 z-50 bg-background" : "h-[calc(100vh-8rem)] -m-6")}>
+    <GutenbergExplorerProvider>
+      <div className={cn("flex flex-col animate-in fade-in duration-700", isFullscreen ? "h-screen fixed inset-0 z-50 bg-background" : "h-[calc(100vh-8rem)] -m-6")}>
       <div className="flex flex-1 overflow-hidden">
         {/* LEFT PANEL: Sidebar */}
         <div className={cn(
@@ -944,11 +1019,8 @@ const handleSaveSelection = () => {
                       onClick={() => handleTabChange(tab)}
                       className={cn(
                         "px-3 py-1 text-xs font-medium rounded-md capitalize transition-all",
-                        activeTab === tab ? "bg-accent text-background shadow-lg" : "text-textSecondary hover:text-textPrimary",
-                        tab === 'quiz' && !readCompleted && "opacity-50 cursor-not-allowed"
+                        activeTab === tab ? "bg-accent text-background shadow-lg" : "text-textSecondary hover:text-textPrimary"
                       )}
-                      disabled={tab === 'quiz' && !readCompleted}
-                      title={tab === 'quiz' && !readCompleted ? "Finish reading to unlock" : undefined}
                     >
                       {tab}
                     </button>
@@ -1073,27 +1145,35 @@ const handleSaveSelection = () => {
                   </>
                 )}
 
-                <div className="flex flex-col items-center pt-10 gap-4 border-t border-white/5 mt-10">
+              {/*navigation*/}
+              <div className="flex flex-col items-center pt-10 gap-4 border-t border-white/5 mt-10">
+                <div className="flex gap-4">
+                    {/* Explorer Button */}
+                    <ExplorerButton />
+                  <Button onClick={() => handleTabChange('quiz')}>
+                    Take Lesson Quiz
+                  </Button>
+                  
                   {selectedLessonIdx < moduleData.lessons.length - 1 ? (
-                    <Button onClick={handleNext} disabled={scrollProgress < 90 && !readCompleted} className={scrollProgress < 90 && !readCompleted ? "opacity-50" : ""}>
+                    <Button onClick={handleNext}>
                       Next Lesson →
                     </Button>
                   ) : (
-                    <>
-                      {!readCompleted ? (
-                        <Button onClick={() => setReadCompleted(true)} disabled={scrollProgress < 90} className={scrollProgress < 90 ? "opacity-50" : "bg-accent/20 text-accent hover:bg-accent hover:text-white"}>
-                          ✓ Mark as Complete
-                        </Button>
-                      ) : (
-                        <Button onClick={() => handleTabChange('quiz')} className="bg-accent/20 text-accent hover:bg-accent hover:text-white">
-                          Proceed to Quiz
-                        </Button>
-                      )}
-                    </>
+                    <Button 
+                      onClick={() => {
+                        // Mark final lesson as completed
+                        setCompletedLessons(prev => {
+                          const updated = [...prev];
+                          updated[selectedLessonIdx] = true;
+                          return updated;
+                        });
+                      }}
+                    >
+                      Complete Module
+                    </Button>
                   )}
-                  {scrollProgress < 90 && !readCompleted && <p className="text-xs text-textSecondary italic">Scroll to the bottom to proceed</p>}
-                  {readCompleted && <p className="text-xs text-green-400">✓ Reading completed! Quiz is now available.</p>}
                 </div>
+              </div>
               </div>
             )}
 
@@ -1117,210 +1197,463 @@ const handleSaveSelection = () => {
 
             {activeTab === 'quiz' && (
               <div className="h-full flex flex-col animate-fade-in">
-                {!quizStarted ? (
-                  <div className="flex-1 flex items-center justify-center p-6">
-                    <Card className="max-w-2xl w-full p-8 bg-surface/90 border border-white/10">
-                      <div className="text-center mb-8">
-                        <h1 className="text-3xl font-bold text-textPrimary mb-4">Lesson Quiz</h1>
-                        <div className="flex items-center justify-center gap-6 text-textSecondary">
-                          <Badge variant="warning">3 Questions</Badge>
+                {!isModuleQuiz ? (
+                  // LESSON QUIZ
+                  !quizStarted ? (
+                    <div className="flex-1 flex items-center justify-center p-6">
+                      <Card className="max-w-2xl w-full p-8 bg-surface/90 border border-white/10">
+                        <div className="text-center mb-8">
+                          <h1 className="text-3xl font-bold text-textPrimary mb-4">Lesson Quiz</h1>
+                          <p className="text-textSecondary mb-6">Test your knowledge on this lesson. You can take this quiz at any time.</p>
+                          <div className="flex gap-4 justify-center">
+                            <Button variant="outline" onClick={() => setActiveTab('reading')}>
+                              <ArrowLeft className="w-4 h-4 mr-2" />
+                              Back to Reading
+                            </Button>
+                            <Button onClick={handleStartLessonQuiz} className="px-8">
+                              Start Quiz
+                            </Button>
+                          </div>
                         </div>
-                      </div>
+                      </Card>
+                    </div>
+                  ) : showQuizResults ? (
+                    // LESSON QUIZ RESULTS
+                    <div className="flex-1 flex items-center justify-center p-6">
+                      <Card className="max-w-2xl w-full p-8 bg-surface/90 border border-white/10">
+                        <div className="text-center mb-8">
+                          <div className={`w-24 h-24 rounded-full mx-auto mb-4 flex items-center justify-center ${calculateQuizScore() >= 70 ? 'bg-green-500/20 text-green-400' : calculateQuizScore() >= 50 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
+                            {calculateQuizScore() >= 70 ? <CheckCircle2 className="w-12 h-12" /> : <X className="w-12 h-12" />}
+                          </div>
+                          <h1 className="text-3xl font-bold text-textPrimary mb-2">Quiz Complete!</h1>
+                          <div className="grid grid-cols-2 gap-4 mb-8">
+                            <Card className="p-4 bg-surface/40 backdrop-blur-md border border-white/5">
+                              <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Total Score</div>
+                              <div className="text-2xl font-bold text-white">{calculateQuizScore()}%</div>
+                            </Card>
+                            <Card className="p-4 bg-surface/40 backdrop-blur-md border border-white/5">
+                              <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Time Performance</div>
+                              <div className="text-2xl font-bold text-accent">{formatTime(quizTimeTaken)}</div>
+                            </Card>
+                          </div>
 
-                      <div className="bg-accent/5 p-6 rounded-lg border border-accent/10 mb-8">
-                        <h3 className="font-bold text-accent mb-2">Quiz Instructions</h3>
-                        <ul className="text-sm text-textSecondary space-y-1">
-                          <li>• Answer all questions based on the lesson content</li>
-                          <li>• You can navigate between questions</li>
-                        </ul>
-                      </div>
-
-                      <div className="flex gap-4 justify-center">
-                        <Button variant="outline" onClick={() => setActiveTab('reading')}>
-                          <ArrowLeft className="w-4 h-4 mr-2" />
-                          Back to Reading
-                        </Button>
-                        <Button onClick={handleStartQuiz} className="px-8">
-                          Start Quiz
-                        </Button>
-                      </div>
-                    </Card>
-                  </div>
-                ) : showQuizResults ? (
-                  <div className="flex-1 flex items-center justify-center p-6">
-                    <Card className="max-w-2xl w-full p-8 bg-surface/90 border border-white/10">
-                      <div className="text-center mb-8">
-                        <div className={`w-24 h-24 rounded-full mx-auto mb-4 flex items-center justify-center ${calculateQuizScore() >= 70 ? 'bg-green-500/20 text-green-400' : calculateQuizScore() >= 50 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
-                          {calculateQuizScore() >= 70 ? <CheckCircle2 className="w-12 h-12" /> : <X className="w-12 h-12" />}
-                        </div>
-                        <h1 className="text-3xl font-bold text-textPrimary mb-2">Quiz Complete!</h1>
-                        <div className="grid grid-cols-2 gap-4 mb-8">
-                          <Card className="p-4 bg-surface/40 backdrop-blur-md border border-white/5">
-                            <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Total Score</div>
-                            <div className="text-2xl font-bold text-white">{calculateQuizScore()}%</div>
-                          </Card>
-                          <Card className="p-4 bg-surface/40 backdrop-blur-md border border-white/5">
-                            <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Time Performance</div>
-                            <div className="text-2xl font-bold text-accent">{formatTime(quizTimeTaken)}</div>
-                          </Card>
+                          <div className="flex justify-center mb-8">
+                            <Badge variant={calculateQuizScore() >= 70 ? "success" : calculateQuizScore() >= 50 ? "warning" : "secondary"} className="text-lg px-6 py-2 rounded-full shadow-lg">
+                              {calculateQuizScore() >= 70 ? "Excellent Mastery!" : calculateQuizScore() >= 50 ? "Strong Performance!" : "Good Try, Keep Going!"}
+                            </Badge>
+                          </div>
                         </div>
 
-                        <div className="flex justify-center mb-8">
-                          <Badge variant={calculateQuizScore() >= 70 ? "success" : calculateQuizScore() >= 50 ? "warning" : "secondary"} className="text-lg px-6 py-2 rounded-full shadow-lg">
-                            {calculateQuizScore() >= 70 ? "Excellent Mastery!" : calculateQuizScore() >= 50 ? "Strong Performance!" : "Good Try, Keep Going!"}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4 mb-8">
-                        {[1, 2, 3].map((index) => (
-                          <div key={index} className="p-4 rounded-lg border border-white/5 bg-surface/20">
-                            <div className="flex items-start gap-3">
-                              {quizAnswers[index - 1] === 0 ? (
-                                <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-                              ) : (
-                                <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
-                              )}
-                              <div className="flex-1">
-                                <p className="font-medium text-textPrimary mb-2">Question {index} for {lessonData.title}</p>
-                                <p className="text-sm text-textSecondary">
-                                  Your answer: {["Option A", "Option B", "Option C", "Option D"][quizAnswers[index - 1]] || 'Not answered'}
-                                </p>
-                                {quizAnswers[index - 1] !== 0 && (
-                                  <p className="text-sm text-green-400 mt-1">
-                                    Correct: Option A
-                                  </p>
+                        <div className="space-y-4 mb-8">
+                          {lessonData.quiz && lessonData.quiz.map((question, index) => (
+                            <div key={question.id} className="p-4 rounded-lg border border-white/5 bg-surface/20">
+                              <div className="flex items-start gap-3">
+                                {quizAnswers[index] === question.correctAnswer ? (
+                                  <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
+                                ) : (
+                                  <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
                                 )}
+                                <div className="flex-1">
+                                  <p className="font-medium text-textPrimary mb-2">{question.question}</p>
+                                  <p className="text-sm text-textSecondary">
+                                    Your answer: {quizAnswers[index] !== -1 ? question.options[quizAnswers[index]] : 'Not answered'}
+                                  </p>
+                                  {quizAnswers[index] !== question.correctAnswer && (
+                                    <p className="text-sm text-green-400 mt-1">
+                                      Correct: {question.options[question.correctAnswer]}
+                                    </p>
+                                  )}
+                                  {question.explanation && (
+                                    <p className="text-sm text-textSecondary mt-2 italic border-l-2 border-accent/30 pl-3">
+                                      {question.explanation}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
 
-                      <div className="flex gap-4 justify-center">
-                        <Button variant="outline" onClick={handleQuizExit}>
-                          Back to Lesson
-                        </Button>
-                        <Button onClick={() => window.location.href = `/dashboard/${course}/modules`}>
-                          Next Module
-                        </Button>
-                      </div>
-                    </Card>
-                  </div>
-                ) : (
-                  <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 overflow-hidden">
-                    {/* Question Area */}
-                    <div className="w-full bg-background relative flex flex-col min-h-[50vh] lg:min-h-full lg:col-span-9">
-                      <div className="flex-1 p-6 md:p-10 flex flex-col justify-center">
-                        <div className="max-w-4xl mx-auto w-full">
-                          <div className="flex items-start justify-between mb-6">
-                            <h2 className="text-2xl md:text-3xl font-bold text-textPrimary leading-relaxed flex-1">
-                              Question {currentQuizQuestion + 1} for {lessonData.title}
-                            </h2>
-                            <button
-                              onClick={() => toggleStarQuestion(`${lessonData.id}-q${currentQuizQuestion + 1}`)}
-                              className="ml-4 p-2 rounded-lg border border-white/10 bg-surface/40 hover:border-accent/40 hover:bg-accent/10 transition-all group"
-                              title={starredQuestions.has(`${lessonData.id}-q${currentQuizQuestion + 1}`) ? "Remove from important" : "Mark as important"}
-                            >
-                              <Star className={`w-5 h-5 ${starredQuestions.has(`${lessonData.id}-q${currentQuizQuestion + 1}`) ? 'fill-accent text-accent' : 'text-textSecondary group-hover:text-accent'} transition-colors`} />
-                            </button>
-                          </div>
-                          <div className="space-y-4">
-                            {["Option A", "Option B", "Option C", "Option D"].map((option, index) => (
-                              <button
-                                key={option}
-                                onClick={() => handleQuizAnswer(index)}
-                                className={`w-full p-5 rounded-xl border text-left transition-all group ${quizAnswers[currentQuizQuestion] === index
-                                  ? 'border-accent bg-accent/10 text-accent shadow-[0_0_20px_-5px_rgba(var(--accent),0.3)]'
-                                  : 'border-white/10 bg-surface/40 hover:border-accent/40 hover:bg-surface/60 text-textPrimary'
-                                  }`}
-                              >
-                                <div className="flex items-center gap-4">
-                                  <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-colors ${quizAnswers[currentQuizQuestion] === index
-                                    ? 'border-accent bg-accent text-white'
-                                    : 'border-white/20 group-hover:border-accent'
-                                    }`}>
-                                    {quizAnswers[currentQuizQuestion] === index && (
-                                      <div className="w-2.5 h-2.5 rounded-full bg-white shadow-sm animate-in zoom-in duration-200"></div>
-                                    )}
-                                  </div>
-                                  <span className="text-lg">{option}</span>
+                        <div className="flex gap-4 justify-center">
+                          <Button variant="outline" onClick={() => {
+                            setQuizStarted(false);
+                            setShowQuizResults(false);
+                            setQuizLocked(false);
+                            setActiveTab('reading');
+                            
+                            // Save the quiz score for this lesson
+                            const score = calculateQuizScore();
+                            setLessonQuizScores(prev => {
+                              const newScores = [...prev];
+                              newScores[selectedLessonIdx] = score;
+                              return newScores;
+                            });
+                            
+                            setLessonQuizCompleted(prev => {
+                              const newCompleted = [...prev];
+                              newCompleted[selectedLessonIdx] = true;
+                              return newCompleted;
+                            });
+                          }}>
+                            Back to Lesson
+                          </Button>
+                          <Button onClick={() => {
+                            // If not final lesson, go to next lesson
+                            if (selectedLessonIdx < moduleData.lessons.length - 1) {
+                              setSelectedLessonIdx(selectedLessonIdx + 1);
+                              setActiveTab('reading');
+                              setQuizStarted(false);
+                              setShowQuizResults(false);
+                              setQuizLocked(false);
+                            } else {
+                              // If final lesson, mark as completed
+                              setCompletedLessons(prev => {
+                                const updated = [...prev];
+                                updated[selectedLessonIdx] = true;
+                                return updated;
+                              });
+                              setActiveTab('reading');
+                            }
+                          }}>
+                            {selectedLessonIdx < moduleData.lessons.length - 1 ? "Next Lesson" : "Complete Lesson"}
+                          </Button>
+                        </div>
+                      </Card>
+                    </div>
+                  ) : (
+                    // LESSON QUIZ IN PROGRESS
+                    <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 overflow-hidden">
+                      {/* Question Area */}
+                      <div className="w-full bg-background relative flex flex-col min-h-[50vh] lg:min-h-full lg:col-span-9">
+                        <div className="flex-1 p-6 md:p-10 flex flex-col justify-center">
+                          <div className="max-w-4xl mx-auto w-full">
+                            {lessonData.quiz && lessonData.quiz[currentQuizQuestion] ? (
+                              <>
+                                <div className="flex items-start justify-between mb-6">
+                                  <h2 className="text-2xl md:text-3xl font-bold text-textPrimary leading-relaxed flex-1">
+                                    {lessonData.quiz[currentQuizQuestion].question}
+                                  </h2>
+                                  <button
+                                    onClick={() => toggleStarQuestion(`${lessonData.id}-q${currentQuizQuestion + 1}`)}
+                                    className="ml-4 p-2 rounded-lg border border-white/10 bg-surface/40 hover:border-accent/40 hover:bg-accent/10 transition-all group"
+                                    title={starredQuestions.has(`${lessonData.id}-q${currentQuizQuestion + 1}`) ? "Remove from important" : "Mark as important"}
+                                  >
+                                    <Star className={`w-5 h-5 ${starredQuestions.has(`${lessonData.id}-q${currentQuizQuestion + 1}`) ? 'fill-accent text-accent' : 'text-textSecondary group-hover:text-accent'} transition-colors`} />
+                                  </button>
                                 </div>
-                              </button>
-                            ))}
+                                <div className="space-y-4">
+                                  {lessonData.quiz[currentQuizQuestion].options.map((option, index) => (
+                                    <button
+                                      key={index}
+                                      onClick={() => handleQuizAnswer(index)}
+                                      className={`w-full p-5 rounded-xl border text-left transition-all group ${quizAnswers[currentQuizQuestion] === index
+                                        ? 'border-accent bg-accent/10 text-accent shadow-[0_0_20px_-5px_rgba(var(--accent),0.3)]'
+                                        : 'border-white/10 bg-surface/40 hover:border-accent/40 hover:bg-surface/60 text-textPrimary'
+                                        }`}
+                                    >
+                                      <div className="flex items-center gap-4">
+                                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-colors ${quizAnswers[currentQuizQuestion] === index
+                                          ? 'border-accent bg-accent text-white'
+                                          : 'border-white/20 group-hover:border-accent'
+                                          }`}>
+                                          {quizAnswers[currentQuizQuestion] === index && (
+                                            <div className="w-2.5 h-2.5 rounded-full bg-white shadow-sm animate-in zoom-in duration-200"></div>
+                                          )}
+                                        </div>
+                                        <span className="text-lg">{option}</span>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                              </>
+                            ) : (
+                              <div className="text-center py-12">
+                                <p className="text-textSecondary">No quiz available for this lesson yet.</p>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Navigation & Progress */}
-                    <div className="w-full lg:col-span-3 bg-surface/30 border-t lg:border-t-0 lg:border-l border-white/5 p-6 flex flex-col shrink-0">
-                      <h3 className="font-bold text-xs mb-6 uppercase text-textSecondary tracking-widest">
-                        Navigator
-                      </h3>
+                      {/* Navigation & Progress */}
+                      <div className="w-full lg:col-span-3 bg-surface/30 border-t lg:border-t-0 lg:border-l border-white/5 p-6 flex flex-col shrink-0">
+                        <h3 className="font-bold text-xs mb-6 uppercase text-textSecondary tracking-widest">
+                          Navigator
+                        </h3>
 
-                      <div className="grid grid-cols-3 gap-2 mb-8">
-                        {[0, 1, 2].map((index) => (
-                          <button
-                            key={index}
-                            onClick={() => setCurrentQuizQuestion(index)}
-                            className={`aspect-square rounded-md border text-sm font-bold transition-all ${index === currentQuizQuestion
-                              ? 'border-accent bg-accent text-white shadow-lg shadow-accent/20'
-                              : quizAnswers[index] !== -1
-                                ? 'border-green-500/50 bg-green-500/10 text-green-500'
-                                : 'border-white/10 bg-surface/40 text-textSecondary hover:border-white/20'
-                              }`}
-                          >
-                            {index + 1}
-                          </button>
-                        ))}
-                      </div>
+                        <div className="grid grid-cols-3 gap-2 mb-8">
+                          {lessonData.quiz && lessonData.quiz.map((_, index) => (
+                            <button
+                              key={index}
+                              onClick={() => setCurrentQuizQuestion(index)}
+                              className={`aspect-square rounded-md border text-sm font-bold transition-all ${index === currentQuizQuestion
+                                ? 'border-accent bg-accent text-white shadow-lg shadow-accent/20'
+                                : quizAnswers[index] !== -1
+                                  ? 'border-green-500/50 bg-green-500/10 text-green-500'
+                                  : 'border-white/10 bg-surface/40 text-textSecondary hover:border-white/20'
+                                }`}
+                            >
+                              {index + 1}
+                            </button>
+                          ))}
+                        </div>
 
-                      <div className="mt-auto space-y-4">
-                        <div className="flex gap-3">
+                        <div className="mt-auto space-y-4">
+                          <div className="flex gap-3">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleQuizPrevious}
+                              disabled={currentQuizQuestion === 0}
+                              className="flex-1"
+                            >
+                              Previous
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleQuizNext}
+                              disabled={currentQuizQuestion === 2}
+                              className="flex-1"
+                            >
+                              Next
+                            </Button>
+                          </div>
                           <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={handleQuizPrevious}
-                            disabled={currentQuizQuestion === 0}
-                            className="flex-1"
+                            onClick={handleQuizSubmit}
+                            disabled={quizAnswers.includes(-1)}
+                            className="w-full"
                           >
-                            Previous
+                            Submit Quiz
                           </Button>
                           <Button
-                            size="sm"
                             variant="outline"
-                            onClick={handleQuizNext}
-                            disabled={currentQuizQuestion === 2}
-                            className="flex-1"
+                            size="sm"
+                            onClick={() => {
+                              if (confirm("Are you sure you want to exit the quiz?")) {
+                                setQuizStarted(false);
+                                setQuizLocked(false);
+                                setActiveTab('reading');
+                              }
+                            }}
+                            className="w-full border-red-500/20 text-red-500 hover:bg-red-500/10"
                           >
-                            Next
+                            Exit Quiz
                           </Button>
                         </div>
-                        <Button
-                          onClick={handleQuizSubmit}
-                          disabled={quizAnswers.includes(-1)}
-                          className="w-full"
-                        >
-                          Submit Quiz
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleQuizExit}
-                          className="w-full border-red-500/20 text-red-500 hover:bg-red-500/10"
-                        >
-                          Exit Quiz
-                        </Button>
                       </div>
                     </div>
-                  </div>
+                  )
+                ) : (
+                  // MODULE QUIZ (keep your existing module quiz logic)
+                  !quizStarted ? (
+                    <div className="flex-1 flex items-center justify-center p-6">
+                      <Card className="max-w-2xl w-full p-8 bg-surface/90 border border-white/10">
+                        <div className="text-center mb-8">
+                          <h1 className="text-3xl font-bold text-textPrimary mb-4">Module Final Quiz</h1>
+                          <div className="flex items-center justify-center gap-6 text-textSecondary">
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-5 h-5" />
+                              <span>{formatTime(lessonTime)}</span>
+                            </div>
+                            <Badge variant="warning">3 Questions</Badge>
+                          </div>
+                        </div>
+
+                        <div className="bg-accent/5 p-6 rounded-lg border border-accent/10 mb-8">
+                          <h3 className="font-bold text-accent mb-2">Module Quiz Instructions</h3>
+                          <ul className="text-sm text-textSecondary space-y-1">
+                            <li>• This quiz covers all lessons in the module</li>
+                            <li>• Complete all lessons first to unlock this quiz</li>
+                            <li>• You can navigate between questions</li>
+                            <li>• Your score will be calculated automatically</li>
+                          </ul>
+                        </div>
+
+                        <div className="flex gap-4 justify-center">
+                          <Button variant="outline" onClick={() => setActiveTab('reading')}>
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Back to Reading
+                          </Button>
+                          <Button onClick={handleStartModuleQuiz} className="px-8">
+                            Start Module Quiz
+                          </Button>
+                        </div>
+                      </Card>
+                    </div>
+                  ) : showQuizResults ? (
+                    <div className="flex-1 flex items-center justify-center p-6">
+                      <Card className="max-w-2xl w-full p-8 bg-surface/90 border border-white/10">
+                        <div className="text-center mb-8">
+                          <div className={`w-24 h-24 rounded-full mx-auto mb-4 flex items-center justify-center ${calculateQuizScore() >= 70 ? 'bg-green-500/20 text-green-400' : calculateQuizScore() >= 50 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
+                            {calculateQuizScore() >= 70 ? <CheckCircle2 className="w-12 h-12" /> : <X className="w-12 h-12" />}
+                          </div>
+                          <h1 className="text-3xl font-bold text-textPrimary mb-2">Module Quiz Complete!</h1>
+                          <div className="grid grid-cols-2 gap-4 mb-8">
+                            <Card className="p-4 bg-surface/40 backdrop-blur-md border border-white/5">
+                              <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Total Score</div>
+                              <div className="text-2xl font-bold text-white">{calculateQuizScore()}%</div>
+                            </Card>
+                            <Card className="p-4 bg-surface/40 backdrop-blur-md border border-white/5">
+                              <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Time Performance</div>
+                              <div className="text-2xl font-bold text-accent">{formatTime(quizTimeTaken)}</div>
+                            </Card>
+                          </div>
+
+                          <div className="flex justify-center mb-8">
+                            <Badge variant={calculateQuizScore() >= 70 ? "success" : calculateQuizScore() >= 50 ? "warning" : "secondary"} className="text-lg px-6 py-2 rounded-full shadow-lg">
+                              {calculateQuizScore() >= 70 ? "Excellent Mastery!" : calculateQuizScore() >= 50 ? "Strong Performance!" : "Good Try, Keep Going!"}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4 mb-8">
+                          {[1, 2, 3].map((index) => (
+                            <div key={index} className="p-4 rounded-lg border border-white/5 bg-surface/20">
+                              <div className="flex items-start gap-3">
+                                {quizAnswers[index - 1] === 0 ? (
+                                  <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
+                                ) : (
+                                  <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                                )}
+                                <div className="flex-1">
+                                  <p className="font-medium text-textPrimary mb-2">Question {index} for Module Review</p>
+                                  <p className="text-sm text-textSecondary">
+                                    Your answer: {["Option A", "Option B", "Option C", "Option D"][quizAnswers[index - 1]] || 'Not answered'}
+                                  </p>
+                                  {quizAnswers[index - 1] !== 0 && (
+                                    <p className="text-sm text-green-400 mt-1">
+                                      Correct: Option A
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="flex gap-4 justify-center">
+                          <Button variant="outline" onClick={handleQuizExit}>
+                            Back to Lesson
+                          </Button>
+                          <Button onClick={() => window.location.href = `/dashboard/${course}/modules`}>
+                            Next Module
+                          </Button>
+                        </div>
+                      </Card>
+                    </div>
+                  ) : (
+                    // MODULE QUIZ IN PROGRESS
+                    <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 overflow-hidden">
+                      {/* Question Area */}
+                      <div className="w-full bg-background relative flex flex-col min-h-[50vh] lg:min-h-full lg:col-span-9">
+                        <div className="flex-1 p-6 md:p-10 flex flex-col justify-center">
+                          <div className="max-w-4xl mx-auto w-full">
+                            <div className="flex items-start justify-between mb-6">
+                              <h2 className="text-2xl md:text-3xl font-bold text-textPrimary leading-relaxed flex-1">
+                                Question {currentQuizQuestion + 1} for Module Review
+                              </h2>
+                            </div>
+                            <div className="space-y-4">
+                              {["Option A", "Option B", "Option C", "Option D"].map((option, index) => (
+                                <button
+                                  key={option}
+                                  onClick={() => handleQuizAnswer(index)}
+                                  className={`w-full p-5 rounded-xl border text-left transition-all group ${quizAnswers[currentQuizQuestion] === index
+                                    ? 'border-accent bg-accent/10 text-accent shadow-[0_0_20px_-5px_rgba(var(--accent),0.3)]'
+                                    : 'border-white/10 bg-surface/40 hover:border-accent/40 hover:bg-surface/60 text-textPrimary'
+                                    }`}
+                                >
+                                  <div className="flex items-center gap-4">
+                                    <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-colors ${quizAnswers[currentQuizQuestion] === index
+                                      ? 'border-accent bg-accent text-white'
+                                      : 'border-white/20 group-hover:border-accent'
+                                      }`}>
+                                      {quizAnswers[currentQuizQuestion] === index && (
+                                        <div className="w-2.5 h-2.5 rounded-full bg-white shadow-sm animate-in zoom-in duration-200"></div>
+                                      )}
+                                    </div>
+                                    <span className="text-lg">{option}</span>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Navigation & Progress */}
+                      <div className="w-full lg:col-span-3 bg-surface/30 border-t lg:border-t-0 lg:border-l border-white/5 p-6 flex flex-col shrink-0">
+                        <h3 className="font-bold text-xs mb-6 uppercase text-textSecondary tracking-widest">
+                          Navigator
+                        </h3>
+
+                        <div className="grid grid-cols-3 gap-2 mb-8">
+                          {[0, 1, 2].map((index) => (
+                            <button
+                              key={index}
+                              onClick={() => setCurrentQuizQuestion(index)}
+                              className={`aspect-square rounded-md border text-sm font-bold transition-all ${index === currentQuizQuestion
+                                ? 'border-accent bg-accent text-white shadow-lg shadow-accent/20'
+                                : quizAnswers[index] !== -1
+                                  ? 'border-green-500/50 bg-green-500/10 text-green-500'
+                                  : 'border-white/10 bg-surface/40 text-textSecondary hover:border-white/20'
+                                }`}
+                            >
+                              {index + 1}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="mt-auto space-y-4">
+                          <div className="flex gap-3">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleQuizPrevious}
+                              disabled={currentQuizQuestion === 0}
+                              className="flex-1"
+                            >
+                              Previous
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleQuizNext}
+                              disabled={currentQuizQuestion === 2}
+                              className="flex-1"
+                            >
+                              Next
+                            </Button>
+                          </div>
+                          <Button
+                            onClick={handleQuizSubmit}
+                            disabled={quizAnswers.includes(-1)}
+                            className="w-full"
+                          >
+                            Submit Quiz
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleQuizExit}
+                            className="w-full border-red-500/20 text-red-500 hover:bg-red-500/10"
+                          >
+                            Exit Quiz
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )
                 )}
               </div>
             )}
 
           </div>
         </div>
+
+        {/* DOCKED EXPLORER PANEL */}
+        <GutenbergExplorerPanel />
 
         {/* RIGHT PANEL: Notes - Resizable */}
         {activeTab !== 'quiz' && (
@@ -1647,5 +1980,6 @@ const handleSaveSelection = () => {
         </div>
       )}
     </div>
+    </GutenbergExplorerProvider>
   );
 }
