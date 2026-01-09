@@ -134,7 +134,7 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
         // Calculate correct count
         let correctCount = 0;
         selectedAnswers.forEach((answer, index) => {
-            if (quizData.questionData && answer === quizData.questionData[index]?.correct) {
+            if (quizData.questionData && answer === quizData.questionData[index]?.correctAnswer) {
                 correctCount++;
             }
         });
@@ -247,7 +247,7 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
         if (!quizData || !quizData.questionData) return 0;
         let correct = 0;
         selectedAnswers.forEach((answer, index) => {
-            if (quizData.questionData && answer === quizData.questionData[index]?.correct) {
+            if (quizData.questionData && answer === quizData.questionData[index]?.correctAnswer) {
                 correct++;
             }
         });
