@@ -68,14 +68,14 @@ export async function getNumericalsByCourse(courseId: number): Promise<Numerical
       const myAttempts = attempts.filter(a => a.numerical_id === dbNum.numerical_id);
       const isCompleted = myAttempts.some(a => a.is_correct);
 
-      let status: "Locked" | "New" | "Completed" | "Pending" = "Locked";
+      let status:  "New" | "Completed" | "Pending" ;
 
       if (isCompleted) {
         status = "Completed";
       } else if (isPreviousCompleted) {
         status = "New"; // Available
       } else {
-        status = "Locked";
+        status = "Pending";
       }
 
       transformedNumericals.push({

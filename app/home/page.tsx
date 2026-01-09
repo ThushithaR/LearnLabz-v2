@@ -6,11 +6,28 @@ import { supabase } from "@/lib/supabase/client";
 import { useCourse } from "@/lib/context/CourseContext";
 import { ArrowRight, BrainCircuit, MessageSquareText } from "lucide-react";
 import { Card } from "@/components/ui/Card";
+import { COURSE_ID_MAP } from "@/lib/courses";
+import { updateUserStreakOnLogin } from "@/lib/supabase/streak";
+import { enrollUserInCourse } from "@/lib/supabase/user-courses";
 
 export default function HomePage() {
   const router = useRouter();
   const { setSelectedCourse } = useCourse();
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<number | null>(null);
+  
+  // Strak logic
+  useEffect(() => {
+  const init = async () => {
+    const userIdStr = localStorage.getItem("user_id");
+    if (!userIdStr) return;
+
+    const userId = parseInt(userIdStr);
+    await updateUserStreakOnLogin(userId);
+  };
+
+  init();
+  }, []);
 
   // 🔐 Protect Home Page
   useEffect(() => {
@@ -24,14 +41,31 @@ export default function HomePage() {
         return;
       }
 
+      // Get the user's actual ID from the profile
+      const userIdStr = localStorage.getItem("user_id");
+      if (userIdStr) {
+        setUserId(parseInt(userIdStr));
+      }
+
       setLoading(false);
     };
 
     checkUser();
   }, [router]);
 
-  const handleCourseSelect = (course: "aiml" | "nlp") => {
+  const handleCourseSelect = async (course: "aiml" | "nlp") => {
     setSelectedCourse(course);
+    
+    // Save course enrollment to database
+    if (userId) {
+      try {
+        const courseId = COURSE_ID_MAP[course];
+        await enrollUserInCourse(userId, courseId);
+      } catch (error) {
+        console.error("Failed to enroll user in course:", error);
+      }
+    }
+    
     router.push(`/dashboard/${course}`);
   };
 

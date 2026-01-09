@@ -19,9 +19,9 @@ export async function createNote(note: {
   user_id: number;
   course_id: number;
   note_type: "MODULE" | "GENERAL";
-  note_title: string;
-  note_subtitle: string,
-  note_content: { html: string };
+  title: string;
+  subtitle: string,
+  content: { html: string; module_id: number; lesson_id: number };
   source: "MANUAL" | "HIGHLIGHT";
 }) {
   return supabase
@@ -37,9 +37,9 @@ export async function createNote(note: {
 export async function updateNoteById(
   noteId: number,
   updates: Partial<{
-    note_title: string;
-    note_subtitle: string,
-    note_content: { html: string };
+    title: string;
+    subtitle: string,
+    content: { html: string };
     note_type: "MODULE" | "GENERAL";
   }>
 ) {
