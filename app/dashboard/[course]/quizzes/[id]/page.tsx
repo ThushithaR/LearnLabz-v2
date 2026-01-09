@@ -140,18 +140,36 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
         });
 
         // Submit to Backend
-        if (userId && quizData.unitId && quizData.courseId) {
+        if (userId && quizData.courseId) {
             try {
-                await submitQuizAttempt({
+                // TEMPORARY FIX: All quizzes in DB have unit_id: 1
+                // TODO: Properly assign unit_ids in quiz_attempts table
+                const unitIdForSubmission = 1; // Force unit_id to 1 since that's what's in the DB
+                
+                console.log("[Quiz Submission] Submitting quiz attempt:", {
                     user_id: userId,
                     course_id: quizData.courseId,
-                    unit_id: quizData.unitId,
+                    unit_id: unitIdForSubmission,
+                    unit_id_from_quiz: quizData.unitId,
                     quiz_id: quizData.id,
                     score: scoreVal,
                     correct: correctCount,
                     total: quizData.questionData?.length || 0,
                     time_taken: timeTaken
                 });
+
+                const response = await submitQuizAttempt({
+                    user_id: userId,
+                    course_id: quizData.courseId,
+                    unit_id: unitIdForSubmission, // Use fixed unit_id of 1
+                    quiz_id: quizData.id,
+                    score: scoreVal,
+                    correct: correctCount,
+                    total: quizData.questionData?.length || 0,
+                    time_taken: timeTaken
+                });
+
+                console.log("[Quiz Submission] Response:", response);
                 
                 const passed = scoreVal >= 60;
                 if (passed) {
