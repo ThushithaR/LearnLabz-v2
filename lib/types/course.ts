@@ -55,6 +55,14 @@ export interface Lesson {
       solution?: string | React.ReactNode;
     };
   };
+  quiz ?: QuizQuestion[];
+}
+export interface QuizQuestion{
+  id:string;
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  explanation ?: string;
 }
 
 export interface ProblemStatementContent {
@@ -93,15 +101,6 @@ export interface Quiz {
   status: string;
   score: string;
   questionData?: QuizQuestion[];
-}
-
-export interface QuizQuestion {
-  id: number;
-  question: string;
-  options: string[];
-  correct: number;
-  explanation: string;
-  topics?: string[];
 }
 
 export interface Achievement {
