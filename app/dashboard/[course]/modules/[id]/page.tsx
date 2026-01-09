@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -21,6 +22,8 @@ import { getUserNotes, createNote } from "@/lib/supabase/notes";
 
 export default function LessonPage({ params }: { params: { course: string; id: string } }) {
   const { course, id } = params;
+  const searchParams = useSearchParams();
+  const lessonParam = searchParams.get("lesson");
 
   const courseData: Course = courses[course as CourseId];
   const moduleData: Module | undefined = courseData.modules.find(m => m.id.toString() === id);
@@ -37,6 +40,21 @@ export default function LessonPage({ params }: { params: { course: string; id: s
   const [activeTab, setActiveTab] = useState<'reading' | 'interactive' | 'quiz'>('reading');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [notesOpen, setNotesOpen] = useState(true); // Right panel state
+
+  // Deep link: /modules/:unitId?lesson=<lesson title>
+  useEffect(() => {
+    if (!moduleData || !lessonParam) return;
+
+    const decoded = decodeURIComponent(lessonParam);
+    const idx = moduleData.lessons.findIndex((l) =>
+      l.title.toLowerCase() === decoded.toLowerCase()
+    );
+
+    if (idx !== -1) {
+      setSelectedLessonIdx(idx);
+      setActiveTab('reading');
+    }
+  }, [moduleData, lessonParam]);
 
   // Resize State
   const [notesWidth, setNotesWidth] = useState(320);

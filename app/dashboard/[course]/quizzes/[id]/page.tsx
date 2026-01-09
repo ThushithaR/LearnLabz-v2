@@ -10,14 +10,14 @@ import { cn } from "@/lib/utils";
 import { courses, CourseId } from "@/lib/courses";
 import { getQuizById, submitQuizAttempt } from "@/lib/supabase/quizzes";
 import { getCurrentUserProfile } from "@/lib/supabase/profile";
-import { Quiz } from "@/lib/types/course";
+import { ActualQuizzes, Quiz } from "@/lib/types/course";
 import { onQuizCompleted } from "@/lib/supabase/user-courses";
 
 
 export default function QuizSolvePage({ params }: { params: { course: string; id: string } }) {
     const router = useRouter();
     const [courseData, setCourseData] = useState<any>(null);
-    const [quizData, setQuizData] = useState<Quiz | null>(null);
+    const [quizData, setQuizData] = useState<ActualQuizzes | null>(null);
     const [currentQuestion, setCurrentQuestion] = useState(0);
     const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
     const [showResults, setShowResults] = useState(false);
@@ -134,7 +134,9 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
         // Calculate correct count
         let correctCount = 0;
         selectedAnswers.forEach((answer, index) => {
-            if (quizData.questionData && answer === quizData.questionData[index]?.correctAnswer) {
+            const q: any = quizData.questionData?.[index];
+            const correctIndex = q?.correctAnswer ?? q?.correct;
+            if (typeof correctIndex === "number" && answer === correctIndex) {
                 correctCount++;
             }
         });
@@ -142,9 +144,14 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
         // Submit to Backend
         if (userId && quizData.courseId) {
             try {
-                // TEMPORARY FIX: All quizzes in DB have unit_id: 1
-                // TODO: Properly assign unit_ids in quiz_attempts table
-                const unitIdForSubmission = 1; // Force unit_id to 1 since that's what's in the DB
+                // Unit-scoped tracking (important for Digital Twin per-unit analytics)
+                // Prefer unitId from DB; otherwise try to parse from label; final fallback to 1.
+                const parsedUnitId = (() => {
+                    const match = (quizData.unit || '').match(/(\d+)/);
+                    return match ? parseInt(match[1]) : undefined;
+                })();
+
+                const unitIdForSubmission = quizData.unitId ?? parsedUnitId ?? 1;
                 
                 console.log("[Quiz Submission] Submitting quiz attempt:", {
                     user_id: userId,
@@ -160,8 +167,6 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
 
                 const response = await submitQuizAttempt({
                     user_id: userId,
-                    course_id: quizData.courseId,
-                    unit_id: unitIdForSubmission, // Use fixed unit_id of 1
                     quiz_id: quizData.id,
                     score: scoreVal,
                     correct: correctCount,
@@ -247,9 +252,9 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
         if (!quizData || !quizData.questionData) return 0;
         let correct = 0;
         selectedAnswers.forEach((answer, index) => {
-            if (quizData.questionData && answer === quizData.questionData[index]?.correctAnswer) {
-                correct++;
-            }
+            const q: any = quizData.questionData?.[index];
+            const correctIndex = q?.correctAnswer ?? q?.correct;
+            if (typeof correctIndex === "number" && answer === correctIndex) correct++;
         });
         return Math.round((correct / quizData.questionData.length) * 100);
     };
@@ -363,7 +368,7 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
                             {quizData.questionData?.map((question: any, index: number) => (
                                 <div key={index} className="p-4 rounded-lg border border-white/5 bg-surface/20">
                                     <div className="flex items-start gap-3">
-                                        {selectedAnswers[index] === question.correct ? (
+                                        {selectedAnswers[index] === (question?.correctAnswer ?? question?.correct) ? (
                                             <CheckCircle className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
                                         ) : (
                                             <XCircle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
@@ -373,9 +378,9 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
                                             <p className="text-sm text-textSecondary">
                                                 Your answer: {question.options[selectedAnswers[index]] || 'Not answered'}
                                             </p>
-                                            {selectedAnswers[index] !== question.correct && (
+                                            {selectedAnswers[index] !== (question?.correctAnswer ?? question?.correct) && (
                                                 <p className="text-sm text-green-400 mt-1">
-                                                    Correct: {question.options[question.correct]}
+                                                    Correct: {question.options[question?.correctAnswer ?? question?.correct]}
                                                 </p>
                                             )}
                                         </div>

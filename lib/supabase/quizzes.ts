@@ -1,6 +1,6 @@
 import { supabase } from "./client";
 import { getCurrentUserProfile } from "./profile";
-import { Quiz, QuizQuestion } from "@/lib/types/course";
+import { ActualQuizzes,MainQuiz  } from "@/lib/types/course";
 
 // DB Row Types
 interface DBQuiz {
@@ -20,8 +20,6 @@ interface DBQuiz {
 interface DBQuizAttempt {
   qa_id: number;
   user_id: number;
-  course_id: number;
-  unit_id: number;
   quiz_id: number;
   qa_score: number;
   qa_correct_count: number;
@@ -30,7 +28,7 @@ interface DBQuizAttempt {
   created_at?: string;
 }
 
-export async function getQuizzesByCourse(courseId: number): Promise<Quiz[]> {
+export async function getQuizzesByCourse(courseId: number): Promise<ActualQuizzes[]> {
   try {
     const user = await getCurrentUserProfile();
 
@@ -52,13 +50,13 @@ export async function getQuizzesByCourse(courseId: number): Promise<Quiz[]> {
     const dbQuizzes = quizzesData as DBQuiz[];
     let attempts: DBQuizAttempt[] = [];
 
-    // 2. Fetch all user attempts for this course (ONLY if user exists)
+    // 2. Fetch all user attempts for quizzes in this course using join (ONLY if user exists)
     if (user) {
       const { data: attemptsData, error: attemptsError } = await supabase
         .from("quiz_attempts")
-        .select("*")
+        .select("*, quizzes!inner(*)")
         .eq("user_id", user.user_id)
-        .eq("course_id", courseId);
+        .eq("quizzes.course_id", courseId);
 
       if (attemptsError) {
         console.error("Error fetching quiz attempts:", attemptsError);
@@ -68,7 +66,7 @@ export async function getQuizzesByCourse(courseId: number): Promise<Quiz[]> {
     }
 
     // 3. Transform and Calculate Status
-    const transformedQuizzes: Quiz[] = [];
+    const transformedQuizzes: ActualQuizzes[] = [];
     let isPreviousQuizPassed = true; // First quiz is always unlocked
 
     for (const dbQuiz of dbQuizzes) {
@@ -136,14 +134,12 @@ export async function getQuizzesByCourse(courseId: number): Promise<Quiz[]> {
         correct: q.correct ?? q.Correct ?? q.answer ?? q.answerIndex ?? 0,
         explanation: q.explanation || q.Explanation || "",
         topics: q.topics || []
-      } as QuizQuestion));
+      } as MainQuiz));
 
 
       transformedQuizzes.push({
         id: dbQuiz.quiz_id,
         unit: `Unit ${dbQuiz.unit_id}`, // Simple mapping, could be enhanced
-        unitId: dbQuiz.unit_id,
-        courseId: dbQuiz.course_id,
         title: dbQuiz.quiz_title,
         difficulty: (dbQuiz.quiz_difficulty.charAt(0).toUpperCase() + dbQuiz.quiz_difficulty.slice(1).toLowerCase()) as "Easy" | "Medium" | "Hard",
         time: `${timeInMinutes} min`,
@@ -169,7 +165,7 @@ export async function getQuizzesByCourse(courseId: number): Promise<Quiz[]> {
   }
 }
 
-export async function getQuizById(quizId: number): Promise<Quiz | null> {
+export async function getQuizById(quizId: number): Promise<ActualQuizzes | null> {
   try {
     const { data, error } = await supabase
       .from("quizzes")
@@ -221,7 +217,7 @@ export async function getQuizById(quizId: number): Promise<Quiz | null> {
           correct: q[2] || 0,
           explanation: q[3] || "",
           topics: []
-        } as QuizQuestion;
+        } as MainQuiz;
       }
 
       // Handle Object format
@@ -232,7 +228,7 @@ export async function getQuizById(quizId: number): Promise<Quiz | null> {
         correct: q.correct ?? q.Correct ?? q.answer ?? q.answerIndex ?? 0,
         explanation: q.explanation || q.Explanation || "",
         topics: q.topics || []
-      } as QuizQuestion;
+      } as MainQuiz;
     });
 
     return {
@@ -257,8 +253,6 @@ export async function getQuizById(quizId: number): Promise<Quiz | null> {
 
 export async function submitQuizAttempt({
   user_id,
-  course_id,
-  unit_id,
   quiz_id,
   score,
   correct,
@@ -266,8 +260,6 @@ export async function submitQuizAttempt({
   time_taken
 }: {
   user_id: number;
-  course_id: number;
-  unit_id: number;
   quiz_id: number;
   score: number;
   correct: number;
@@ -276,8 +268,6 @@ export async function submitQuizAttempt({
 }) {
   return supabase.from("quiz_attempts").insert({
     user_id,
-    course_id,
-    unit_id,
     quiz_id,
     qa_score: score,
     qa_correct_count: correct,
@@ -292,7 +282,7 @@ export async function getDailyQuiz(courseId: number) {
     .from("quizzes")
     .select("quiz_id, quiz_title, quiz_pass_score")
     .eq("course_id", courseId)
-    .order("id");
+    .order("quiz_id");
 
   if (error || !quizzes || quizzes.length === 0) return null;
 

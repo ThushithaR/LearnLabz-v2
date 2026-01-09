@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import DigitalTwinCard from "@/components/ui/DigitalTwinCard";
 import {
   ArrowRight,
   Clock,
@@ -36,6 +37,7 @@ export default function CourseDashboardPage({
   const courseId = COURSE_ID_MAP[course];
   const [stats, setStats] = useState<any>(null);
   const [continueLesson, setContinueLesson] = useState<any>(null);
+  const [latestQuizUnitId, setLatestQuizUnitId] = useState<number | null>(null);
   const [completedUnits, setCompletedUnits] = useState<number>(0);
   const [profile, setProfile] = useState<any>(null);
   const [maxStreak, setMaxStreak] = useState<number>(0);
@@ -71,6 +73,31 @@ export default function CourseDashboardPage({
       setContinueLesson(data);
     };
     loadContinue();
+  }, [courseId]);
+
+  useEffect(() => {
+    const loadLatestQuizUnit = async () => {
+      const user = await getCurrentUserProfile();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('quiz_attempts')
+        .select('unit_id')
+        .eq('user_id', user.user_id)
+        .eq('course_id', courseId)
+        .order('qa_id', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        setLatestQuizUnitId(null);
+        return;
+      }
+
+      const unitId = data && data.length > 0 ? (data[0] as any).unit_id : null;
+      setLatestQuizUnitId(typeof unitId === 'number' ? unitId : null);
+    };
+
+    loadLatestQuizUnit();
   }, [courseId]);
 
   // completed units count
@@ -122,6 +149,8 @@ export default function CourseDashboardPage({
   }, [courseId]);
 
   const activeModule = courseData.modules.find((m) => m.active);
+
+  const unitIdForDigitalTwin = latestQuizUnitId || continueLesson?.lessons?.unit_id || activeModule?.id || 1;
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-4 pb-4">
@@ -195,8 +224,60 @@ export default function CourseDashboardPage({
         </Card>
       </div>
 
-      {/* 3. Action Grid - Compact */}
+      {/* 4. Action Grid - Compact */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
+        {/* Deadlines */}
+        <Card className="flex flex-col p-0 overflow-hidden border border-white/5 bg-gradient-to-br from-white/[0.07] to-transparent hover:from-white/[0.1] transition-all backdrop-blur-md shadow-lg shadow-black/20 rounded-xl">
+          <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-blue-400" />
+            <span className="text-[10px] font-bold text-textSecondary uppercase tracking-widest">Deadlines</span>
+          </div>
+
+          <div className="p-3 flex-1 space-y-1.5">
+            {deadlines.length === 0 ? (
+              <p className="text-xs text-textSecondary px-2">
+                No upcoming deadlines 🎉
+              </p>
+            ) : (
+              deadlines.map((cal) => {
+                const dateObj = new Date(cal.cal_date);
+                const day = dateObj.getDate();
+                const month = dateObj.toLocaleString("default", { month: "short" });
+
+                return (
+                  <div
+                    key={cal.cal_id}
+                    className={`p-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] flex items-center gap-3 transition-all group border border-transparent hover:border-white/10 ${cal.cal_completed ? "opacity-40 grayscale" : ""
+                      }`}
+                  >
+                    <div className="flex-shrink-0 text-center">
+                      <div className="text-lg font-bold leading-none" style={{ color: 'var(--accent-primary)' }}>
+                        {day}
+                      </div>
+                      <div className="text-[10px] uppercase tracking-wider opacity-70">
+                        {month}
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate text-textPrimary">
+                        {cal.cal_title}
+                      </p>
+                      <p className="text-[9px] text-textSecondary">
+                        {cal.cal_completed
+                          ? "Completed"
+                          : `Due: ${cal.cal_time}`}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </Card>
+
+        {/* Digital Twin - Between Deadlines and Daily Challenge */}
+        <DigitalTwinCard courseId={courseId} courseSlug={course} unitId={unitIdForDigitalTwin} />
+
         {/* Daily Challenge */}
         <Card className="flex flex-col p-0 overflow-hidden border border-white/5 bg-gradient-to-br from-white/[0.07] to-transparent hover:from-white/[0.1] transition-all group backdrop-blur-md shadow-lg shadow-black/20 rounded-xl">
           <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
@@ -223,110 +304,8 @@ export default function CourseDashboardPage({
             </Link>
           </div>
         </Card>
-
-        {/* Smart Review */}
-        <Card className="flex flex-col p-0 overflow-hidden border border-white/5 bg-gradient-to-br from-white/[0.07] to-transparent hover:from-white/[0.1] transition-all backdrop-blur-md shadow-lg shadow-black/20 rounded-xl">
-          <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2">
-            <Target className="w-4 h-4 text-purple-400" />
-            <span className="text-[10px] font-bold text-textSecondary uppercase tracking-widest">Smart Review</span>
-          </div>
-
-          <div className="p-3 flex-1 space-y-1.5">
-            {courseData.modules.slice(0, 2).map((mod) => (
-              <Link key={mod.id} href={`/dashboard/${course}/modules/${mod.id}`} className="block">
-                <div className="p-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] cursor-pointer group flex items-center justify-between transition-all border border-transparent hover:border-white/10">
-                  <div className="space-y-1">
-                    <div className="text-[9px] font-bold text-red-400 flex items-center gap-1 uppercase tracking-wide">
-                      <span className="w-1 h-1 rounded-full bg-red-400"></span> Weak Spot
-                    </div>
-                    <h5 className="text-xs font-medium text-textPrimary group-hover:text-accent transition-colors truncate">{mod.title}</h5>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-white/60" />
-                </div>
-              </Link>
-            ))}
-          </div>
-        </Card>
-
-        {/* Deadlines */}
-        <Card className="flex flex-col p-0 overflow-hidden border border-white/5 bg-gradient-to-br from-white/[0.07] to-transparent hover:from-white/[0.1] transition-all backdrop-blur-md shadow-lg shadow-black/20 rounded-xl">
-          <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-blue-400" />
-            <span className="text-[10px] font-bold text-textSecondary uppercase tracking-widest">Deadlines</span>
-          </div>
-
-          <div className="p-3 flex-1 space-y-1.5">
-            {deadlines.length === 0 ? (
-              <p className="text-xs text-textSecondary px-2">
-                No upcoming deadlines 🎉
-              </p>
-            ) : (
-              deadlines.map((cal) => {
-                const dateObj = new Date(cal.cal_date);
-                const day = dateObj.getDate();
-                const month = dateObj.toLocaleString("default", { month: "short" });
-
-                return (
-                  <div
-                    key={cal.cal_id}
-                    className={`p-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] flex items-center gap-3 transition-all group border border-transparent hover:border-white/10 ${cal.cal_completed ? "opacity-40 grayscale" : ""
-                      }`}
-                  >
-                    {/* Checkbox */}
-                    <div
-                      className="cursor-pointer shrink-0"
-                      onClick={() =>
-                        toggleDeadline(cal.cal_id, cal.cal_completed)
-                      }
-                    >
-                      {cal.cal_completed ? (
-                        <CheckCircle2 className="w-5 h-5 text-success" />
-                      ) : (
-                        <Circle className="w-5 h-5 text-white/20 group-hover:text-accent transition-colors stroke-2" />
-                      )}
-                    </div>
-
-                    {/* Date box */}
-                    <div className="flex flex-col items-center justify-center w-10 h-10 rounded bg-white/5 border border-white/10 shrink-0">
-                      <span
-                        className={`text-[8px] font-bold uppercase tracking-wider ${cal.cal_completed
-                            ? "text-textSecondary"
-                            : "text-red-400"
-                          }`}
-                      >
-                        {dateObj.toDateString() ===
-                          new Date().toDateString()
-                          ? "Today"
-                          : month}
-                      </span>
-                      <span className="text-sm font-bold text-textPrimary leading-none mt-0.5">
-                        {day}
-                      </span>
-                    </div>
-
-                    {/* Deadline info */}
-                    <div className="flex-1 min-w-0">
-                      <h5
-                        className={`text-[11px] font-bold truncate ${cal.cal_completed
-                            ? "line-through text-textSecondary"
-                            : "text-textPrimary"
-                          }`}
-                      >
-                        {cal.cal_title}
-                      </h5>
-                      <p className="text-[9px] text-textSecondary">
-                        {cal.cal_completed
-                          ? "Completed"
-                          : `Due: ${cal.cal_time}`}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </Card>
       </div>
+
     </div>
   );
 }

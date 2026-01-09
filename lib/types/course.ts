@@ -12,6 +12,7 @@ export interface Course {
     notes: boolean;
     calendar: boolean;
     important: boolean;
+    actualquizzes: boolean;
   };
 
   user: {
@@ -35,6 +36,7 @@ export interface Course {
   numericals?: Numerical[];
   calendar?: Event[];
   important: StarredQuestion[];
+  actualquizzes: ActualQuizzes[];
 }
 
 export interface Lesson {
@@ -168,4 +170,28 @@ export interface StarredQuestion {
   course: string;
   moduleId: string;
   questionIndex: number;
+}
+
+export interface ActualQuizzes {
+  id: number;
+  unit: string;
+  unitId?: number;
+  courseId?: number;
+  title: string;
+  difficulty: string;
+  time: string;
+  questions: number;
+  xp: number,
+  status: string;
+  score: string;
+  questionData?: MainQuiz[];
+}
+
+export interface  MainQuiz{
+  id: number;
+  question: string;
+  options: string[];
+  correct: number;
+  explanation: string;
+  topics?: string[];
 }
