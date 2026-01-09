@@ -13,6 +13,7 @@ import { getCurrentUserProfile } from "@/lib/supabase/profile";
 import BFSTreeTraversal from "@/lib/numericals/aiml/numericals";
 import DFSGraphTraversal from "@/lib/numericals/aiml/numerical_dfs";
 import CodingChallengePageOne from "@/lib/numericals/nlp/numericals_code1";
+import TFIDFNumericalPage from "@/lib/numericals/nlp/numericals_tfidf";
 
 export default function NumericalsSolvePage({ params }: { params: { id: string, course: string } }) {
   const router = useRouter();
@@ -175,6 +176,10 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
 
   if (numerical.id === 401) {
     return <CodingChallengePageOne params={params} />;
+  }
+
+    if (numerical.id === 402) {
+    return <TFIDFNumericalPage params={params} />;
   }
 
   return (

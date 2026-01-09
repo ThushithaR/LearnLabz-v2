@@ -10,11 +10,10 @@ import { Card } from "@/components/ui/Card";
 import { courses, CourseId } from "@/lib/courses";
 import { getNumericalById, submitNumericalAttempt } from "@/lib/supabase/numericals";
 import { getCurrentUserProfile } from "@/lib/supabase/profile";
-import BFSTreeTraversal from "@/lib/numericals/aiml/numericals";
 
-export default function NumericalsSolvePage({ params }: { params: { id: string, course: string } }) {
+export default function TFIDFNumericalPage({ params }: { params: { id: string, course: string } }) {
   const router = useRouter();
-  const [solution, setSolution] = useState<string>(`// Workspace Step 1: `);
+  const [solution, setSolution] = useState<string>(`// Workspace Step 1: Calculate TF (Term Frequency)\n// Step 2: Calculate IDF (Inverse Document Frequency)\n// Step 3: Calculate TF-IDF`);
   const [showCalculator, setShowCalculator] = useState(false);
   const [calcDisplay, setCalcDisplay] = useState("0");
   const [calcEquation, setCalcEquation] = useState("");
@@ -22,13 +21,27 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
   const [hintOpen, setHintOpen] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [correctSolution, setCorrectSolution] = useState<string>(`// Correct Solution Step 1: `); // This is the solution you want to compare against
-  const [rootNodeValue, setRootNodeValue] = useState<number | string>('');
-  const [nodesPruned, setNodesPruned] = useState<number | string>('');
+  const [correctSolution, setCorrectSolution] = useState<string>(
+    `// Step 1: Calculate TF (Term Frequency)\n// TF = (Number of times term appears in document) / (Total number of words in document)\n// TF = 20 / 100 = 0.2\n\n// Step 2: Calculate IDF (Inverse Document Frequency)\n// IDF = log10(Total documents / Documents containing term)\n// IDF = log10(10000 / 100) = log10(100) = 2\n\n// Step 3: Calculate TF-IDF\n// TF-IDF = TF * IDF\n// TF-IDF = 0.2 * 2 = 0.4\n\n// Final Answer: TF-IDF = 0.4`
+  );
+  
+  const [tfValue, setTfValue] = useState<string>('');
+  const [idfValue, setIdfValue] = useState<string>('');
+  const [tfidfValue, setTfidfValue] = useState<string>('');
+  
   const [workspaceTheme, setWorkspaceTheme] = useState<'dark' | 'light'>('dark');
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const [isStarred, setIsStarred] = useState(false);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
+  const [currentStep, setCurrentStep] = useState<'tf' | 'idf' | 'tfidf' | 'verify'>('tf');
+  
+  // Problem data
+  const problemData = {
+    termFrequency: 20,
+    totalWords: 100,
+    totalDocuments: 10000,
+    documentsWithTerm: 100
+  };
 
   // Load starred state on mount
   useEffect(() => {
@@ -107,21 +120,61 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
     }
   };
 
-  // Handle submission (show results on same page)
+  // Calculate expected values
+  const expectedTF = problemData.termFrequency / problemData.totalWords; // 0.2
+  const expectedIDF = Math.log10(problemData.totalDocuments / problemData.documentsWithTerm); // 2
+  const expectedTFIDF = expectedTF * expectedIDF; // 0.4
+
+  // Check if answers are correct (with tolerance for floating point)
+  const isTfCorrect = Math.abs(parseFloat(tfValue) - expectedTF) < 0.001;
+  const isIdfCorrect = Math.abs(parseFloat(idfValue) - expectedIDF) < 0.001;
+  const isTfidfCorrect = Math.abs(parseFloat(tfidfValue) - expectedTFIDF) < 0.001;
+
+  // Handle step progression
+  const handleNextStep = () => {
+    switch (currentStep) {
+      case 'tf':
+        if (tfValue) setCurrentStep('idf');
+        break;
+      case 'idf':
+        if (idfValue) setCurrentStep('tfidf');
+        break;
+      case 'tfidf':
+        if (tfidfValue) setCurrentStep('verify');
+        break;
+    }
+  };
+
+  const handlePrevStep = () => {
+    switch (currentStep) {
+      case 'idf':
+        setCurrentStep('tf');
+        break;
+      case 'tfidf':
+        setCurrentStep('idf');
+        break;
+      case 'verify':
+        setCurrentStep('tfidf');
+        break;
+    }
+  };
+
+  // Handle submission
   const handleSubmit = async () => {
     setIsTimerRunning(false);
+    
+    const isCorrect = isTfCorrect && isIdfCorrect && isTfidfCorrect;
+    const cpEarned = isCorrect ? 450 : 0;
 
-    // Calculate score/correctness (Mock logic preserved as per original file, assuming FE validation for now)
-    // Ideally this validation should also verify against backend or secure hash
-    const isCorrect = isRootNodeCorrect && isNodesPrunedCorrect;
-    const cpEarned = isCorrect ? numerical.xp : 0;
-
-    if (userId) {
+    // Fetch user for submission
+    const user = await getCurrentUserProfile();
+    
+    if (user) {
       await submitNumericalAttempt({
-        user_id: userId,
-        numerical_id: numerical.id,
+        user_id: user.user_id,
+        numerical_id: parseInt(params.id),
         is_correct: isCorrect,
-        penalty_percent: 0, // Logic for penalty?
+        penalty_percent: 0,
         cp: cpEarned,
         time_taken: timer
       });
@@ -130,10 +183,6 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
     setShowResults(true);
     setShowModal(true);
   };
-
-  // Check if answers are correct
-  const isRootNodeCorrect = parseInt(rootNodeValue as string) === 5;
-  const isNodesPrunedCorrect = parseInt(nodesPruned as string) === 0;
 
   // Fetch numerical data
   const [numerical, setNumerical] = useState<any>(null);
@@ -144,12 +193,18 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
       // 1. Fetch Numerical
       const numData = await getNumericalById(parseInt(params.id));
       if (!numData) {
-        // Fallback for static dev or redirect
-        console.error("Numerical not found");
-        // router.push("/404");
-        return;
+        // Fallback static data for TF-IDF problem
+        const staticData = {
+          id: parseInt(params.id),
+          title: "TF-IDF Calculation Challenge",
+          description: "Information Retrieval • Text Mining",
+          xp: 450,
+          difficulty: "Hard"
+        };
+        setNumerical(staticData);
+      } else {
+        setNumerical(numData);
       }
-      setNumerical(numData);
 
       // 2. Fetch User for submission
       const user = await getCurrentUserProfile();
@@ -162,18 +217,13 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
     return <div className="p-8 text-center text-textSecondary">Loading numerical data...</div>;
   }
 
-  // Route to specific solvers based on ID
-  if (numerical.id === 101) {
-    return <BFSTreeTraversal params={params} />;
-  }
-
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-300 overflow-y-auto lg:overflow-hidden">
       {/* Header */}
       <div className="bg-surface border-b border-white/5 px-4 md:px-6 py-3 flex items-center justify-between shrink-0 h-16 sticky top-0 z-20 backdrop-blur-md bg-surface/80">
         <div>
           <h1 className="text-lg font-bold text-textPrimary">{numerical.title}</h1>
-          <p className="text-sm text-textSecondary">Numerical Challenge #{numerical.id}   • {numerical.description}</p>
+          <p className="text-sm text-textSecondary">Numerical Challenge #{numerical.id} • {numerical.description}</p>
         </div>
         <div className="flex items-center gap-4 md:gap-6">
           {!showResults && (
@@ -207,22 +257,62 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
           <div className="flex flex-col lg:grid lg:grid-cols-12 h-fit lg:h-full">
             {/* Column 1: Problem Statement */}
             <div className="w-full lg:col-span-3 bg-surface/30 border-r border-white/5 p-6 overflow-y-auto max-h-[40vh] lg:max-h-full shrink-0">
-              <Badge variant="warning" className="mb-4">Hard</Badge>
-              <h2 className="text-xl font-bold mb-4 text-textPrimary">Optimal Move Calculation</h2>
-              <p className="text-sm text-textSecondary leading-relaxed mb-6">
-                Given the following game tree with leaf node values, determine the value of the root node using the Minimax algorithm. Assume the root player is a Maximizer.
-              </p>
-              <div className="bg-black/20 p-6 rounded-xl border border-white/5 mb-6 flex justify-center">
-                {/* Mock Tree Visual */}
-                <svg width="200" height="150" viewBox="0 0 200 150" fill="none" stroke="currentColor">
-                  <circle cx="100" cy="20" r="10" stroke="#facc15" strokeWidth="2" />
-                  <line x1="100" y1="30" x2="60" y2="70" strokeOpacity="0.3" />
-                  <line x1="100" y1="30" x2="140" y2="70" strokeOpacity="0.3" />
-                  <circle cx="60" cy="80" r="10" strokeOpacity="0.5" />
-                  <circle cx="140" cy="80" r="10" strokeOpacity="0.5" />
-                  <text x="50" y="110" fill="white" fontSize="12">3</text>
-                  <text x="130" y="110" fill="white" fontSize="12">5</text>
-                </svg>
+              <Badge variant="warning" className="mb-4">Medium</Badge>
+              <h2 className="text-xl font-bold mb-4 text-textPrimary">TF-IDF Calculation</h2>
+              
+              <div className="space-y-4 mb-6">
+                <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                  <h4 className="text-sm font-semibold text-accent mb-2">Problem Statement:</h4>
+                  <p className="text-sm text-textSecondary leading-relaxed">
+                    Calculate the TF-IDF score for a term in a document collection.
+                  </p>
+                </div>
+
+                <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                  <h4 className="text-sm font-semibold text-accent mb-2">Given Data:</h4>
+                  <ul className="space-y-2 text-sm text-textSecondary">
+                    <li className="flex justify-between">
+                      <span>Term appears in document:</span>
+                      <span className="font-mono text-white">{problemData.termFrequency} times</span>
+                    </li>
+                    <li className="flex justify-between">
+                      <span>Total words in document:</span>
+                      <span className="font-mono text-white">{problemData.totalWords}</span>
+                    </li>
+                    <li className="flex justify-between">
+                      <span>Total documents in collection:</span>
+                      <span className="font-mono text-white">{problemData.totalDocuments.toLocaleString()}</span>
+                    </li>
+                    <li className="flex justify-between">
+                      <span>Documents containing the term:</span>
+                      <span className="font-mono text-white">{problemData.documentsWithTerm}</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                  <h4 className="text-sm font-semibold text-accent mb-2">Formulas:</h4>
+                  <div className="space-y-3 text-sm">
+                    <div>
+                      <p className="text-textSecondary mb-1">TF (Term Frequency):</p>
+                      <code className="text-accent bg-black/30 p-2 rounded block font-mono">
+                        TF = (Term count in document) / (Total words in document)
+                      </code>
+                    </div>
+                    <div>
+                      <p className="text-textSecondary mb-1">IDF (Inverse Document Frequency):</p>
+                      <code className="text-accent bg-black/30 p-2 rounded block font-mono">
+                        IDF = log₁₀(Total documents / Documents containing term)
+                      </code>
+                    </div>
+                    <div>
+                      <p className="text-textSecondary mb-1">TF-IDF:</p>
+                      <code className="text-accent bg-black/30 p-2 rounded block font-mono">
+                        TF-IDF = TF × IDF
+                      </code>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Collapsible Hint */}
@@ -242,7 +332,7 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
                   className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${hintOpen ? "max-h-40 opacity-100 mt-2" : "max-h-0 opacity-0 mt-0"}`}
                 >
                   <div className="p-3 border-l-2 border-accent text-xs text-textSecondary">
-                    Remember that the root is a Maximizer, so it will choose the child with the highest value.
+                    Remember: Use base-10 logarithm (log₁₀) for IDF calculation. TF-IDF helps determine how important a word is to a document in a collection.
                   </div>
                 </div>
               </div>
@@ -266,9 +356,9 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
                   onClick={() => setWorkspaceTheme(workspaceTheme === 'dark' ? 'light' : 'dark')}
                   className="bg-white/10 hover:bg-white/20"
                 >
-                  {workspaceTheme === 'dark' ? 'Light mode' : 'Dark mode'}
+                  {workspaceTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                 </Button>
-                <Button size="sm" variant="secondary" onClick={() => setSolution('')}>
+                <Button size="sm" variant="secondary" onClick={() => setSolution('// Workspace Step 1: Calculate TF (Term Frequency)\n// Step 2: Calculate IDF (Inverse Document Frequency)\n// Step 3: Calculate TF-IDF')}>
                   Clear
                 </Button>
               </div>
@@ -309,40 +399,206 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
                   "flex-1 w-full p-6 md:p-8 font-mono resize-none focus:outline-none text-sm leading-7 transition-colors duration-300",
                   workspaceTheme === 'dark' ? "bg-transparent text-white" : "bg-white text-black"
                 )}
-                placeholder="// step-by-step scratchpad..."
+                placeholder="// Step 1: Calculate TF (Term Frequency)..."
               />
             </div>
 
-            {/* Column 3: Submission & Results */}
+            {/* Column 3: Step-by-Step Calculation */}
             <div className="w-full lg:col-span-3 bg-surface/30 border-t lg:border-t-0 lg:border-l border-white/5 p-6 flex flex-col shrink-0 overflow-y-auto">
-              <h3 className="font-bold text-sm mb-6 uppercase text-textSecondary tracking-widest">Final Answer</h3>
+              <h3 className="font-bold text-sm mb-6 uppercase text-textSecondary tracking-widest">Step-by-Step Calculation</h3>
 
-              <div className="space-y-6 mb-8 lg:mb-auto">
-                <div>
-                  <label className="text-xs font-medium text-textSecondary mb-2 block">Root Node Value</label>
-                  <input
-                    type="number"
-                    value={rootNodeValue}
-                    onChange={(e) => setRootNodeValue(e.target.value)}
-                    className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-accent text-lg font-mono transition-all focus:ring-1 ring-accent/50"
-                    placeholder="?"
-                  />
+              <div className="space-y-8 mb-8 lg:mb-auto">
+                {/* Step 1: TF Calculation */}
+                <div className={cn("space-y-4 transition-all duration-300", currentStep === 'tf' ? 'opacity-100' : 'opacity-60')}>
+                  <div className="flex items-center gap-2">
+                    <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold", 
+                      currentStep === 'tf' ? 'bg-accent text-black' : 'bg-white/5 text-white')}>
+                      1
+                    </div>
+                    <h4 className="text-sm font-semibold">Term Frequency (TF)</h4>
+                    {currentStep === 'tf' && tfValue && (
+                      <Badge variant={isTfCorrect ? "success" : "destructive"} className="ml-auto">
+                        {isTfCorrect ? "Correct" : "Check"}
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="text-xs text-textSecondary">
+                      <p>TF = (Term count) / (Total words)</p>
+                      <p className="font-mono mt-1">= {problemData.termFrequency} / {problemData.totalWords}</p>
+                    </div>
+                    
+                    <div>
+                      <label className="text-xs font-medium text-textSecondary mb-2 block">Enter TF value:</label>
+                      <input
+                        type="number"
+                        step="0.001"
+                        value={tfValue}
+                        onChange={(e) => setTfValue(e.target.value)}
+                        className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-accent text-lg font-mono transition-all focus:ring-1 ring-accent/50"
+                        placeholder="0.000"
+                        disabled={currentStep !== 'tf'}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-textSecondary mb-2 block">Nodes Pruned</label>
-                  <input
-                    type="number"
-                    value={nodesPruned}
-                    onChange={(e) => setNodesPruned(e.target.value)}
-                    className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-accent text-lg font-mono transition-all focus:ring-1 ring-accent/50"
-                    placeholder="0"
-                  />
+
+                {/* Step 2: IDF Calculation */}
+                <div className={cn("space-y-4 transition-all duration-300", currentStep === 'idf' ? 'opacity-100' : 'opacity-60')}>
+                  <div className="flex items-center gap-2">
+                    <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold", 
+                      currentStep === 'idf' ? 'bg-accent text-black' : 'bg-white/5 text-white')}>
+                      2
+                    </div>
+                    <h4 className="text-sm font-semibold">Inverse Document Frequency (IDF)</h4>
+                    {currentStep === 'idf' && idfValue && (
+                      <Badge variant={isIdfCorrect ? "success" : "destructive"} className="ml-auto">
+                        {isIdfCorrect ? "Correct" : "Check"}
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="text-xs text-textSecondary">
+                      <p>IDF = log₁₀(Total docs / Docs with term)</p>
+                      <p className="font-mono mt-1">= log₁₀({problemData.totalDocuments} / {problemData.documentsWithTerm})</p>
+                    </div>
+                    
+                    <div>
+                      <label className="text-xs font-medium text-textSecondary mb-2 block">Enter IDF value:</label>
+                      <input
+                        type="number"
+                        step="0.001"
+                        value={idfValue}
+                        onChange={(e) => setIdfValue(e.target.value)}
+                        className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-accent text-lg font-mono transition-all focus:ring-1 ring-accent/50"
+                        placeholder="0.000"
+                        disabled={currentStep !== 'idf'}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 3: TF-IDF Calculation */}
+                <div className={cn("space-y-4 transition-all duration-300", currentStep === 'tfidf' ? 'opacity-100' : 'opacity-60')}>
+                  <div className="flex items-center gap-2">
+                    <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold", 
+                      currentStep === 'tfidf' ? 'bg-accent text-black' : 'bg-white/5 text-white')}>
+                      3
+                    </div>
+                    <h4 className="text-sm font-semibold">TF-IDF Score</h4>
+                    {currentStep === 'tfidf' && tfidfValue && (
+                      <Badge variant={isTfidfCorrect ? "success" : "destructive"} className="ml-auto">
+                        {isTfidfCorrect ? "Correct" : "Check"}
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="text-xs text-textSecondary">
+                      <p>TF-IDF = TF × IDF</p>
+                      {tfValue && idfValue && (
+                        <p className="font-mono mt-1">= {tfValue} × {idfValue}</p>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <label className="text-xs font-medium text-textSecondary mb-2 block">Enter TF-IDF value:</label>
+                      <input
+                        type="number"
+                        step="0.001"
+                        value={tfidfValue}
+                        onChange={(e) => setTfidfValue(e.target.value)}
+                        className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-accent text-lg font-mono transition-all focus:ring-1 ring-accent/50"
+                        placeholder="0.000"
+                        disabled={currentStep !== 'tfidf'}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 4: Verification */}
+                <div className={cn("space-y-4 transition-all duration-300", currentStep === 'verify' ? 'opacity-100' : 'opacity-60')}>
+                  <div className="flex items-center gap-2">
+                    <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold", 
+                      currentStep === 'verify' ? 'bg-accent text-black' : 'bg-white/5 text-white')}>
+                      4
+                    </div>
+                    <h4 className="text-sm font-semibold">Verification & Submit</h4>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="text-xs text-textSecondary bg-black/20 p-3 rounded-lg">
+                      <p className="font-semibold mb-2">Your Calculations:</p>
+                      <div className="space-y-1 font-mono">
+                        <p>TF: <span className="text-white">{tfValue || '—'}</span></p>
+                        <p>IDF: <span className="text-white">{idfValue || '—'}</span></p>
+                        <p>TF-IDF: <span className="text-white">{tfidfValue || '—'}</span></p>
+                      </div>
+                    </div>
+                    
+                    {tfValue && idfValue && tfidfValue && (
+                      <div className="text-xs space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-textSecondary">TF Status:</span>
+                          <span className={isTfCorrect ? "text-green-400" : "text-red-400"}>
+                            {isTfCorrect ? "✓ Correct" : "✗ Needs review"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-textSecondary">IDF Status:</span>
+                          <span className={isIdfCorrect ? "text-green-400" : "text-red-400"}>
+                            {isIdfCorrect ? "✓ Correct" : "✗ Needs review"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-textSecondary">TF-IDF Status:</span>
+                          <span className={isTfidfCorrect ? "text-green-400" : "text-red-400"}>
+                            {isTfidfCorrect ? "✓ Correct" : "✗ Needs review"}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <Button size="lg" className="w-full gap-2 font-bold py-6 text-base shadow-lg shadow-accent/20" onClick={handleSubmit}>
-                Submit Solution
-              </Button>
+              {/* Navigation Buttons */}
+              <div className="space-y-4 mt-auto">
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={handlePrevStep}
+                    disabled={currentStep === 'tf'}
+                  >
+                    Previous Step
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={handleNextStep}
+                    disabled={
+                      (currentStep === 'tf' && !tfValue) ||
+                      (currentStep === 'idf' && !idfValue) ||
+                      (currentStep === 'tfidf' && !tfidfValue) ||
+                      currentStep === 'verify'
+                    }
+                  >
+                    Next Step
+                  </Button>
+                </div>
+                
+                <Button 
+                  size="lg" 
+                  className="w-full gap-2 font-bold py-6 text-base shadow-lg shadow-accent/20"
+                  onClick={handleSubmit}
+                  disabled={currentStep !== 'verify'}
+                >
+                  Submit Final Solution
+                </Button>
+              </div>
             </div>
           </div>
         ) : (
@@ -352,39 +608,39 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
             <div className="flex flex-col items-center text-center mb-16">
               <div className={cn(
                 "w-20 h-20 rounded-3xl flex items-center justify-center mb-6 shadow-2xl animate-bounce duration-[2000ms]",
-                isRootNodeCorrect && isNodesPrunedCorrect ? "bg-green-500 shadow-green-500/20" : "bg-red-500 shadow-red-500/20"
+                isTfCorrect && isIdfCorrect && isTfidfCorrect ? "bg-green-500 shadow-green-500/20" : "bg-red-500 shadow-red-500/20"
               )}>
-                {isRootNodeCorrect && isNodesPrunedCorrect ? (
+                {isTfCorrect && isIdfCorrect && isTfidfCorrect ? (
                   <CheckCircle className="w-10 h-10 text-white" />
                 ) : (
                   <XCircle className="w-10 h-10 text-white" />
                 )}
               </div>
               <h2 className="text-4xl font-black text-white mb-2">
-                {isRootNodeCorrect && isNodesPrunedCorrect ? "Masterfully Solved!" : "Concept Check Required"}
+                {isTfCorrect && isIdfCorrect && isTfidfCorrect ? "Excellent Calculation!" : "Review Required"}
               </h2>
               <p className="text-textSecondary text-lg max-w-xl">
-                {isRootNodeCorrect && isNodesPrunedCorrect
-                  ? "You've accurately calculated the optimal moves and pruning points. Your understanding of the Minimax algorithm is solid."
-                  : "Some calculations didn't quite match the optimal solution. Let's break down the logic below to refine your approach."}
+                {isTfCorrect && isIdfCorrect && isTfidfCorrect
+                  ? "You've accurately calculated all components of TF-IDF. Your understanding of information retrieval metrics is solid."
+                  : "Some calculations need adjustment. Review the breakdown below to identify where improvements can be made."}
               </p>
             </div>
 
             {/* Performance Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
               <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5 hover:border-white/10 transition-colors">
-                <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Time Performance tapped</div>
+                <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Time Taken</div>
                 <div className="text-2xl font-bold text-white mb-1">{formatTime(timer)}</div>
               </Card>
               <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5 hover:border-white/10 transition-colors">
-                <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Calculation Accuracy</div>
+                <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Accuracy Score</div>
                 <div className="text-2xl font-bold text-white mb-1">
-                  {(isRootNodeCorrect ? 50 : 0) + (isNodesPrunedCorrect ? 50 : 0)}%
+                  {((isTfCorrect ? 33 : 0) + (isIdfCorrect ? 33 : 0) + (isTfidfCorrect ? 34 : 0)).toFixed(0)}%
                 </div>
               </Card>
               <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5 hover:border-white/10 transition-colors">
                 <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Experience Earned</div>
-                <div className="text-2xl font-bold text-accent mb-1">+450 EP</div>
+                <div className="text-2xl font-bold text-accent mb-1">+{isTfCorrect && isIdfCorrect && isTfidfCorrect ? "450" : "150"} EP</div>
               </Card>
             </div>
 
@@ -392,37 +648,71 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
               <div className="space-y-4">
                 <div className="flex items-center justify-between px-2">
-                  <h3 className="text-sm font-bold text-textSecondary uppercase tracking-widest">Your Workspace Analysis</h3>
+                  <h3 className="text-sm font-bold text-textSecondary uppercase tracking-widest">Your Calculations</h3>
                   <Badge variant="secondary" className="bg-white/5 border-white/10">Input</Badge>
                 </div>
                 <div className="bg-surface/30 rounded-2xl border border-white/5 p-6 h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/5 font-mono text-sm leading-relaxed text-textSecondary relative group">
-                  <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  </div>
-                  {solution.split('\n').map((line, i) => (
-                    <div key={i} className="flex gap-4">
-                      <span className="w-4 text-textSecondary/30 text-[10px] pt-1">{i + 1}</span>
-                      <span>{line || ' '}</span>
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-accent mb-2">TF Calculation:</h4>
+                      <div className="pl-4">
+                        <p className={isTfCorrect ? "text-green-400" : "text-red-400"}>
+                          {tfValue || 'Not calculated'}
+                        </p>
+                        {!isTfCorrect && tfValue && (
+                          <p className="text-xs text-red-300 mt-1">Expected: {expectedTF.toFixed(3)}</p>
+                        )}
+                      </div>
                     </div>
-                  ))}
+                    <div>
+                      <h4 className="text-accent mb-2">IDF Calculation:</h4>
+                      <div className="pl-4">
+                        <p className={isIdfCorrect ? "text-green-400" : "text-red-400"}>
+                          {idfValue || 'Not calculated'}
+                        </p>
+                        {!isIdfCorrect && idfValue && (
+                          <p className="text-xs text-red-300 mt-1">Expected: {expectedIDF.toFixed(3)}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-accent mb-2">TF-IDF Calculation:</h4>
+                      <div className="pl-4">
+                        <p className={isTfidfCorrect ? "text-green-400" : "text-red-400"}>
+                          {tfidfValue || 'Not calculated'}
+                        </p>
+                        {!isTfidfCorrect && tfidfValue && (
+                          <p className="text-xs text-red-300 mt-1">Expected: {expectedTFIDF.toFixed(3)}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="pt-4 border-t border-white/10">
+                      <h4 className="text-accent mb-2">Workspace Notes:</h4>
+                      <div className="text-textSecondary text-sm whitespace-pre-wrap">
+                        {solution}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between px-2">
-                  <h3 className="text-sm font-bold text-accent uppercase tracking-widest">Optimal Solution Walkthrough</h3>
+                  <h3 className="text-sm font-bold text-accent uppercase tracking-widest">Optimal Solution</h3>
                   <Badge variant="outline" className="border-accent/30 text-accent">Verified</Badge>
                 </div>
                 <div className="bg-accent/5 rounded-2xl border border-accent/10 p-6 h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-accent/10 font-mono text-sm leading-relaxed text-textPrimary">
                   {correctSolution.split('\n').map((line, i) => (
-                    <div key={i} className="flex gap-4">
+                    <div key={i} className="flex gap-4 mb-2">
                       <span className="w-4 text-accent/30 text-[10px] pt-1">{i + 1}</span>
-                      <span>{line || ' '}</span>
+                      <span className={line.includes('//') ? 'text-textSecondary' : 'text-white'}>{line || ' '}</span>
                     </div>
                   ))}
                   <div className="mt-8 p-4 bg-accent/10 rounded-xl border border-accent/20">
                     <h4 className="text-xs font-bold text-accent mb-2 uppercase">Key Takeaway</h4>
                     <p className="text-xs text-textSecondary leading-relaxed">
-                      At depth 2, the Minimizer nodes branch into (3) and (5). Since the root player is a Maximizer, it will select the path with value 5. Pruning occurs when the known value already exceeds the current branch's potential.
+                      TF-IDF is a fundamental metric in information retrieval. TF measures local importance within a document, 
+                      while IDF measures global importance across the collection. The product balances both aspects.
                     </p>
                   </div>
                 </div>
@@ -438,23 +728,45 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-sm leading-relaxed text-textSecondary">
                   <div>
-                    <h4 className="font-bold text-textPrimary mb-3 underline decoration-accent/30 underline-offset-4">Calculation Insights</h4>
+                    <h4 className="font-bold text-textPrimary mb-3 underline decoration-accent/30 underline-offset-4">TF Insights</h4>
                     <p className="mb-4">
-                      The Minimax value for the root node is 5. Your input of <span className={cn("font-bold px-1.5 py-0.5 rounded", isRootNodeCorrect ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400")}>{rootNodeValue || '0'}</span> was meticulously analyzed.
+                      Term Frequency measures how often a term appears in a document relative to its length. 
+                      Your calculation: <span className={cn("font-bold px-1.5 py-0.5 rounded", 
+                        isTfCorrect ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400")}>
+                        {tfValue || 'Not provided'}
+                      </span>
                     </p>
                     <p>
-                      In a Maximizer layer, you choose the maximum of children outputs. In a Minimizer layer, you choose the minimum. This alternating logic forms the core of game tree search.
+                      Formula: TF = 20 / 100 = 0.2<br/>
+                      This means the term appears in 20% of the document's words.
                     </p>
                   </div>
                   <div>
-                    <h4 className="font-bold text-textPrimary mb-3 underline decoration-accent/30 underline-offset-4">Efficiency & Optimization</h4>
+                    <h4 className="font-bold text-textPrimary mb-3 underline decoration-accent/30 underline-offset-4">IDF Insights</h4>
                     <p className="mb-4">
-                      Nodes Pruned: <span className={cn("font-bold px-1.5 py-0.5 rounded", isNodesPrunedCorrect ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400")}>{nodesPruned || '0'}</span>. Alpha-Beta pruning is an enhancement that reduces the number of nodes evaluated.
+                      Inverse Document Frequency measures how unique a term is across the collection. 
+                      Your calculation: <span className={cn("font-bold px-1.5 py-0.5 rounded", 
+                        isIdfCorrect ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400")}>
+                        {idfValue || 'Not provided'}
+                      </span>
                     </p>
                     <p>
-                      It stops evaluating a move when at least one possibility has been found that proves the move to be worse than a previously examined move.
+                      Formula: IDF = log₁₀(10000 / 100) = log₁₀(100) = 2<br/>
+                      Higher IDF means the term is rarer across documents.
                     </p>
                   </div>
+                </div>
+                <div className="mt-8 pt-6 border-t border-white/10">
+                  <h4 className="font-bold text-textPrimary mb-3 underline decoration-accent/30 underline-offset-4">TF-IDF Significance</h4>
+                  <p className="text-textSecondary">
+                    Final TF-IDF score: <span className={cn("font-bold px-1.5 py-0.5 rounded text-lg", 
+                      isTfidfCorrect ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400")}>
+                      {tfidfValue || 'Not provided'}
+                    </span>
+                    <br/>
+                    The score 0.4 indicates moderate importance - the term is somewhat common in this document 
+                    but relatively rare in the collection.
+                  </p>
                 </div>
               </div>
             </Card>

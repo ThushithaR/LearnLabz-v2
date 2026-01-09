@@ -26,6 +26,7 @@ import { getUserCourseStats } from "@/lib/supabase/user-courses";
 import { getContinueLesson } from "@/lib/supabase/progress";
 import { getCompletedUnitsCount } from "@/lib/supabase/progress";
 import { getUserMaxStreak } from "@/lib/supabase/streak";
+import { getDailyChallenge } from "@/lib/utils";
 
 export default function CourseDashboardPage({
   params,
@@ -142,7 +143,7 @@ export default function CourseDashboardPage({
   const [dailyQuiz, setDailyQuiz] = useState<any>(null);
   useEffect(() => {
     const loadDaily = async () => {
-      const quiz = await getDailyQuiz(courseId);
+      const quiz = getDailyChallenge(courseId as CourseId);
       setDailyQuiz(quiz);
     };
     loadDaily();

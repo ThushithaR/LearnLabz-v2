@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "./providers";
-import { CourseProvider } from "@/lib/context/CourseContext"; // <- added
+import { Providers } from "./providers";
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -21,11 +20,9 @@ export default function RootLayout({
             <body
                 className={`${outfit.variable} font-sans bg-background text-textPrimary antialiased min-h-screen selection:bg-accent selection:text-background`}
             >
-                <ThemeProvider>
-                    <CourseProvider>
-                        {children}
-                    </CourseProvider>
-                </ThemeProvider>
+                <Providers>
+                    {children}
+                </Providers>
             </body>
         </html>
     );

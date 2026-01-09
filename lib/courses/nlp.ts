@@ -6,7 +6,6 @@ import { AccessingTextCorpora } from "@/lib/content/nlp/unit2/AccessingTextCorpo
 import {BrownCorpus} from "@/lib/content/nlp/unit2/BrownCorpus";
 import { lessonQuizzesData } from "@/lib/quizzes/nlp/lessonQuizzes";
 
-
 export const nlp = {
     id: "nlp",
     name: "Natural Language Processing",
@@ -169,7 +168,7 @@ export const nlp = {
             ]
         }
     ],
-    quizzes: nlpQuizzes,
+    actualquizzes: nlpQuizzes,
     achievements: [
         { id: 1, name: "First Token", icon: "🪙", unlocked: true, desc: "Complete your first NLP lesson" },
         { id: 2, name: "Linguist", icon: "🗣️", unlocked: true, desc: "Maintain a 7-day streak in NLP" },

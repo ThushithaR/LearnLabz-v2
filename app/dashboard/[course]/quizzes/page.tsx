@@ -6,7 +6,7 @@ import Link from "next/link";
 
 import { courses, CourseId, COURSE_ID_MAP } from "@/lib/courses";
 import { getQuizzesByCourse } from "@/lib/supabase/quizzes";
-import { Quiz } from "@/lib/types/course";
+import { ActualQuizzes } from "@/lib/types/course";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -26,7 +26,7 @@ export default function CourseQuizzesPage({
 }) {
   const router = useRouter();
   const [courseData, setCourseData] = useState<any>(null);
-  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [quizzes, setQuizzes] = useState<ActualQuizzes[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedUnits, setExpandedUnits] = useState<string[]>([]);
 
@@ -59,7 +59,7 @@ export default function CourseQuizzesPage({
   const units = useMemo(() => {
     if (!quizzes || quizzes.length === 0) return [];
 
-    const map: Record<string, Quiz[]> = {};
+    const map: Record<string, ActualQuizzes[]> = {};
     quizzes.forEach((quiz) => {
       // "Unit 1" -> "Unit 1" key
       if (!map[quiz.unit]) map[quiz.unit] = [];
@@ -71,7 +71,7 @@ export default function CourseQuizzesPage({
       title: unit, // e.g. "Unit 1"
       quizzes: ["Easy", "Medium", "Hard"].map(level =>
         unitQuizzes.find(q => q.difficulty === level)
-      ).filter(Boolean) as Quiz[],
+      ).filter(Boolean) as ActualQuizzes[],
     }));
   }, [quizzes]);
 
@@ -174,9 +174,12 @@ export default function CourseQuizzesPage({
                       {/* Info */}
                       <div>
                         <h4 className="font-bold text-lg text-textPrimary">
-                          {quiz.questions} Questions
+                        {quiz.title}
                         </h4>
                         <div className="flex gap-3 text-xs text-textSecondary">
+                          <div className="flex items-center gap-1">
+                            {quiz.questions} Questions
+                          </div>
                           <div className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
                             {quiz.time}

@@ -184,7 +184,7 @@ export interface ActualQuizzes {
   xp: number,
   status: string;
   score: string;
-  questionData?: MainQuiz[];
+  questionData: MainQuiz[];
 }
 
 export interface  MainQuiz{

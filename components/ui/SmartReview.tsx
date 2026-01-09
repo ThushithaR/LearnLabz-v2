@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import TopicRecommendations from './TopicRecommendations';
 import { getCurrentUserProfile } from '@/lib/supabase/profile';
+import { COURSE_ID_MAP } from "@/lib/courses";
 
 interface SmartReviewProps {
   courseId: number;

@@ -1,4 +1,3 @@
-import { apply } from 'assert/strict';
 import React from 'react';
 
 export const nlpQuizzes = [

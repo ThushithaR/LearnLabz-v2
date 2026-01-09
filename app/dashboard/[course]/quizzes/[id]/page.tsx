@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { courses, CourseId } from "@/lib/courses";
 import { getQuizById, submitQuizAttempt } from "@/lib/supabase/quizzes";
 import { getCurrentUserProfile } from "@/lib/supabase/profile";
-import { ActualQuizzes, Quiz } from "@/lib/types/course";
+import { ActualQuizzes, MainQuiz } from "@/lib/types/course";
 import { onQuizCompleted } from "@/lib/supabase/user-courses";
 
 
@@ -134,9 +134,9 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
         // Calculate correct count
         let correctCount = 0;
         selectedAnswers.forEach((answer, index) => {
-            const q: any = quizData.questionData?.[index];
-            const correctIndex = q?.correctAnswer ?? q?.correct;
-            if (typeof correctIndex === "number" && answer === correctIndex) {
+            const q: any = quizData.questionData[index];
+            const correctIndex = Number(q.correct);
+            if (!Number.isNaN(correctIndex) && answer === correctIndex) {
                 correctCount++;
             }
         });
@@ -156,7 +156,7 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
                 console.log("[Quiz Submission] Submitting quiz attempt:", {
                     user_id: userId,
                     course_id: quizData.courseId,
-                    unit_id: unitIdForSubmission,
+                    unit_id: quizData.unitId,
                     unit_id_from_quiz: quizData.unitId,
                     quiz_id: quizData.id,
                     score: scoreVal,
@@ -249,15 +249,18 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
     };
 
     const calculateScore = () => {
-        if (!quizData || !quizData.questionData) return 0;
-        let correct = 0;
-        selectedAnswers.forEach((answer, index) => {
-            const q: any = quizData.questionData?.[index];
-            const correctIndex = q?.correctAnswer ?? q?.correct;
-            if (typeof correctIndex === "number" && answer === correctIndex) correct++;
-        });
-        return Math.round((correct / quizData.questionData.length) * 100);
-    };
+    if (!quizData?.questionData) return 0;
+    let correct = 0;
+    selectedAnswers.forEach((answer, index) => {
+        const q: any = quizData.questionData[index];
+        const correctIndex = Number(q.correct);
+        if (!Number.isNaN(correctIndex) && answer === correctIndex) {
+            correct++;
+        }
+    });
+    return Math.round((correct / quizData.questionData.length) * 100);
+};
+
 
     const handleExit = () => {
         if (confirm("Are you sure you want to exit? Your progress will be lost.")) {
