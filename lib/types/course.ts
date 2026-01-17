@@ -6,13 +6,12 @@ export interface Course {
   features: {
     dashboard: boolean;
     modules: boolean;
-    quizzes: boolean;
+    actualquizzes: boolean;
     achievements: boolean;
     numericals: boolean;
     notes: boolean;
     calendar: boolean;
     important: boolean;
-    actualquizzes: boolean;
   };
 
   user: {
@@ -29,7 +28,6 @@ export interface Course {
   };
 
   modules: Module[];
-  quizzes: Quiz[];
   achievements: Achievement[];
   leaderboard: LeaderboardEntry[];
   notes: Note[];
@@ -40,7 +38,7 @@ export interface Course {
 }
 
 export interface Lesson {
-  id: string;
+  id: number | string;
   title: string;
   duration: string;
   isInteractive?: boolean; // optional
@@ -117,7 +115,7 @@ export interface LeaderboardEntry {
   rank: number;
   name: string;
   avatarUrl?: string | null;
-  initial: string;
+  initial?: string;
   tier: string;
   ep: number;
   isUser: boolean;

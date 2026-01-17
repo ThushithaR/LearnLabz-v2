@@ -14,7 +14,7 @@ export const nlp = {
     features: {
         dashboard: true,
         modules: true,
-        quizzes: true,
+        actualquizzes: true,
         achievements: true,
         numericals: true,
         notes: true,

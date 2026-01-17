@@ -1,11 +1,10 @@
-// lib/courses/courseA.ts
-import { Lesson } from "@/lib/types/course";
-import { aimlQuizzes } from "@/lib/quizzes/aiml/quizzes";
+// lib/courses/foundation.ts
+import { Course } from "@/lib/types/course";
 
-export const aiml = {
-  id: "aiml", // use a URL-safe id
-  name: "Artificial Intelligence and Machine Learning",
-  description: "A comprehensive course on Artificial Intelligence and Machine Learning fundamentals.",
+export const foundation = {
+  id: "foundation", // use a URL-safe id
+  name: "Foundation (Class 10)",
+  description: "Basics of Artificial Intelligence and Machine Learning and Natural Language Processing fundamentals.",
 
   features: {
     dashboard: true,
@@ -90,7 +89,7 @@ export const aiml = {
     },
   ],
 
-  actualquizzes: aimlQuizzes,
+  actualquizzes: [],
   achievements: [
     { id: 1, name: "First Steps", icon: "🚀", unlocked: true, desc: "Complete your first lesson" },
     { id: 2, name: "Week Warrior", icon: "🔥", unlocked: true, desc: "Maintain a 7-day streak" },
