@@ -91,12 +91,7 @@ export const aiml = {
   ],
 
   actualquizzes: aimlQuizzes,
-  achievements: [
-    { id: 1, name: "First Steps", icon: "🚀", unlocked: true, desc: "Complete your first lesson" },
-    { id: 2, name: "Week Warrior", icon: "🔥", unlocked: true, desc: "Maintain a 7-day streak" },
-    { id: 3, name: "Quiz Master", icon: "🧠", unlocked: false, desc: "Score 100% on 3 quizzes" },
-    { id: 4, name: "Bug Hunter", icon: "🐛", unlocked: false, desc: "Report a bug" },
-  ],
+  achievements: [],
   leaderboard: [],
     numericals : [
     { id: 402, title: "Optimal Move - Minimax", description: "Game Theory", topic: "Practical", difficulty: "Hard" as const, status: "Pending" as const, xp: 50, topics :["Minimax","Alpha-beta pruning"]},

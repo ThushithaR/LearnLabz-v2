@@ -9,6 +9,7 @@ import { ArrowLeft, Clock, CheckCircle, XCircle, RotateCcw, ChevronLeft, Chevron
 import { cn } from "@/lib/utils";
 import { courses, CourseId } from "@/lib/courses";
 import { getQuizById, submitQuizAttempt } from "@/lib/supabase/quizzes";
+import { recalculateUserLevel } from "@/lib/supabase/achievements";
 import { getCurrentUserProfile } from "@/lib/supabase/profile";
 import { ActualQuizzes, MainQuiz } from "@/lib/types/course";
 import { onQuizCompleted } from "@/lib/supabase/user-courses";
@@ -34,7 +35,7 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
 
     useEffect(() => {
         const course = courses[params.course as CourseId];
-        if (!course || !course.features.quizzes) {
+        if (!course || !course.features.actualquizzes) {
             router.push("/404");
             return;
         }
@@ -183,6 +184,11 @@ export default function QuizSolvePage({ params }: { params: { course: string; id
                     quizData.courseId,
                     quizData.xp // 🎯 XP COMES FROM DB
                 );
+                    // NEW: After XP is added, recalculate level
+                    const levelResult = await recalculateUserLevel(userId, quizData.courseId);
+                    if (levelResult.success && levelResult.newLevel) {
+                    console.log(`🎉 Level up! Now level ${levelResult.newLevel}`);
+                    }
                 }
             } catch (error) {
                 console.error("Failed to submit quiz:", error);

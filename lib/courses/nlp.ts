@@ -169,11 +169,7 @@ export const nlp = {
         }
     ],
     actualquizzes: nlpQuizzes,
-    achievements: [
-        { id: 1, name: "First Token", icon: "🪙", unlocked: true, desc: "Complete your first NLP lesson" },
-        { id: 2, name: "Linguist", icon: "🗣️", unlocked: true, desc: "Maintain a 7-day streak in NLP" },
-        { id: 3, name: "Context King", icon: "👑", unlocked: false, desc: "Score 100% on the Sequence Models quiz" },
-    ],
+    achievements: [],
     numericals: [
         {
             id: 1,

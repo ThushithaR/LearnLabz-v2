@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Calculator, X, CheckCircle, XCircle, ChevronDown, ChevronRight, Sun, ArrowLeft, AlertCircle, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
+import { submitNumericalAttempt } from "@/lib/supabase/numericals"; // Add this import
+import { getCurrentUserProfile } from "@/lib/supabase/profile";
 
 // Graph structure
 interface GraphNode {
@@ -48,6 +50,7 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
   const [isTimerRunning, setIsTimerRunning] = useState(true);
   const [workingPenalty, setWorkingPenalty] = useState(0);
   const [isStarred, setIsStarred] = useState(false);
+  const [userId, setUserId] = useState<number | null>(null); // Add user state
 
   // DFS State
   const [stack, setStack] = useState<number[]>([]);
@@ -62,6 +65,13 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
+      const fetchUser = async () => {
+      const user = await getCurrentUserProfile();
+      if (user) {
+        setUserId(user.user_id);
+      }
+    };
+    fetchUser();
     let interval: NodeJS.Timeout;
     if (isTimerRunning) {
       interval = setInterval(() => {
@@ -198,22 +208,64 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
     setSolution(prev => prev + `\n// Backtrack: Popped ${poppedNode} from stack\n// New stack: [${remainingStack.join(', ')}], Current node: ${newCurrentNode}`);
   };
 
-  const handleSubmit = () => {
-    setIsTimerRunning(false);
+  const handleSubmit = async () => {
+      setIsTimerRunning(false);
 
-    // Check workspace content
-    const content = solution.toLowerCase();
-    const hasKeywords = ["dfs", "stack", "depth", "backtrack", "neighbor"].some(word => content.includes(word));
-    const hasMeaningfulContent = solution.replace(/\/\/ DFS Traversal Notes:[\s\S]*?Algorithm: Depth-First Search\n/g, '').trim().length > 20;
-
-    if (!hasMeaningfulContent || !hasKeywords) {
-      setWorkingPenalty(15);
-    } else {
-      setWorkingPenalty(0);
-    }
-
-    setShowResults(true);
-  };
+      // Check workspace content
+      const content = solution.toLowerCase();
+      const hasKeywords = ["dfs", "stack", "depth", "backtrack", "neighbor"].some(word => content.includes(word));
+      const hasMeaningfulContent = solution.replace(/\/\/ DFS Traversal Notes:[\s\S]*?Algorithm: Depth-First Search\n/g, '').trim().length > 20;
+      if (!hasMeaningfulContent || !hasKeywords) {
+        setWorkingPenalty(15);
+      } else {
+        setWorkingPenalty(0);
+      }
+      // Determine if solution is correct
+      const isCorrect = visitedNodes.length === 5 && isTraversalCorrect;      
+      // Calculate XP (similar to BFS page)
+      const maxXp = 450; // Assuming this from your numericals table
+      let finalScore = 0;      
+      if (visitedNodes.length === 5) {
+        // Base score
+        const base = isTraversalCorrect ? 100 : 70;
+        // Apply penalty
+        const penalized = Math.max(0, base - (hasMeaningfulContent && hasKeywords ? 0 : 15));
+        // Scale to XP
+        finalScore = Math.floor((penalized / 100) * maxXp);
+      } else {
+        // Partial traversal
+        const percentComplete = (visitedNodes.length / 5) * 100;
+        finalScore = Math.floor((percentComplete / 100) * maxXp * 0.5); // 50% of max for partial
+      }
+      // Save to database if user is logged in
+      if (userId) {
+        try {
+          await submitNumericalAttempt({
+            user_id: userId,
+            numerical_id: parseInt(params.id),
+            is_correct: isCorrect,
+            penalty_percent: hasMeaningfulContent && hasKeywords ? 0 : 15,
+            cp: finalScore,
+            time_taken: timer
+          });
+          console.log('DFS attempt saved to database');
+        } catch (error) {
+          console.error('Error saving DFS attempt:', error);
+          // Fallback to localStorage
+          localStorage.setItem(`dfs-attempt-${params.id}-${Date.now()}`, JSON.stringify({
+            userId,
+            numericalId: params.id,
+            isCorrect,
+            finalScore,
+            timeTaken: timer,
+            visitedNodes,
+            traversalOrder: userTraversalOrder,
+            timestamp: new Date().toISOString()
+          }));
+        }
+      }
+      setShowResults(true);
+    };
 
   const handleCalcInput = (btn: string) => {
     if (btn === "C") {
