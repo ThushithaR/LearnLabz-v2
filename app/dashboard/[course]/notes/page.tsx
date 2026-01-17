@@ -233,15 +233,16 @@ const handleCreateNote = async () => {
      SAVE to Supabase (manual)
      ========================= */
   const handleSave = async () => {
-    if (!activeNote) return;
-
+    if (!activeNote || !editorRef.current) return;
+    const html = editorRef.current.innerHTML;
     await updateNoteById(activeNote.id, {
       note_title: activeNote.title,
       note_subtitle: activeNote.subtitle,
       note_type: activeNote.type === "Module" ? "MODULE" : "GENERAL",
-      note_content: { html: activeNote.content },
+      note_content: { html },
     });
-
+    // sync local state AFTER save
+    updateNoteLocal("content", html);
     alert("Notes saved!");
   };
 
@@ -492,7 +493,7 @@ const handleDelete = async () => {
                 id="notes-editor"
                 contentEditable
                 suppressContentEditableWarning
-                onInput={(e) => updateNoteLocal("content", e.currentTarget.innerHTML)}
+                onInput={() => {}}
                 onClick={handleEditorClick}
                 className="w-full min-h-[60vh] bg-transparent text-lg text-textSecondary leading-relaxed focus:outline-none placeholder:text-white/10 prose prose-invert max-w-none [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-xl [&_img]:my-4 [&_img]:border [&_img]:border-white/10 [&_img]:cursor-pointer [&_img]:transition-all [&_img]:select-none [&_img.selected]:ring-4 [&_img.selected]:ring-accent"
               />

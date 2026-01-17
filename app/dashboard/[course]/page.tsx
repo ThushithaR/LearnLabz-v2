@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import DigitalTwinCard from "@/components/ui/DigitalTwinCard";
+// import DigitalTwinCard from "@/components/ui/DigitalTwinCard";
 import {
   ArrowRight,
   Clock,
@@ -151,7 +151,7 @@ export default function CourseDashboardPage({
 
   const activeModule = courseData.modules.find((m) => m.active);
 
-  const unitIdForDigitalTwin = latestQuizUnitId || continueLesson?.lessons?.unit_id || activeModule?.id || 1;
+  // const unitIdForDigitalTwin = latestQuizUnitId || continueLesson?.lessons?.unit_id || activeModule?.id || 1;
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-4 pb-4">
@@ -277,7 +277,7 @@ export default function CourseDashboardPage({
         </Card>
 
         {/* Digital Twin - Between Deadlines and Daily Challenge */}
-        <DigitalTwinCard courseId={courseId} courseSlug={course} unitId={unitIdForDigitalTwin} />
+        {/* <DigitalTwinCard courseId={courseId} courseSlug={course} unitId={unitIdForDigitalTwin} /> */}
 
         {/* Daily Challenge */}
         <Card className="flex flex-col p-0 overflow-hidden border border-white/5 bg-gradient-to-br from-white/[0.07] to-transparent hover:from-white/[0.1] transition-all group backdrop-blur-md shadow-lg shadow-black/20 rounded-xl">

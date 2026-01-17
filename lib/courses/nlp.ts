@@ -44,7 +44,7 @@ export const nlp = {
             active: true,
             lessons: [
                 {
-                    id: "1.1",
+                    id: 1,
                     title: "What is NLP?",
                     duration: "10 min",
                     content: {
@@ -70,7 +70,7 @@ export const nlp = {
                     quiz: lessonQuizzesData["1.1"]
                 },
                 {
-                    id: "1.2",
+                    id: 2,
                     title: "History of NLP",
                     duration: "15 min",
                     content: {
@@ -95,13 +95,13 @@ export const nlp = {
                     }
                 },
                 {
-                    id: "1.3",
+                    id: 3,
                     title: "Data Acquisition Strategies",
                     duration: "25 min",
                     content: dataAcquisitionContent
                 },
                 {
-                    id: "1.4",
+                    id: 4,
                     title: "Real-world Problem Statement",
                     duration: "20 min",
                     content: {
@@ -130,14 +130,14 @@ export const nlp = {
             isLocked: false,
             lessons: [
                 { 
-                    id: "2.1", 
+                    id: 5, 
                     title: "Accessing Text Corpora", 
                     duration: "20 min", 
                     content: AccessingTextCorpora,
                     quiz: lessonQuizzesData["2.1"]
                 },
                 { 
-                    id: "2.2", 
+                    id: 6, 
                     title: "Brown Corpus", 
                     duration: "10 min", 
                     content: BrownCorpus,

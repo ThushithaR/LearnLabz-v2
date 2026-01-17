@@ -18,7 +18,7 @@ import { GutenbergExplorerPanel, ExplorerButton } from "@/components/GutenbergEx
 import { ModuleProgress } from "@/lib/types/progress";
 import { getLessonProgress, getLessonProgressByUnit, upsertLessonProgress, updateUnitProgress } from "@/lib/supabase/progress";
 import { supabase } from "@/lib/supabase/client";
-import { getUserNotes, createNote } from "@/lib/supabase/notes";
+import { getUserNotes, createNote,upsertNote } from "@/lib/supabase/notes";
 
 export default function LessonPage({ params }: { params: { course: string; id: string } }) {
   const { course, id } = params;
@@ -41,6 +41,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [notesOpen, setNotesOpen] = useState(true); // Right panel state
 
+  const [currentEditingNoteId, setCurrentEditingNoteId] = useState<number | null>(null);
   // Deep link: /modules/:unitId?lesson=<lesson title>
   useEffect(() => {
     if (!moduleData || !lessonParam) return;
@@ -305,19 +306,6 @@ export default function LessonPage({ params }: { params: { course: string; id: s
   if (!moduleData) return <div>Module not found</div>;
 
   const lessonData: Lesson = moduleData.lessons[selectedLessonIdx];
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (hasStarted && !isPaused && !showQuizResults) {
-      interval = setInterval(() => {
-        setLessonTime(prev => prev + 1);
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [hasStarted, isPaused, showQuizResults]);
-
   // Format Timer
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -630,12 +618,18 @@ export default function LessonPage({ params }: { params: { course: string; id: s
   // Reload notes function
   const reloadNotes = async () => {
     if (!userId) return;
-
-    const { data } = await getUserNotes(userId, COURSE_ID_MAP[course as keyof typeof COURSE_ID_MAP]);
-
-    if (data) {
-      setNotes(data);
-      setShowNotesModal(true); // Open modal to display reloaded notes
+    try {
+      const { data, error } = await getUserNotes(userId, COURSE_ID_MAP[course as keyof typeof COURSE_ID_MAP]);
+      if (error) {
+        console.error("Failed to load notes:", error);
+        return;
+      }
+      if (data) {
+        setNotes(data);
+        // No need to auto-open modal here - handleSaveNotes will do it
+      }
+    } catch (err) {
+      console.error("Error reloading notes:", err);
     }
   };
 
@@ -659,43 +653,234 @@ export default function LessonPage({ params }: { params: { course: string; id: s
     input.click();
   };
 
-  const handleSaveNotes = async () => {
+const handleSaveNotes = async () => {
   if (!userId || !moduleData) {
     alert("User not loaded yet");
     return;
   }
   const editor = document.getElementById("module-notes-editor");
-  if (!editor) return;
+  if (!editor) {
+    alert("Notes editor not found");
+    return;
+  }
   const content = editor.innerHTML;
   if (!content.trim()) {
     alert("Please write something first.");
     return;
   }
-  const courseId = COURSE_ID_MAP[course as keyof typeof COURSE_ID_MAP];
-  const { error } = await supabase.from("notes").insert({
-    user_id: userId,
-    course_id: courseId,
-    note_type: "MODULE",
-    title: lessonData.title,
-    subtitle: "",
-    content: {
-      html: content,
-      module_id: moduleData.id,
-      lesson_id: lessonData.id,
-    },
-    note_attachments: null,
-    source: "MANUAL",
-  });
-  if (error) {
-    console.error("Error saving note:", error);
+  try {
+    const courseId = COURSE_ID_MAP[course as keyof typeof COURSE_ID_MAP];
+    
+    console.log("=== DEBUG: Saving note ===");
+    console.log("User ID:", userId);
+    console.log("Course ID:", courseId);
+    console.log("Module ID:", moduleData.id);
+    console.log("Lesson ID:", lessonData.id);
+    console.log("Current editing note ID:", currentEditingNoteId);
+    // Create note content
+    const noteContent: any = { 
+      html: content
+    };
+    // Check if we have a specific note ID we're editing
+    if (currentEditingNoteId) {
+      console.log("Updating specific note ID:", currentEditingNoteId); 
+      // First, get the note to check its type and original title
+      const { data: existingNote, error: fetchError } = await supabase
+        .from("notes")
+        .select("*")
+        .eq("note_id", currentEditingNoteId)
+        .single();
+      if (fetchError) {
+        console.error("Error fetching note:", fetchError);
+        alert("Failed to fetch note details");
+        return;
+      }
+      let updates: any = {
+        note_content: noteContent,
+      };      
+      // Only update the title if it's a MODULE note
+      // For GENERAL notes, don't update the title at all
+      if (existingNote.note_type === "MODULE") {
+        // For MODULE notes, add module_id and lesson_id to content
+        noteContent.module_id = moduleData.id;
+        noteContent.lesson_id = Number(lessonData.id);
+        // Only update title for MODULE notes with the lesson title
+        updates.note_title = lessonData.title;
+      }
+      // For GENERAL notes, don't update the title - keep original
+      // Also don't add module_id and lesson_id to GENERAL notes 
+      const { data, error } = await supabase
+        .from("notes")
+        .update(updates)
+        .eq("note_id", currentEditingNoteId)
+        .select()
+        .single();
+      if (error) {
+        console.error("Error updating note:", error);
+        alert("Failed to update note");
+        return;
+      }
+      console.log("Note updated successfully:", data);
+      alert("Note updated successfully!");
+      // Clear the editing note ID
+      setCurrentEditingNoteId(null);
+    } else {
+      // If no specific note ID, check if a MODULE note already exists for this lesson
+      const { data: existingModuleNotes } = await supabase
+        .from("notes")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("course_id", courseId)
+        .eq("note_type", "MODULE");
+      if (existingModuleNotes) {
+        // Find existing MODULE note for this lesson
+        const existingNote = existingModuleNotes.find(note => {
+          try {
+            let content: any;
+            if (typeof note.note_content === 'string') {
+              try {
+                content = JSON.parse(note.note_content);
+              } catch {
+                content = { html: note.note_content };
+              }
+            } else {
+              content = note.note_content;
+            }
+            return content?.module_id === moduleData.id && 
+                   content?.lesson_id === lessonData.id;
+          } catch {
+            return false;
+          }
+        });
+        if (existingNote) {
+          console.log("Found existing MODULE note to update:", existingNote.note_id);
+          // Update existing MODULE note
+          noteContent.module_id = moduleData.id;
+          noteContent.lesson_id = Number(lessonData.id);
+          const { data, error } = await supabase
+            .from("notes")
+            .update({
+              note_title: lessonData.title,
+              note_content: noteContent,
+            })
+            .eq("note_id", existingNote.note_id)
+            .select()
+            .single();
+          if (error) {
+            console.error("Error updating note:", error);
+            alert("Failed to update note");
+            return;
+          }
+          console.log("Note updated successfully:", data);
+          alert("Note updated successfully!");
+        } else {
+          // Create new MODULE note
+          noteContent.module_id = moduleData.id;
+          noteContent.lesson_id = Number(lessonData.id);
+          const { data, error } = await supabase
+            .from("notes")
+            .insert({
+              user_id: userId,
+              course_id: courseId,
+              note_type: "MODULE",
+              note_title: lessonData.title, // Use lesson title for new MODULE notes
+              note_subtitle: "",
+              note_content: noteContent,
+              source: "MANUAL"
+            })
+            .select()
+            .single();
+          if (error) {
+            console.error("Error creating note:", error);
+            alert("Failed to create note");
+            return;
+          }
+          console.log("Note created successfully:", data);
+          alert("Note created successfully!");
+        }
+      }
+    }
+    // Reload notes to get the updated list
+    await reloadNotes();
+    // Open notes modal
+    setShowNotesModal(true);
+  } catch (err) {
+    console.error("Error in save notes:", err);
     alert("Failed to save note");
-    return;
   }
-  alert("Note saved successfully!");
-  editor.innerHTML = "";
-  // Reload notes to reflect the new note
-  reloadNotes();
+};
+// Load existing note content when lesson changes
+useEffect(() => {
+  const loadExistingNote = async () => {
+    if (!userId || !moduleData || !lessonData) return;
+    console.log("=== DEBUG: Loading note for lesson ===");
+    console.log("Module ID:", moduleData.id);
+    console.log("Lesson ID:", lessonData.id);
+    // Reset editing note ID when lesson changes
+    setCurrentEditingNoteId(null);
+    // Check local notes state first
+    let existingNote = notes.find(note => {
+      if (note.note_type !== "MODULE") return false;
+      try {
+        const content = typeof note.note_content === 'string' 
+          ? JSON.parse(note.note_content) 
+          : note.note_content;
+        return content?.module_id === moduleData.id && 
+               content?.lesson_id === lessonData.id;
+      } catch {
+        return false;
+      }
+    });
+    // If not found locally, check database
+    if (!existingNote && userId) {
+      const courseId = COURSE_ID_MAP[course as keyof typeof COURSE_ID_MAP];
+      const { data: dbNotes } = await supabase
+        .from("notes")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("course_id", courseId)
+        .eq("note_type", "MODULE");
+      if (dbNotes) {
+        existingNote = dbNotes.find(note => {
+          try {
+            const content = typeof note.note_content === 'string' 
+              ? JSON.parse(note.note_content) 
+              : note.note_content;
+            
+            return content?.module_id === moduleData.id && 
+                   content?.lesson_id === lessonData.id;
+          } catch {
+            return false;
+          }
+        });
+      }
+    }
+    console.log("Found existing note:", existingNote);
+    const editor = document.getElementById('module-notes-editor');
+    if (editor) {
+      if (existingNote) {
+        // Load existing note content
+        let htmlContent = '';
+        if (typeof existingNote.note_content === 'object' && existingNote.note_content !== null) {
+          htmlContent = existingNote.note_content.html || '';
+        } else if (typeof existingNote.note_content === 'string') {
+          try {
+            const parsed = JSON.parse(existingNote.note_content);
+            htmlContent = parsed.html || '';
+          } catch {
+            htmlContent = existingNote.note_content || '';
+          }
+        }
+        console.log("Loading HTML content length:", htmlContent.length);
+        editor.innerHTML = htmlContent;
+      } else {
+        console.log("No existing note found, clearing editor");
+        editor.innerHTML = '';
+      }
+    }
   };
+  loadExistingNote();
+}, [selectedLessonIdx, userId, moduleData, lessonData, notes]);
 
   const handleTextSelection = () => {
     const selection = window.getSelection();
@@ -1875,6 +2060,12 @@ const handleSaveSelection = () => {
                       suppressContentEditableWarning
                       onClick={handleSmartEditorClick}
                       id="module-notes-editor"
+                      style={{ 
+                        maxHeight: '400px',
+                        overflowY: 'auto',
+                        scrollbarWidth: 'thin',
+                        scrollbarColor: 'rgba(255,255,255,0.3) transparent'
+                      }}
                     ></div>
 
                     {selectedSmartImg && (
@@ -1970,16 +2161,19 @@ const handleSaveSelection = () => {
                             <h3 className="font-medium text-textPrimary">{note.note_title || note.title || 'Untitled Note'}</h3>
                           </div>
                           <Button size="sm" variant="ghost" className="text-xs" onClick={(e) => { 
-                            e.stopPropagation(); 
-                            setShowNotesModal(false); 
-                            const editor = document.getElementById('module-notes-editor'); 
-                            if (editor) { 
-                              const htmlContent = typeof note.note_content === 'object' ? note.note_content?.html : (typeof note.content === 'object' ? note.content?.html : note.note_content || note.content || '');
-                              editor.innerHTML = htmlContent || ''; 
-                            } 
-                          }}>
-                            Edit
-                          </Button>
+                              e.stopPropagation(); 
+                              setShowNotesModal(false); 
+                              const editor = document.getElementById('module-notes-editor'); 
+                              if (editor) { 
+                                const htmlContent = typeof note.note_content === 'object' ? note.note_content?.html : (typeof note.content === 'object' ? note.content?.html : note.note_content || note.content || '');
+                                editor.innerHTML = htmlContent || ''; 
+                                
+                                // Store the note ID we're editing
+                                setCurrentEditingNoteId(note.note_id);
+                              } 
+                            }}>
+                              Edit
+                            </Button>
                         </div>
                         {(note.created_at || note.note_created_at) && (
                           <p className="text-xs text-textSecondary mt-2">
