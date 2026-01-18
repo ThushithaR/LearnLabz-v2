@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Warm Scholarly Theme - Default */
+  --bg-primary: #0A0908;
+  --bg-secondary: #22333B;
+  --bg-highlight: #5E503F;
+  --text-primary: #EAE0D5;
+  --text-secondary: #ADB5BD;
+  --accent-primary: #C6AC8F;
+  --accent-hover: #D8C3A5;
+  --success: #6B9080;
+  --error: #BC4749;
+  --font-sans: 'Outfit', sans-serif;
+}
+
+/* Vintage Parchment (Light Beige/Cream) */
+[data-theme='natural'] {
+  --bg-primary: #F0EAD6;
+  --bg-secondary: #E6DCC5;
+  --bg-highlight: #D4C5A9;
+  --text-primary: #3E3B39;
+  --text-secondary: #8C8681;
+  --accent-primary: #A44A3F;
+  --accent-hover: #8A3D34;
+}
+
+/* Midnight Modern (Deep Blue/Purple) */
+[data-theme='modern'] {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-highlight: #334155;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --accent-primary: #8b5cf6;
+  --accent-hover: #7c3aed;
+}
+
+/* Minimalist Slate (Neutral/Gray) */
+[data-theme='neutral'] {
+  --bg-primary: #f9fafb;
+  --bg-secondary: #ffffff;
+  --bg-highlight: #f3f4f6;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --accent-primary: #4b5563;
+  --accent-hover: #374151;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+.glass-panel {
+  background: rgba(34, 51, 59, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(198, 172, 143, 0.1);
+}
+
+.text-gradient {
+  background: linear-gradient(to right, #C6AC8F, #EAE0D5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  border-color: var(--accent-primary);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--bg-highlight);
+}
+
+@layer utilities {
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-20px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
