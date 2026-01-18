@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useCourse } from "@/lib/context/CourseContext";
-import { ArrowRight, BrainCircuit, MessageSquareText } from "lucide-react";
+import { ArrowRight, BrainCircuit, MessageSquareText, BookOpen } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { COURSE_ID_MAP } from "@/lib/courses";
 import { updateUserStreakOnLogin } from "@/lib/supabase/streak";
@@ -15,18 +15,18 @@ export default function HomePage() {
   const { setSelectedCourse } = useCourse();
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<number | null>(null);
-
+  
   // Strak logic
   useEffect(() => {
-    const init = async () => {
-      const userIdStr = localStorage.getItem("user_id");
-      if (!userIdStr) return;
+  const init = async () => {
+    const userIdStr = localStorage.getItem("user_id");
+    if (!userIdStr) return;
 
-      const userId = parseInt(userIdStr);
-      await updateUserStreakOnLogin(userId);
-    };
+    const userId = parseInt(userIdStr);
+    await updateUserStreakOnLogin(userId);
+  };
 
-    init();
+  init();
   }, []);
 
   // 🔐 Protect Home Page
@@ -37,23 +37,14 @@ export default function HomePage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.replace("/login");
+        router.replace("/login"); // block access
         return;
       }
 
-      // Fetch actual user profile to get integer ID
-      const { data: profile } = await supabase
-        .from("users")
-        .select("user_id")
-        .eq("auth_user_id", user.id)
-        .single();
-
-      if (profile) {
-        setUserId(profile.user_id);
-        // Sync local storage just in case
-        localStorage.setItem("user_id", profile.user_id.toString());
-      } else {
-        console.error("User profile not found for auth ID:", user.id);
+      // Get the user's actual ID from the profile
+      const userIdStr = localStorage.getItem("user_id");
+      if (userIdStr) {
+        setUserId(parseInt(userIdStr));
       }
 
       setLoading(false);
@@ -62,27 +53,19 @@ export default function HomePage() {
     checkUser();
   }, [router]);
 
-  const handleCourseSelect = async (course: "aiml" | "nlp") => {
+  const handleCourseSelect = async (course: "aiml" | "nlp" | "foundation") => {
     setSelectedCourse(course);
-
+    
     // Save course enrollment to database
     if (userId) {
       try {
         const courseId = COURSE_ID_MAP[course];
-        console.log(`Enrolling user ${userId} into course ${courseId}...`);
-
-        const result = await enrollUserInCourse(userId, courseId);
-
-        if (result.error) {
-          console.error("Enrollment error details:", result.error);
-        } else {
-          console.log("Enrollment success FULL DATA:", JSON.stringify(result.data, null, 2));
-        }
+        await enrollUserInCourse(userId, courseId);
       } catch (error) {
         console.error("Failed to enroll user in course:", error);
       }
     }
-
+    
     router.push(`/dashboard/${course}`);
   };
 
@@ -119,12 +102,13 @@ export default function HomePage() {
         </div>
 
         {/* Course Cards */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* AI/ML Card */}
           <Card
-            className="p-6 border border-white/10 bg-surface/50 hover:border-accent/40 hover:bg-accent/5 transition-all cursor-pointer group"
-            onClick={() => handleCourseSelect("aiml")}
-          >
+              className="relative p-6 rounded-2xl bg-[var(--bg-secondary)] border border-white/10 shadow-md transition-all duration-300 ease-out hover:shadow-xl hover:border-[var(--accent-primary)] cursor-pointer overflow-hidden group"
+              onClick={() => handleCourseSelect("aiml")}
+            >
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent opacity-40" />
             <div className="flex flex-col items-center text-center space-y-4">
               <div className="w-12 h-12 rounded-lg bg-accent/20 flex items-center justify-center group-hover:bg-accent/30 transition-colors">
                 <BrainCircuit className="w-6 h-6 text-accent" />
@@ -143,9 +127,10 @@ export default function HomePage() {
 
           {/* NLP Card */}
           <Card
-            className="p-6 border border-white/10 bg-surface/50 hover:border-accent/40 hover:bg-accent/5 transition-all cursor-pointer group"
-            onClick={() => handleCourseSelect("nlp")}
-          >
+              className="relative p-6 rounded-2xl bg-[var(--bg-secondary)] border border-white/10 shadow-md transition-all duration-300 ease-out hover:shadow-xl hover:border-[var(--accent-primary)] cursor-pointer overflow-hidden group"
+              onClick={() => handleCourseSelect("nlp")}
+            >
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent opacity-40" />
             <div className="flex flex-col items-center text-center space-y-4">
               <div className="w-12 h-12 rounded-lg bg-highlight/20 flex items-center justify-center group-hover:bg-highlight/30 transition-colors">
                 <MessageSquareText className="w-6 h-6 text-accent" />
@@ -161,14 +146,35 @@ export default function HomePage() {
               <ArrowRight className="w-4 h-4 text-textSecondary group-hover:text-accent group-hover:translate-x-1 transition-all" />
             </div>
           </Card>
-        </div>
 
+        {/* Foundation Card */}
+        <Card
+              className="relative p-6 rounded-2xl bg-[var(--bg-secondary)] border border-white/10 shadow-md transition-all duration-300 ease-out hover:shadow-xl hover:border-[var(--accent-primary)] cursor-pointer overflow-hidden group"
+              onClick={() => handleCourseSelect("foundation")}
+            >
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent opacity-40" />
+          <div className="flex flex-col items-center text-center space-y-4">
+            <div className="w-12 h-12 rounded-lg bg-highlight/20 flex items-center justify-center group-hover:bg-highlight/30 transition-colors">
+              <BookOpen className="w-6 h-6 text-accent" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-textPrimary group-hover:text-accent transition-colors">
+                Foundation (Class 10)
+              </h3>
+              <p className="text-sm text-textSecondary mt-1">
+                Foundation of AIML and NLP
+              </p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-textSecondary group-hover:text-accent group-hover:translate-x-1 transition-all" />
+          </div>
+        </Card>
+        </div>
         {/* Bottom note */}
         <div className="text-center">
           <p className="text-sm text-textSecondary">
             Not sure?{" "}
-            <span className="text-accent">Start with AI & ML</span>{" "}
-            for a comprehensive foundation.
+            <span className="text-accent">Start with Foundation</span>{" "}
+            for a comprehensive understanding.
           </p>
         </div>
       </div>

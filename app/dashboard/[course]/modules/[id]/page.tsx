@@ -12,13 +12,13 @@ import { Course, Module, Lesson, ProblemStatementContent } from "@/lib/types/cou
 import { useCourse } from "@/lib/context/CourseContext";
 import { ProblemStatement } from "@/lib/content/nlp/unit1/problemStatement";
 import InteractiveCodeWalkthrough from "@/lib/content/nlp/unit2/InteractiveCodeWalkthrough";
-import { ChevronLeft, ChevronRight, Clock, BookOpen, CheckCircle2, Save, FileText, ArrowLeft, X, PauseCircle, PlayCircle, Image as ImageIcon, Star, RotateCw } from "lucide-react";
+import {ChevronLeft,ChevronRight,Clock,BookOpen,CheckCircle2,Save,FileText,ArrowLeft,X,PauseCircle,PlayCircle,Image as ImageIcon,Star,RotateCw} from "lucide-react";
 import { GutenbergExplorerProvider } from "@/lib/context/GutenbergExplorerContext";
 import { GutenbergExplorerPanel, ExplorerButton } from "@/components/GutenbergExplorer";
 import { ModuleProgress } from "@/lib/types/progress";
 import { getLessonProgress, getLessonProgressByUnit, upsertLessonProgress, updateUnitProgress } from "@/lib/supabase/progress";
 import { supabase } from "@/lib/supabase/client";
-import { getUserNotes, createNote, upsertNote } from "@/lib/supabase/notes";
+import { getUserNotes, createNote,upsertNote } from "@/lib/supabase/notes";
 
 export default function LessonPage({ params }: { params: { course: string; id: string } }) {
   const { course, id } = params;
@@ -91,20 +91,20 @@ export default function LessonPage({ params }: { params: { course: string; id: s
   // Module progress state
   const progressKey = `module_progress_${course}_${moduleData?.id}`;
   const [moduleProgress, setModuleProgress] = useState<ModuleProgress>({
-    totalReadingTime: 0,
-    lessons: {},
+  totalReadingTime: 0,
+  lessons: {},
   });
   // Lesson time tracking - per lesson
   const [lessonTime, setLessonTime] = useState(0);
   const [lessonTimeMap, setLessonTimeMap] = useState<Record<string, number>>({}); // Track time for each lesson
 
   // Initialize these states
-  useEffect(() => {
-    if (moduleData) {
-      setLessonQuizScores(new Array(moduleData.lessons.length).fill(0));
-      setLessonQuizCompleted(new Array(moduleData.lessons.length).fill(false));
-    }
-  }, [moduleData]);
+    useEffect(() => {
+      if (moduleData) {
+        setLessonQuizScores(new Array(moduleData.lessons.length).fill(0));
+        setLessonQuizCompleted(new Array(moduleData.lessons.length).fill(false));
+      }
+    }, [moduleData]);
 
   useEffect(() => {
     // Reset quiz state when lesson changes
@@ -119,7 +119,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
       }
     }
   }, [selectedLessonIdx, activeTab]);
-
+  
   // Reset lesson time when switching lessons
   useEffect(() => {
     if (!moduleData) return;
@@ -131,7 +131,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
       setLessonTime(0);
     }
   }, [selectedLessonIdx, moduleData, lessonTimeMap]);
-
+  
   // Timer for current lesson only
   useEffect(() => {
     if (!hasStarted || isPaused || showQuizResults || activeTab === "quiz") return;
@@ -185,7 +185,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
               completed[lessonIdx] = lessonProgress.completed || false;
               // Store time for this specific lesson
               timeMap[lessonProgress.lesson_id.toString()] = lessonProgress.lesson_time_spent_sec || 0;
-
+              
               // Track the last completed lesson
               if (lessonProgress.completed) {
                 lastCompletedIdx = lessonIdx;
@@ -195,7 +195,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
 
           setCompletedLessons(completed);
           setLessonTimeMap(timeMap);
-
+          
           // Start from the next incomplete lesson or the first incomplete one
           if (lastCompletedIdx !== -1 && lastCompletedIdx < moduleData.lessons.length - 1) {
             setSelectedLessonIdx(lastCompletedIdx + 1);
@@ -275,7 +275,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
     return false;
   };
 
-  // Fix the handleQuizNext function
+// Fix the handleQuizNext function
   const handleQuizNext = () => {
     // Check if there's a lesson quiz
     if (lessonData.quiz) {
@@ -293,7 +293,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
           return;
         }
       }
-    }
+    } 
     // For module quiz (mock 3 questions)
     else if (isModuleQuiz) {
       if (currentQuizQuestion < 2) {
@@ -363,7 +363,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
       const scrollTop = scrollRef.current.scrollTop;
       const scrollHeight = scrollRef.current.scrollHeight;
       const clientHeight = scrollRef.current.clientHeight;
-      const progress = ((scrollTop + clientHeight) / scrollHeight) * 100;
+      const progress = ((scrollTop + clientHeight) / scrollHeight) * 100;      
       if (progress >= 90 && !readCompleted) {
         setReadCompleted(true);
       }
@@ -379,11 +379,11 @@ export default function LessonPage({ params }: { params: { course: string; id: s
       updated[selectedLessonIdx] = true;
       return updated;
     });
-
+    
     // Mark this lesson as completed
     setIsLessonCompleted(true);
     setScrollProgress(100);
-
+    
     // Save current lesson progress to database
     if (userId && moduleData && lessonData) {
       try {
@@ -441,7 +441,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
     setQuizStarted(true);
     setQuizLocked(true);
     setIsModuleQuiz(false);
-
+    
     // Initialize answers for lesson quiz
     if (lessonData.quiz) {
       setQuizAnswers(new Array(lessonData.quiz.length).fill(-1));
@@ -454,12 +454,12 @@ export default function LessonPage({ params }: { params: { course: string; id: s
 
   const handleStartModuleQuiz = () => {
     const allLessonsCompleted = completedLessons.every(c => c);
-
+    
     if (!allLessonsCompleted) {
       alert("Please complete all lessons before taking the module quiz!");
       return;
     }
-
+    
     setQuizStarted(true);
     setQuizLocked(true);
     setIsModuleQuiz(true);
@@ -477,7 +477,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
       // Check if this is the final lesson AND all lessons are completed
       const isFinalLesson = selectedLessonIdx === moduleData.lessons.length - 1;
       const allLessonsCompleted = completedLessons.every(c => c);
-
+      
       if (isFinalLesson && allLessonsCompleted) {
         // Show module quiz (requires completion)
         handleStartModuleQuiz();
@@ -702,234 +702,234 @@ export default function LessonPage({ params }: { params: { course: string; id: s
     input.click();
   };
 
-  const handleSaveNotes = async () => {
-    if (!userId || !moduleData) {
-      alert("User not loaded yet");
-      return;
-    }
-    const editor = document.getElementById("module-notes-editor");
-    if (!editor) {
-      alert("Notes editor not found");
-      return;
-    }
-    const content = editor.innerHTML;
-    if (!content.trim()) {
-      alert("Please write something first.");
-      return;
-    }
-    try {
-      const courseId = COURSE_ID_MAP[course as keyof typeof COURSE_ID_MAP];
-
-      console.log("=== DEBUG: Saving note ===");
-      console.log("User ID:", userId);
-      console.log("Course ID:", courseId);
-      console.log("Module ID:", moduleData.id);
-      console.log("Lesson ID:", lessonData.id);
-      console.log("Current editing note ID:", currentEditingNoteId);
-      // Create note content
-      const noteContent: any = {
-        html: content
-      };
-      // Check if we have a specific note ID we're editing
-      if (currentEditingNoteId) {
-        console.log("Updating specific note ID:", currentEditingNoteId);
-        // First, get the note to check its type and original title
-        const { data: existingNote, error: fetchError } = await supabase
-          .from("notes")
-          .select("*")
-          .eq("note_id", currentEditingNoteId)
-          .single();
-        if (fetchError) {
-          console.error("Error fetching note:", fetchError);
-          alert("Failed to fetch note details");
-          return;
-        }
-        let updates: any = {
-          note_content: noteContent,
-        };
-        // Only update the title if it's a MODULE note
-        // For GENERAL notes, don't update the title at all
-        if (existingNote.note_type === "MODULE") {
-          // For MODULE notes, add module_id and lesson_id to content
+const handleSaveNotes = async () => {
+  if (!userId || !moduleData) {
+    alert("User not loaded yet");
+    return;
+  }
+  const editor = document.getElementById("module-notes-editor");
+  if (!editor) {
+    alert("Notes editor not found");
+    return;
+  }
+  const content = editor.innerHTML;
+  if (!content.trim()) {
+    alert("Please write something first.");
+    return;
+  }
+  try {
+    const courseId = COURSE_ID_MAP[course as keyof typeof COURSE_ID_MAP];
+    
+    console.log("=== DEBUG: Saving note ===");
+    console.log("User ID:", userId);
+    console.log("Course ID:", courseId);
+    console.log("Module ID:", moduleData.id);
+    console.log("Lesson ID:", lessonData.id);
+    console.log("Current editing note ID:", currentEditingNoteId);
+    // Create note content
+    const noteContent: any = { 
+      html: content
+    };
+    // Check if we have a specific note ID we're editing
+    if (currentEditingNoteId) {
+      console.log("Updating specific note ID:", currentEditingNoteId); 
+      // First, get the note to check its type and original title
+      const { data: existingNote, error: fetchError } = await supabase
+        .from("notes")
+        .select("*")
+        .eq("note_id", currentEditingNoteId)
+        .single();
+      if (fetchError) {
+        console.error("Error fetching note:", fetchError);
+        alert("Failed to fetch note details");
+        return;
+      }
+      let updates: any = {
+        note_content: noteContent,
+      };      
+      // Only update the title if it's a MODULE note
+      // For GENERAL notes, don't update the title at all
+      if (existingNote.note_type === "MODULE") {
+        // For MODULE notes, add module_id and lesson_id to content
+        noteContent.module_id = moduleData.id;
+        noteContent.lesson_id = Number(lessonData.id);
+        // Only update title for MODULE notes with the lesson title
+        updates.note_title = lessonData.title;
+      }
+      // For GENERAL notes, don't update the title - keep original
+      // Also don't add module_id and lesson_id to GENERAL notes 
+      const { data, error } = await supabase
+        .from("notes")
+        .update(updates)
+        .eq("note_id", currentEditingNoteId)
+        .select()
+        .single();
+      if (error) {
+        console.error("Error updating note:", error);
+        alert("Failed to update note");
+        return;
+      }
+      console.log("Note updated successfully:", data);
+      alert("Note updated successfully!");
+      // Clear the editing note ID
+      setCurrentEditingNoteId(null);
+    } else {
+      // If no specific note ID, check if a MODULE note already exists for this lesson
+      const { data: existingModuleNotes } = await supabase
+        .from("notes")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("course_id", courseId)
+        .eq("note_type", "MODULE");
+      if (existingModuleNotes) {
+        // Find existing MODULE note for this lesson
+        const existingNote = existingModuleNotes.find(note => {
+          try {
+            let content: any;
+            if (typeof note.note_content === 'string') {
+              try {
+                content = JSON.parse(note.note_content);
+              } catch {
+                content = { html: note.note_content };
+              }
+            } else {
+              content = note.note_content;
+            }
+            return content?.module_id === moduleData.id && 
+                   content?.lesson_id === lessonData.id;
+          } catch {
+            return false;
+          }
+        });
+        if (existingNote) {
+          console.log("Found existing MODULE note to update:", existingNote.note_id);
+          // Update existing MODULE note
           noteContent.module_id = moduleData.id;
           noteContent.lesson_id = Number(lessonData.id);
-          // Only update title for MODULE notes with the lesson title
-          updates.note_title = lessonData.title;
-        }
-        // For GENERAL notes, don't update the title - keep original
-        // Also don't add module_id and lesson_id to GENERAL notes 
-        const { data, error } = await supabase
-          .from("notes")
-          .update(updates)
-          .eq("note_id", currentEditingNoteId)
-          .select()
-          .single();
-        if (error) {
-          console.error("Error updating note:", error);
-          alert("Failed to update note");
-          return;
-        }
-        console.log("Note updated successfully:", data);
-        alert("Note updated successfully!");
-        // Clear the editing note ID
-        setCurrentEditingNoteId(null);
-      } else {
-        // If no specific note ID, check if a MODULE note already exists for this lesson
-        const { data: existingModuleNotes } = await supabase
-          .from("notes")
-          .select("*")
-          .eq("user_id", userId)
-          .eq("course_id", courseId)
-          .eq("note_type", "MODULE");
-        if (existingModuleNotes) {
-          // Find existing MODULE note for this lesson
-          const existingNote = existingModuleNotes.find(note => {
-            try {
-              let content: any;
-              if (typeof note.note_content === 'string') {
-                try {
-                  content = JSON.parse(note.note_content);
-                } catch {
-                  content = { html: note.note_content };
-                }
-              } else {
-                content = note.note_content;
-              }
-              return content?.module_id === moduleData.id &&
-                content?.lesson_id === lessonData.id;
-            } catch {
-              return false;
-            }
-          });
-          if (existingNote) {
-            console.log("Found existing MODULE note to update:", existingNote.note_id);
-            // Update existing MODULE note
-            noteContent.module_id = moduleData.id;
-            noteContent.lesson_id = Number(lessonData.id);
-            const { data, error } = await supabase
-              .from("notes")
-              .update({
-                note_title: lessonData.title,
-                note_content: noteContent,
-              })
-              .eq("note_id", existingNote.note_id)
-              .select()
-              .single();
-            if (error) {
-              console.error("Error updating note:", error);
-              alert("Failed to update note");
-              return;
-            }
-            console.log("Note updated successfully:", data);
-            alert("Note updated successfully!");
-          } else {
-            // Create new MODULE note
-            noteContent.module_id = moduleData.id;
-            noteContent.lesson_id = Number(lessonData.id);
-            const { data, error } = await supabase
-              .from("notes")
-              .insert({
-                user_id: userId,
-                course_id: courseId,
-                note_type: "MODULE",
-                note_title: lessonData.title, // Use lesson title for new MODULE notes
-                note_subtitle: "",
-                note_content: noteContent,
-                source: "MANUAL"
-              })
-              .select()
-              .single();
-            if (error) {
-              console.error("Error creating note:", error);
-              alert("Failed to create note");
-              return;
-            }
-            console.log("Note created successfully:", data);
-            alert("Note created successfully!");
+          const { data, error } = await supabase
+            .from("notes")
+            .update({
+              note_title: lessonData.title,
+              note_content: noteContent,
+            })
+            .eq("note_id", existingNote.note_id)
+            .select()
+            .single();
+          if (error) {
+            console.error("Error updating note:", error);
+            alert("Failed to update note");
+            return;
           }
+          console.log("Note updated successfully:", data);
+          alert("Note updated successfully!");
+        } else {
+          // Create new MODULE note
+          noteContent.module_id = moduleData.id;
+          noteContent.lesson_id = Number(lessonData.id);
+          const { data, error } = await supabase
+            .from("notes")
+            .insert({
+              user_id: userId,
+              course_id: courseId,
+              note_type: "MODULE",
+              note_title: lessonData.title, // Use lesson title for new MODULE notes
+              note_subtitle: "",
+              note_content: noteContent,
+              source: "MANUAL"
+            })
+            .select()
+            .single();
+          if (error) {
+            console.error("Error creating note:", error);
+            alert("Failed to create note");
+            return;
+          }
+          console.log("Note created successfully:", data);
+          alert("Note created successfully!");
         }
       }
-      // Reload notes to get the updated list
-      await reloadNotes();
-      // Open notes modal
-      setShowNotesModal(true);
-    } catch (err) {
-      console.error("Error in save notes:", err);
-      alert("Failed to save note");
+    }
+    // Reload notes to get the updated list
+    await reloadNotes();
+    // Open notes modal
+    setShowNotesModal(true);
+  } catch (err) {
+    console.error("Error in save notes:", err);
+    alert("Failed to save note");
+  }
+};
+// Load existing note content when lesson changes
+useEffect(() => {
+  const loadExistingNote = async () => {
+    if (!userId || !moduleData || !lessonData) return;
+    console.log("=== DEBUG: Loading note for lesson ===");
+    console.log("Module ID:", moduleData.id);
+    console.log("Lesson ID:", lessonData.id);
+    // Reset editing note ID when lesson changes
+    setCurrentEditingNoteId(null);
+    // Check local notes state first
+    let existingNote = notes.find(note => {
+      if (note.note_type !== "MODULE") return false;
+      try {
+        const content = typeof note.note_content === 'string' 
+          ? JSON.parse(note.note_content) 
+          : note.note_content;
+        return content?.module_id === moduleData.id && 
+               content?.lesson_id === lessonData.id;
+      } catch {
+        return false;
+      }
+    });
+    // If not found locally, check database
+    if (!existingNote && userId) {
+      const courseId = COURSE_ID_MAP[course as keyof typeof COURSE_ID_MAP];
+      const { data: dbNotes } = await supabase
+        .from("notes")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("course_id", courseId)
+        .eq("note_type", "MODULE");
+      if (dbNotes) {
+        existingNote = dbNotes.find(note => {
+          try {
+            const content = typeof note.note_content === 'string' 
+              ? JSON.parse(note.note_content) 
+              : note.note_content;
+            
+            return content?.module_id === moduleData.id && 
+                   content?.lesson_id === lessonData.id;
+          } catch {
+            return false;
+          }
+        });
+      }
+    }
+    console.log("Found existing note:", existingNote);
+    const editor = document.getElementById('module-notes-editor');
+    if (editor) {
+      if (existingNote) {
+        // Load existing note content
+        let htmlContent = '';
+        if (typeof existingNote.note_content === 'object' && existingNote.note_content !== null) {
+          htmlContent = existingNote.note_content.html || '';
+        } else if (typeof existingNote.note_content === 'string') {
+          try {
+            const parsed = JSON.parse(existingNote.note_content);
+            htmlContent = parsed.html || '';
+          } catch {
+            htmlContent = existingNote.note_content || '';
+          }
+        }
+        console.log("Loading HTML content length:", htmlContent.length);
+        editor.innerHTML = htmlContent;
+      } else {
+        console.log("No existing note found, clearing editor");
+        editor.innerHTML = '';
+      }
     }
   };
-  // Load existing note content when lesson changes
-  useEffect(() => {
-    const loadExistingNote = async () => {
-      if (!userId || !moduleData || !lessonData) return;
-      console.log("=== DEBUG: Loading note for lesson ===");
-      console.log("Module ID:", moduleData.id);
-      console.log("Lesson ID:", lessonData.id);
-      // Reset editing note ID when lesson changes
-      setCurrentEditingNoteId(null);
-      // Check local notes state first
-      let existingNote = notes.find(note => {
-        if (note.note_type !== "MODULE") return false;
-        try {
-          const content = typeof note.note_content === 'string'
-            ? JSON.parse(note.note_content)
-            : note.note_content;
-          return content?.module_id === moduleData.id &&
-            content?.lesson_id === lessonData.id;
-        } catch {
-          return false;
-        }
-      });
-      // If not found locally, check database
-      if (!existingNote && userId) {
-        const courseId = COURSE_ID_MAP[course as keyof typeof COURSE_ID_MAP];
-        const { data: dbNotes } = await supabase
-          .from("notes")
-          .select("*")
-          .eq("user_id", userId)
-          .eq("course_id", courseId)
-          .eq("note_type", "MODULE");
-        if (dbNotes) {
-          existingNote = dbNotes.find(note => {
-            try {
-              const content = typeof note.note_content === 'string'
-                ? JSON.parse(note.note_content)
-                : note.note_content;
-
-              return content?.module_id === moduleData.id &&
-                content?.lesson_id === lessonData.id;
-            } catch {
-              return false;
-            }
-          });
-        }
-      }
-      console.log("Found existing note:", existingNote);
-      const editor = document.getElementById('module-notes-editor');
-      if (editor) {
-        if (existingNote) {
-          // Load existing note content
-          let htmlContent = '';
-          if (typeof existingNote.note_content === 'object' && existingNote.note_content !== null) {
-            htmlContent = existingNote.note_content.html || '';
-          } else if (typeof existingNote.note_content === 'string') {
-            try {
-              const parsed = JSON.parse(existingNote.note_content);
-              htmlContent = parsed.html || '';
-            } catch {
-              htmlContent = existingNote.note_content || '';
-            }
-          }
-          console.log("Loading HTML content length:", htmlContent.length);
-          editor.innerHTML = htmlContent;
-        } else {
-          console.log("No existing note found, clearing editor");
-          editor.innerHTML = '';
-        }
-      }
-    };
-    loadExistingNote();
-  }, [selectedLessonIdx, userId, moduleData, lessonData, notes]);
+  loadExistingNote();
+}, [selectedLessonIdx, userId, moduleData, lessonData, notes]);
 
   const handleTextSelection = () => {
     const selection = window.getSelection();
@@ -948,7 +948,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
     }
   };
 
-  const applyHighlight = (color: string) => {
+const applyHighlight = (color: string) => {
     if (selectionRange && selectedText) {
       const span = document.createElement('span');
       span.style.backgroundColor = color;
@@ -989,7 +989,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
     window.getSelection()?.removeAllRanges();
   };
 
-  const removeHighlight = (id: string) => {
+const removeHighlight = (id: string) => {
     setHighlights(prev => prev.filter(h => h.id !== id));
     const storageKey = `highlights_${course}_${moduleData.id}_${lessonData.id}`;
     const savedHighlights = JSON.parse(localStorage.getItem(storageKey) || '[]');
@@ -1007,7 +1007,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
     alert("Highlight data removed. You can now delete the text manually if needed.");
   };
 
-  const handleSaveSelection = () => {
+const handleSaveSelection = () => {
     const selection = window.getSelection();
     if (selection && selection.toString().length > 0) {
       const range = selection.getRangeAt(0);
@@ -1034,7 +1034,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
     }
   };
 
-  // Load highlights from localStorage on component mount
+   // Load highlights from localStorage on component mount
   useEffect(() => {
     const savedHighlights = JSON.parse(localStorage.getItem(`highlights_${course}_${moduleData.id}_${lessonData.id}`) || '[]');
     setHighlights(savedHighlights);
@@ -1154,308 +1154,300 @@ export default function LessonPage({ params }: { params: { course: string; id: s
   return (
     <GutenbergExplorerProvider>
       <div className={cn("flex flex-col animate-in fade-in duration-700", isFullscreen ? "h-screen fixed inset-0 z-50 bg-background" : "h-[calc(100vh-8rem)] -m-6")}>
-        <div className="flex flex-1 overflow-hidden">
-          {/* LEFT PANEL: Sidebar */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* LEFT PANEL: Sidebar */}
+        <div className={cn(
+          "bg-surface border-r border-white/5 flex flex-col transition-all duration-300 relative",
+          sidebarOpen ? "w-72" : "w-0 md:w-16" // w-0 on mobile when collapsed? keeping w-16 for desktop
+        )}>
+          {/* Toggle Button */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="absolute -right-3 top-4 z-10 bg-surface border border-white/10 rounded-full p-1 text-textSecondary hover:text-white shadow-sm hover:scale-110 transition-all"
+            title={sidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+          >
+            {sidebarOpen ? (
+              <ChevronLeft className="w-3 h-3" />
+            ) : (
+              <ChevronRight className="w-3 h-3" />
+            )}
+          </button>
+
+          {/* Sidebar Header (Hidden when collapsed for cleaner look, or just icon) */}
           <div className={cn(
-            "bg-surface border-r border-white/5 flex flex-col transition-all duration-300 relative",
-            sidebarOpen ? "w-72" : "w-0 md:w-16" // w-0 on mobile when collapsed? keeping w-16 for desktop
+            "p-4 border-b border-white/5 font-bold text-textPrimary h-14 flex items-center overflow-hidden whitespace-nowrap",
+            !sidebarOpen && "justify-center px-0"
           )}>
-            {/* Toggle Button */}
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="absolute -right-3 top-4 z-10 bg-surface border border-white/10 rounded-full p-1 text-textSecondary hover:text-white shadow-sm hover:scale-110 transition-all"
-              title={sidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
-            >
-              {sidebarOpen ? (
-                <ChevronLeft className="w-3 h-3" />
-              ) : (
-                <ChevronRight className="w-3 h-3" />
-              )}
-            </button>
-
-            {/* Sidebar Header (Hidden when collapsed for cleaner look, or just icon) */}
-            <div className={cn(
-              "p-4 border-b border-white/5 font-bold text-textPrimary h-14 flex items-center overflow-hidden whitespace-nowrap",
-              !sidebarOpen && "justify-center px-0"
-            )}>
-              {sidebarOpen && (
-                <span className="truncate">Course Modules</span>
-              )}
-              {!sidebarOpen && (
-                <BookOpen className="w-5 h-5" />
-              )}
-            </div>
+            {sidebarOpen && (
+              <span className="truncate">Course Modules</span>
+            )}
+            {!sidebarOpen && (
+              <BookOpen className="w-5 h-5" />
+            )}
+          </div>
 
 
-            {/* Lessons List */}
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {moduleData.lessons.map((lesson, idx) => {
-                const completed = completedLessons[idx];
-                const active = idx === selectedLessonIdx;
+          {/* Lessons List */}
+          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            {moduleData.lessons.map((lesson, idx) => {
+              const completed = completedLessons[idx];
+              const active = idx === selectedLessonIdx;
 
-                return (
-                  <div
-                    key={lesson.id}
-                    onClick={() => { setSelectedLessonIdx(idx); setActiveTab('reading'); setReadCompleted(false); setScrollProgress(0); scrollRef.current?.scrollTo(0, 0); }}
-                    className={cn(
-                      "rounded text-sm cursor-pointer hover:bg-white/5 transition-colors flex flex-col group relative",
-                      sidebarOpen ? "p-3" : "p-0 justify-center h-12 w-12 mx-auto items-center",
-                      active ? "bg-accent/10" : ""
-                    )}
-                    title={!sidebarOpen ? lesson.title : undefined}
-                  >
-                    <div className="flex items-center w-full">
-                      <div className={cn(
-                        "flex items-center justify-center font-bold transition-all shrink-0",
-                        sidebarOpen ? "w-6 h-6 bg-white/5 rounded-full text-xs mr-3" : "w-full h-full text-sm"
-                      )}>
-                        {completed ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : idx + 1}
-                      </div>
-
-                      {sidebarOpen && (
-                        <span className={cn("truncate flex-1 font-medium", active ? "text-accent" : "text-textSecondary")}>
-                          {lesson.title}
-                        </span>
-                      )}
+              return (
+                <div
+                  key={lesson.id}
+                  onClick={() => { setSelectedLessonIdx(idx); setActiveTab('reading'); setReadCompleted(false); setScrollProgress(0); scrollRef.current?.scrollTo(0, 0); }}
+                  className={cn(
+                    "rounded text-sm cursor-pointer hover:bg-white/5 transition-colors flex flex-col group relative",
+                    sidebarOpen ? "p-3" : "p-0 justify-center h-12 w-12 mx-auto items-center",
+                    active ? "bg-accent/10" : ""
+                  )}
+                  title={!sidebarOpen ? lesson.title : undefined}
+                >
+                  <div className="flex items-center w-full">
+                    <div className={cn(
+                      "flex items-center justify-center font-bold transition-all shrink-0",
+                      sidebarOpen ? "w-6 h-6 bg-white/5 rounded-full text-xs mr-3" : "w-full h-full text-sm"
+                    )}>
+                      {completed ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : idx + 1}
                     </div>
 
-                    {/* Track Bar */}
-                    {sidebarOpen && active && activeTab !== 'quiz' && (
-                      <div className="mt-2 w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                        <div
-                          className={cn("h-full rounded-full bg-accent")}
-                          style={{ width: `${scrollProgress}%` }}
-                        ></div>
-                      </div>
+                    {sidebarOpen && (
+                      <span className={cn("truncate flex-1 font-medium", active ? "text-accent" : "text-textSecondary")}>
+                        {lesson.title}
+                      </span>
                     )}
                   </div>
-                );
-              })}
+
+                  {/* Track Bar */}
+                  {sidebarOpen && active && activeTab !== 'quiz' && (
+                    <div className="mt-2 w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                      <div
+                        className={cn("h-full rounded-full bg-accent")}
+                        style={{ width: `${scrollProgress}%` }}
+                      ></div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* CENTER PANEL */}
+        <div className="flex-1 flex flex-col min-w-0 bg-background relative">
+          {/* Tab Header & Timer */}
+          <div className="h-14 border-b border-white/5 flex items-center px-4 justify-between bg-surface/30 backdrop-blur gap-4">
+            {/* Back Button and Title */}
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <Link href={`/dashboard/${course}/modules`} onClick={() => setIsFullscreen(false)} className="p-2 hover:bg-white/5 rounded-full text-textSecondary hover:text-white transition-colors">
+                <ArrowLeft className="w-4 h-4" />
+              </Link>
+              <h1 className="font-bold text-textPrimary truncate hidden md:block">{lessonData.title}</h1>
+            </div>
+
+            <div className="flex items-center gap-4 shrink-0">
+              {/* Timer Display */}
+              {!showQuizResults && activeTab !== 'quiz' && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 rounded-full border border-white/5 shadow-inner">
+                  <Clock className={cn("w-3.5 h-3.5 text-accent", !isPaused && "animate-pulse")} />
+                  <span className="text-sm font-mono font-bold text-white">{formatTime(lessonTime)}</span>
+                  <button
+                    onClick={() => setIsPaused(!isPaused)}
+                    className="ml-2 p-1 bg-white/10 rounded-full transition-colors text-textSecondary"
+                    title={isPaused ? "Resume" : "Pause"}
+                  >
+                    {isPaused ? <PlayCircle className="w-3.5 h-3.5" /> : <PauseCircle className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              )}
+
+              <div className="flex items-center bg-black/20 rounded-lg p-1">
+                {(['reading', 'interactive', 'quiz'] as const).map(tab => {
+                  if (tab === 'interactive' && (!lessonData.isInteractive || course === 'nlp')) return null;
+                  return (
+                    <button
+                      key={tab}
+                      onClick={() => handleTabChange(tab)}
+                      className={cn(
+                        "px-3 py-1 text-xs font-medium rounded-md capitalize transition-all",
+                        activeTab === tab ? "bg-accent text-background shadow-lg" : "text-textSecondary hover:text-textPrimary"
+                      )}
+                    >
+                      {tab}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
-          {/* CENTER PANEL */}
-          <div className="flex-1 flex flex-col min-w-0 bg-background relative">
-            {/* Tab Header & Timer */}
-            <div className="h-14 border-b border-white/5 flex items-center px-4 justify-between bg-surface/30 backdrop-blur gap-4">
-              {/* Back Button and Title */}
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <Link href={`/dashboard/${course}/modules`} onClick={() => setIsFullscreen(false)} className="p-2 hover:bg-white/5 rounded-full text-textSecondary hover:text-white transition-colors">
-                  <ArrowLeft className="w-4 h-4" />
-                </Link>
-                <h1 className="font-bold text-textPrimary truncate hidden md:block">{lessonData.title}</h1>
+          {/* Content Area */}
+          <div ref={scrollRef} className={cn("flex-1 overflow-y-auto p-8 relative scroll-smooth", isPaused && "blur-2xl pointer-events-none select-none overflow-hidden")} onScroll={handleScroll}>
+            {isPaused && (
+              <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/20 backdrop-blur-md">
+                <div className="text-center p-8 rounded-2xl bg-surface/50 border border-white/10 shadow-2xl animate-in fade-in zoom-in duration-300">
+                  <PauseCircle className="w-16 h-16 text-accent mx-auto mb-4 opacity-50" />
+                  <h3 className="text-2xl font-bold text-white mb-2">Learning Paused</h3>
+                  <p className="text-textSecondary mb-6">Click the button below to resume your session.</p>
+                  <Button
+                    size="lg"
+                    onClick={() => setIsPaused(false)}
+                    className="rounded-full px-8 h-12 shadow-[0_0_20px_rgba(var(--accent),0.3)]"
+                  >
+                    Resume Learning
+                  </Button>
+                </div>
               </div>
+            )}
+            {activeTab === 'reading' && (
+              <div className="max-w-3xl mx-auto space-y-6 animate-fade-in pb-20">
+                <div className="prose prose-p:text-textSecondary prose-headings:text-textPrimary prose-strong:text-accent">
+                  <h3>{lessonData.title}</h3>
+                  <p>Duration: {lessonData.duration}</p>
+                  {lessonData.isInteractive && <span className="text-accent">Interactive Lesson</span>}
+                </div>
 
-              <div className="flex items-center gap-4 shrink-0">
-                {/* Timer Display */}
-                {!showQuizResults && activeTab !== 'quiz' && (
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 rounded-full border border-white/5 shadow-inner">
-                    <Clock className={cn("w-3.5 h-3.5 text-accent", !isPaused && "animate-pulse")} />
-                    <span className="text-sm font-mono font-bold text-white">{formatTime(lessonTime)}</span>
-                    <button
-                      onClick={() => setIsPaused(!isPaused)}
-                      className="ml-2 p-1 bg-white/10 rounded-full transition-colors text-textSecondary"
-                      title={isPaused ? "Resume" : "Pause"}
-                    >
-                      {isPaused ? <PlayCircle className="w-3.5 h-3.5" /> : <PauseCircle className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                )}
-
-                <div className="flex items-center bg-black/20 rounded-lg p-1">
-                  {(['reading', 'interactive', 'quiz'] as const).map(tab => {
-                    if (tab === 'interactive' && (!lessonData.isInteractive || course === 'nlp')) return null;
-                    return (
-                      <button
-                        key={tab}
-                        onClick={() => handleTabChange(tab)}
-                        className={cn(
-                          "px-3 py-1 text-xs font-medium rounded-md capitalize transition-all",
-                          activeTab === tab ? "bg-accent text-background shadow-lg" : "text-textSecondary hover:text-textPrimary"
+                {/* Render lesson content dynamically */}
+                {lessonData.content && (
+                  <>
+                    {/* Overview or Quote of the Day Section */}
+                    {(lessonData.content.overview || lessonData.content.quoteOfTheDay) && (
+                      <Card className="p-6 bg-gradient-to-r from-surface to-transparent border-l-4 border-l-accent">
+                        <h4 className="font-bold text-textPrimary mb-2">{lessonData.content.quoteOfTheDay ? "Quote of the Day" : "Overview"}</h4>
+                        <p className="text-sm text-textSecondary leading-relaxed">
+                          {lessonData.content.quoteOfTheDay || lessonData.content.overview}
+                        </p>
+                        {lessonData.content.quoteAttribution && (
+                          <p className="text-xs text-textSecondary/60 italic mt-3 text-right">
+                            — {lessonData.content.quoteAttribution}
+                          </p>
                         )}
-                      >
-                        {tab}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
+                      </Card>
+                    )}
 
-            {/* Content Area */}
-            <div ref={scrollRef} className={cn("flex-1 overflow-y-auto p-8 relative scroll-smooth", isPaused && "blur-2xl pointer-events-none select-none overflow-hidden")} onScroll={handleScroll}>
-              {isPaused && (
-                <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/20 backdrop-blur-md">
-                  <div className="text-center p-8 rounded-2xl bg-surface/50 border border-white/10 shadow-2xl animate-in fade-in zoom-in duration-300">
-                    <PauseCircle className="w-16 h-16 text-accent mx-auto mb-4 opacity-50" />
-                    <h3 className="text-2xl font-bold text-white mb-2">Learning Paused</h3>
-                    <p className="text-textSecondary mb-6">Click the button below to resume your session.</p>
-                    <Button
-                      size="lg"
-                      onClick={() => setIsPaused(false)}
-                      className="rounded-full px-8 h-12 shadow-[0_0_20px_rgba(var(--accent),0.3)]"
-                    >
-                      Resume Learning
-                    </Button>
-                  </div>
-                </div>
-              )}
-              {activeTab === 'reading' && (
-                <div className="max-w-3xl mx-auto space-y-6 animate-fade-in pb-20">
-                  <div className="prose prose-p:text-textSecondary prose-headings:text-textPrimary prose-strong:text-accent">
-                    <h3>{lessonData.title}</h3>
-                    <p>Duration: {lessonData.duration}</p>
-                    {lessonData.isInteractive && <span className="text-accent">Interactive Lesson</span>}
-                  </div>
+                    {/* Learning Objectives */}
+                    {lessonData.content.objectives && lessonData.content.objectives.length > 0 && (
+                      <div className="bg-surface p-6 rounded-lg mb-8 border border-white/10">
+                        <h4 className="font-bold text-textPrimary mb-4 text-xl">Learning Objectives</h4>
+                        <p className="mb-3 text-textSecondary">
+                          By the end of this lesson, you will be able to:
+                        </p>
+                        <ul className="list-none p-0 text-sm text-textSecondary">
+                          {lessonData.content.objectives.map((objective, index) => (
+                            <li key={index} className="mb-2 pl-6 relative text-sm text-textSecondary">
+                              <span className="absolute left-0">✓</span>
+                              {objective}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
 
-                  {/* Render lesson content dynamically */}
-                  {lessonData.content && (
-                    <>
-                      {/* Overview or Quote of the Day Section */}
-                      {(lessonData.content.overview || lessonData.content.quoteOfTheDay) && (
-                        <Card className="p-6 bg-gradient-to-r from-surface to-transparent border-l-4 border-l-accent">
-                          <h4 className="font-bold text-textPrimary mb-2">{lessonData.content.quoteOfTheDay ? "Quote of the Day" : "Overview"}</h4>
-                          <p className="text-sm text-textSecondary leading-relaxed">
-                            {lessonData.content.quoteOfTheDay || lessonData.content.overview}
-                          </p>
-                          {lessonData.content.quoteAttribution && (
-                            <p className="text-xs text-textSecondary/60 italic mt-3 text-right">
-                              — {lessonData.content.quoteAttribution}
-                            </p>
-                          )}
-                        </Card>
-                      )}
-
-                      {/* Learning Objectives */}
-                      {lessonData.content.objectives && lessonData.content.objectives.length > 0 && (
-                        <div className="bg-surface p-6 rounded-lg mb-8 border border-white/10">
-                          <h4 className="font-bold text-textPrimary mb-4 text-xl">Learning Objectives</h4>
-                          <p className="mb-3 text-textSecondary">
-                            By the end of this lesson, you will be able to:
-                          </p>
-                          <ul className="list-none p-0 text-sm text-textSecondary">
-                            {lessonData.content.objectives.map((objective, index) => (
-                              <li key={index} className="mb-2 pl-6 relative text-sm text-textSecondary">
-                                <span className="absolute left-0">✓</span>
-                                {objective}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {/* Content Sections */}
-                      {lessonData.content.sections && lessonData.content.sections.map((section, index) => (
-                        <div key={index} className="mb-8">
-                          {section.type === 'text' && (
-                            <>
-                              <h2 className="font-bold text-textPrimary mb-4 text-xl">
-                                {section.title}
-                              </h2>
-                              <div className="prose prose-p:text-textSecondary">
-                                <p>{section.content as React.ReactNode}</p>
-                              </div>
-                            </>
-                          )}
-
-                          {section.type === 'interactive' && (
-                            <div className="mt-8 pt-8 border-t border-white/10">
-                              <h2 className="font-bold text-textPrimary mb-6 text-2xl">
-                                {section.title}
-                              </h2>
-                              <div className="rounded-lg border border-white/10 p-6 bg-surface/50">
-                                {typeof section.content === 'object' && section.content !== null && 'lines' in (section.content as any) ? (
-                                  <InteractiveCodeWalkthrough
-                                    lines={(section.content as any).lines}
-                                    outputs={(section.content as any).outputs}
-                                    summary={(section.content as any).summary}
-                                  />
-                                ) : (
-                                  (section.content as React.ReactNode)
-                                )}
-                              </div>
+                    {/* Content Sections */}
+                    {lessonData.content.sections && lessonData.content.sections.map((section, index) => (
+                      <div key={index} className="mb-8">
+                        {section.type === 'text' && (
+                          <>
+                            <h2 className="font-bold text-textPrimary mb-4 text-xl">
+                              {section.title}
+                            </h2>
+                            <div className="prose prose-p:text-textSecondary">
+                              <p>{section.content as React.ReactNode}</p>
                             </div>
-                          )}
+                          </>
+                        )}
 
-                          {section.type === 'problem-statement' && (
-                            <div className="mt-12 pt-8 border-t border-white/10">
-                              <h2 className="font-bold text-textPrimary mb-6 text-2xl">
-                                Let's begin with a real-world problem
-                              </h2>
-                              {typeof section.content === 'object' && section.content !== null && (
-                                <ProblemStatement
-                                  problem={(section.content as ProblemStatementContent).problem}
-                                  twist={(section.content as ProblemStatementContent).twist}
-                                  hints={(section.content as ProblemStatementContent).hints}
-                                  solution={(section.content as ProblemStatementContent).solution}
+                        {section.type === 'interactive' && (
+                          <div className="mt-8 pt-8 border-t border-white/10">
+                            <h2 className="font-bold text-textPrimary mb-6 text-2xl">
+                              {section.title}
+                            </h2>
+                            <div className="rounded-lg border border-white/10 p-6 bg-surface/50">
+                              {typeof section.content === 'object' && section.content !== null && 'lines' in (section.content as any) ? (
+                                <InteractiveCodeWalkthrough
+                                  lines={(section.content as any).lines}
+                                  outputs={(section.content as any).outputs}
+                                  summary={(section.content as any).summary}
                                 />
+                              ) : (
+                                (section.content as React.ReactNode)
                               )}
                             </div>
-                          )}
-                        </div>
-                      ))}
-                    </>
+                          </div>
+                        )}
+
+                        {section.type === 'problem-statement' && (
+                          <div className="mt-12 pt-8 border-t border-white/10">
+                            <h2 className="font-bold text-textPrimary mb-6 text-2xl">
+                              Let's begin with a real-world problem
+                            </h2>
+                            {typeof section.content === 'object' && section.content !== null && (
+                              <ProblemStatement
+                                problem={(section.content as ProblemStatementContent).problem}
+                                twist={(section.content as ProblemStatementContent).twist}
+                                hints={(section.content as ProblemStatementContent).hints}
+                                solution={(section.content as ProblemStatementContent).solution}
+                              />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </>
+                )}
+
+              {/*navigation*/}
+              <div className="flex flex-col items-center pt-10 gap-4 border-t border-white/5 mt-10">
+                <div className="flex gap-4">
+                    {/* Explorer Button */}
+                    <ExplorerButton />
+                  <Button onClick={() => handleTabChange('quiz')}>
+                    Take Lesson Quiz
+                  </Button>
+                  
+                  {selectedLessonIdx < moduleData.lessons.length - 1 ? (
+                    <Button onClick={handleNext}>
+                      Next Lesson →
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={() => {
+                        // Mark final lesson as completed
+                        setCompletedLessons(prev => {
+                          const updated = [...prev];
+                          updated[selectedLessonIdx] = true;
+                          return updated;
+                        });
+                      }}
+                    >
+                      Complete Module
+                    </Button>
                   )}
+                </div>
+              </div>
+              </div>
+            )}
 
-                  {/*navigation*/}
-                  <div className="flex flex-col items-center pt-10 gap-4 border-t border-white/5 mt-10">
-                    <div className="flex gap-4">
-                      {/* Explorer Button - Only show for NLP course */}
-                      {course === 'nlp' && <ExplorerButton />}
-                      <Button onClick={() => handleTabChange('quiz')}>
-                        Take Lesson Quiz
-                      </Button>
-
-                      {selectedLessonIdx < moduleData.lessons.length - 1 ? (
-                        <Button onClick={handleNext}>
-                          Next Lesson →
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={() => {
-                            // Mark final lesson as completed
-                            setCompletedLessons(prev => {
-                              const updated = [...prev];
-                              updated[selectedLessonIdx] = true;
-                              return updated;
-                            });
-                          }}
-                        >
-                          Complete Module
-                        </Button>
-                      )}
+            {/* Interactive & Quiz Tabs (Simplified for brevity, same logic applies) */}
+            {activeTab === 'interactive' && lessonData.isInteractive && (
+              <div className="h-full flex flex-col items-center justify-center space-y-6 animate-fade-in">
+                <div className="w-full max-w-4xl aspect-video bg-black/40 rounded-xl border border-white/10 flex items-center justify-center relative overflow-hidden">
+                  <div className="text-center p-6">
+                    <div className="text-6xl mb-4">🕸️</div>
+                    <h3 className="text-xl font-bold">Interactive Visualizer</h3>
+                    <p className="text-textSecondary mb-6">Simulate this lesson interactively.</p>
+                    <div className="flex justify-center gap-2">
+                      <Button size="sm">▶ Run</Button>
+                      <Button size="sm" variant="secondary">Step</Button>
+                      <Button size="sm" variant="outline">Reset</Button>
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Interactive & Quiz Tabs (Simplified for brevity, same logic applies) */}
-              {activeTab === 'interactive' && lessonData.isInteractive && (
-                <div className="h-full w-full animate-fade-in overflow-hidden">
-                  {lessonData.interactiveComponent ? (
-                    <div className="w-full h-full">
-                      <lessonData.interactiveComponent />
-                    </div>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center p-6 overflow-y-auto">
-                      <div className="w-full max-w-4xl aspect-video bg-black/40 rounded-xl border border-white/10 flex items-center justify-center relative overflow-hidden">
-                        <div className="text-center p-6">
-                          <div className="text-6xl mb-4">🕸️</div>
-                          <h3 className="text-xl font-bold">Interactive Visualizer</h3>
-                          <p className="text-textSecondary mb-6">Simulate this lesson interactively.</p>
-                          <div className="flex justify-center gap-2">
-                            <Button size="sm">▶ Run</Button>
-                            <Button size="sm" variant="secondary">Step</Button>
-                            <Button size="sm" variant="outline">Reset</Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'quiz' && (
+            {activeTab === 'quiz' && (
                 <div className="h-full flex flex-col animate-fade-in overflow-hidden">
                   {!isModuleQuiz ? (
                     // LESSON QUIZ
@@ -1539,7 +1531,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
                               setShowQuizResults(false);
                               setQuizLocked(false);
                               setActiveTab('reading');
-
+                              
                               // Save the quiz score for this lesson
                               const score = calculateQuizScore();
                               setLessonQuizScores(prev => {
@@ -1547,7 +1539,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
                                 newScores[selectedLessonIdx] = score;
                                 return newScores;
                               });
-
+                              
                               setLessonQuizCompleted(prev => {
                                 const newCompleted = [...prev];
                                 newCompleted[selectedLessonIdx] = true;
@@ -1900,346 +1892,346 @@ export default function LessonPage({ params }: { params: { course: string; id: s
                   )}
                 </div>
               )}
-            </div>
           </div>
-
-          {/* DOCKED EXPLORER PANEL */}
-          <GutenbergExplorerPanel />
-
-          {/* RIGHT PANEL: Notes - Resizable */}
-          {activeTab !== 'quiz' && (
-            <div
-              className={cn(
-                "bg-surface border-l border-white/5 hidden xl:flex flex-col transition-all duration-300 relative",
-                notesOpen ? "" : "w-16"
-              )}
-              style={notesOpen ? { width: notesWidth } : {}}
-            >
-              {/* Resize Handle */}
-              {notesOpen && (
-                <div
-                  className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-accent/50 z-20"
-                  onMouseDown={() => setIsResizing(true)}
-                ></div>
-              )}
-
-              <button
-                onClick={() => setNotesOpen(!notesOpen)}
-                className="absolute -left-3 top-4 z-10 bg-surface border border-white/10 rounded-full p-1 text-textSecondary hover:text-white shadow-sm hover:scale-110 transition-all"
-                title={notesOpen ? "Collapse Notes" : "Expand Notes"}
-              >
-                {notesOpen ? (
-                  <ChevronRight className="w-3 h-3" />
-                ) : (
-                  <ChevronLeft className="w-3 h-3" />
-                )}
-              </button>
-
-              <div className={cn(
-                "p-4 font-bold border-b border-white/5 text-sm uppercase tracking-wider text-textSecondary h-14 flex items-center overflow-hidden whitespace-nowrap",
-                !notesOpen && "justify-center px-0"
-              )}>
-                {notesOpen ? (
-                  activeTab === 'reading' ? 'Smart Notes' : activeTab === 'interactive' ? 'Controls' : 'Review'
-                ) : (
-                  <FileText className="w-5 h-5 text-textSecondary" />
-                )}
-              </div>
-
-              {notesOpen && (
-                <div className="p-4 space-y-4 flex-1 flex flex-col">
-                  {activeTab === 'reading' && (
-                    <div className="flex flex-col gap-2 h-full border border-white/10 rounded-xl overflow-visible relative">
-                      {/* Rich Text Toolbar */}
-                      <div className="flex items-center gap-1 bg-surface/50 backdrop-blur-md p-1.5 overflow-visible relative">
-                        <button
-                          onClick={() => document.execCommand('bold')}
-                          onMouseDown={(e) => e.preventDefault()}
-                          className="p-2 hover:bg-white/10 rounded-lg text-[10px] font-bold w-7 h-7 flex items-center justify-center transition-all hover:scale-110"
-                          title="Bold"
-                        >
-                          B
-                        </button>
-                        <button
-                          onClick={() => document.execCommand('italic')}
-                          onMouseDown={(e) => e.preventDefault()}
-                          className="p-2 hover:bg-white/10 rounded-lg text-[10px] italic w-7 h-7 flex items-center justify-center transition-all hover:scale-110"
-                          title="Italic"
-                        >
-                          I
-                        </button>
-                        <button
-                          onClick={() => document.execCommand('underline')}
-                          onMouseDown={(e) => e.preventDefault()}
-                          className="p-2 hover:bg-white/10 rounded-lg text-[10px] underline w-7 h-7 flex items-center justify-center transition-all hover:scale-110"
-                          title="Underline"
-                        >
-                          U
-                        </button>
-
-                        <button
-                          ref={buttonRef}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setShowSmartColorPicker(!showSmartColorPicker);
-                          }}
-                          className={cn(
-                            "p-2 rounded-lg w-7 h-7 flex items-center justify-center transition-all hover:scale-110",
-                            showSmartColorPicker ? "bg-white/20" : "hover:bg-white/10"
-                          )}
-                          title="Highlight"
-                        >
-                          <div className="w-2.5 h-2.5 rounded-full bg-accent"></div>
-                        </button>
-
-                        <div className="h-4 w-[1px] bg-white/10 mx-1"></div>
-                        <button
-                          onClick={handleInsertSmartImage}
-                          onMouseDown={(e) => e.preventDefault()}
-                          className="p-1 hover:bg-white/10 rounded text-[10px] w-6 h-6 flex items-center justify-center transition-all hover:scale-110 text-textSecondary hover:text-white"
-                          title="Upload Image"
-                        >
-                          <ImageIcon className="w-3 h-3" />
-                        </button>
-                        <div className="h-4 w-[1px] bg-white/10 mx-1"></div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={handleSaveSelection}
-                          onMouseDown={(e) => e.preventDefault()}
-                          className="h-7 text-[9px] px-2 text-textPrimary hover:bg-accent/20 border border-white/10 rounded-lg"
-                        >
-                          + Capture
-                        </Button>
-                        <button
-                          onClick={() => setShowNotesModal(true)}
-                          onMouseDown={(e) => e.preventDefault()}
-                          className="p-1 hover:bg-white/10 rounded text-[10px] w-6 h-6 flex items-center justify-center transition-all hover:scale-110 text-textSecondary hover:text-white"
-                          title="View All Notes"
-                        >
-                          <RotateCw className="w-3 h-3" />
-                        </button>
-                      </div>
-
-                      {/* Smart Color Picker */}
-                      {showSmartColorPicker && (
-                        <div
-                          className="smart-color-picker absolute z-[100] bg-surface/95 backdrop-blur-xl border border-white/20 rounded-xl p-2 shadow-2xl min-w-[140px] animate-in zoom-in slide-in-from-left-1 duration-200"
-                          style={smartPickerPosition}
-                        >
-                          <div className="grid grid-cols-3 gap-1.5 mb-2">
-                            {smartHighlightColors.map((color) => (
-                              <button
-                                key={color.value}
-                                onClick={() => applySmartColor(color.value)}
-                                onMouseDown={(e) => e.preventDefault()}
-                                className="w-8 h-8 rounded-lg border border-white/10 hover:scale-110 active:scale-95 transition-all shadow-sm flex items-center justify-center group"
-                                style={{ backgroundColor: color.value }}
-                                title={color.name}
-                              >
-                                <div className="w-1.5 h-1.5 rounded-full bg-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                              </button>
-                            ))}
-                          </div>
-                          <button
-                            onClick={() => applySmartColor('transparent')}
-                            onMouseDown={(e) => e.preventDefault()}
-                            className="w-full py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-textSecondary hover:text-white transition-all text-[9px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 border border-white/5"
-                          >
-                            <X className="w-3 h-3" /> Clear
-                          </button>
-                          {/* Arrow pointing left, aligned with the bottom corner */}
-                          <div className={`absolute bottom-2 ${arrowDirection === 'left' ? '-left-1' : '-right-1'} w-2 h-2 bg-surface border-l border-b border-white/20 ${arrowDirection === 'left' ? 'rotate-45' : '-rotate-45'}`} />
-                        </div>
-                      )}
-
-                      {/* Highlight Color Picker in Sidebar */}
-                      {showColorPicker && (
-                        <div className="bg-surface/50 backdrop-blur-md p-3 rounded-lg border border-white/10">
-                          <h5 className="text-xs font-bold text-textSecondary uppercase mb-2">Highlight Colors</h5>
-                          <div className="grid grid-cols-3 gap-1">
-                            {highlightColors.map((color) => (
-                              <button
-                                key={color.value}
-                                onClick={() => applyHighlight(color.value)}
-                                className="w-8 h-8 rounded border border-white/20 hover:scale-110 transition-transform"
-                                style={{ backgroundColor: color.value }}
-                                title={color.name}
-                              />
-                            ))}
-                          </div>
-
-                          {highlights.length > 0 && (
-                            <div className="mt-4 pt-4 border-t border-white/10">
-                              <h6 className="text-[10px] font-bold text-textSecondary uppercase mb-2">Active Highlights</h6>
-                              <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
-                                {highlights.map(h => (
-                                  <div key={h.id} className="flex items-center justify-between gap-2 p-1.5 bg-black/20 rounded border border-white/5 group">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: h.color }}></div>
-                                      <span className="text-[10px] text-textSecondary truncate">{h.text}</span>
-                                    </div>
-                                    <button
-                                      onClick={() => removeHighlight(h.id)}
-                                      className="text-textSecondary hover:text-red-400 transition-opacity"
-                                    >
-                                      <X className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          <button
-                            onClick={() => setShowColorPicker(false)}
-                            className="mt-2 w-full text-xs text-textSecondary hover:text-white transition-colors"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      )}
-
-                      <h4 className="sr-only">My Notes</h4>
-                      <div className="relative flex-1 min-h-[160px]">
-                        <div
-                          className="w-full h-full bg-black/20 rounded-b border border-white/10 p-2 text-sm text-white overflow-y-auto focus:outline-none focus:ring-1 focus:ring-accent [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-2 [&_img]:border [&_img]:border-white/10 [&_img]:cursor-pointer [&_img:hover]:ring-1 [&_img:hover]:ring-accent"
-                          contentEditable
-                          suppressContentEditableWarning
-                          onClick={handleSmartEditorClick}
-                          id="module-notes-editor"
-                          style={{
-                            maxHeight: '400px',
-                            overflowY: 'auto',
-                            scrollbarWidth: 'thin',
-                            scrollbarColor: 'rgba(255,255,255,0.3) transparent'
-                          }}
-                        ></div>
-
-                        {selectedSmartImg && (
-                          <div
-                            className="absolute z-40 bg-red-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-xl cursor-pointer hover:bg-red-600 transition-all flex items-center gap-1.5 animate-in fade-in slide-in-from-bottom-1"
-                            style={{
-                              left: `${selectedSmartImg.offsetLeft + selectedSmartImg.offsetWidth / 2}px`,
-                              top: `${selectedSmartImg.offsetTop + 10}px`,
-                              transform: 'translateX(-50%)'
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteSmartImage();
-                            }}
-                          >
-                            <X className="w-2.5 h-2.5" /> Remove
-                          </div>
-                        )}
-                      </div>
-
-                      <Button size="sm" onClick={handleSaveNotes} className="w-full">
-                        <Save className="w-4 h-4 mr-2" /> Save Notes
-                      </Button>
-                    </div>
-                  )}
-                  {/* Controls for other tabs omitted for brevity */}
-                </div>
-              )}
-
-              {/* {!notesOpen} block removed as per request to remove duplicate icons - the header icon is sufficient */}
-
-            </div>
-          )}
         </div>
 
+        {/* DOCKED EXPLORER PANEL */}
+        <GutenbergExplorerPanel />
 
+        {/* RIGHT PANEL: Notes - Resizable */}
+        {activeTab !== 'quiz' && (
+        <div
+          className={cn(
+            "bg-surface border-l border-white/5 hidden xl:flex flex-col transition-all duration-300 relative",
+            notesOpen ? "" : "w-16"
+          )}
+          style={notesOpen ? { width: notesWidth } : {}}
+        >
+          {/* Resize Handle */}
+          {notesOpen && (
+            <div
+              className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-accent/50 z-20"
+              onMouseDown={() => setIsResizing(true)}
+            ></div>
+          )}
 
-        {/* Notes Modal */}
-        {showNotesModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-surface border border-white/10 rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-textPrimary">All Saved Notes</h2>
-                <button
-                  onClick={() => setShowNotesModal(false)}
-                  className="p-2 hover:bg-white/10 rounded-full text-textSecondary hover:text-white transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="space-y-4">
-                {selectedNote ? (
-                  <div className="space-y-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelectedNote(null)}
-                      className="mb-4"
+          <button
+            onClick={() => setNotesOpen(!notesOpen)}
+            className="absolute -left-3 top-4 z-10 bg-surface border border-white/10 rounded-full p-1 text-textSecondary hover:text-white shadow-sm hover:scale-110 transition-all"
+            title={notesOpen ? "Collapse Notes" : "Expand Notes"}
+          >
+            {notesOpen ? (
+              <ChevronRight className="w-3 h-3" />
+            ) : (
+              <ChevronLeft className="w-3 h-3" />
+            )}
+          </button>
+
+          <div className={cn(
+            "p-4 font-bold border-b border-white/5 text-sm uppercase tracking-wider text-textSecondary h-14 flex items-center overflow-hidden whitespace-nowrap",
+            !notesOpen && "justify-center px-0"
+          )}>
+            {notesOpen ? (
+              activeTab === 'reading' ? 'Smart Notes' : activeTab === 'interactive' ? 'Controls' : 'Review'
+            ) : (
+              <FileText className="w-5 h-5 text-textSecondary" />
+            )}
+          </div>
+
+          {notesOpen && (
+            <div className="p-4 space-y-4 flex-1 flex flex-col">
+              {activeTab === 'reading' && (
+                <div className="flex flex-col gap-2 h-full border border-white/10 rounded-xl overflow-visible relative">
+                  {/* Rich Text Toolbar */}
+                  <div className="flex items-center gap-1 bg-surface/50 backdrop-blur-md p-1.5 overflow-visible relative">
+                    <button
+                      onClick={() => document.execCommand('bold')}
+                      onMouseDown={(e) => e.preventDefault()}
+                      className="p-2 hover:bg-white/10 rounded-lg text-[10px] font-bold w-7 h-7 flex items-center justify-center transition-all hover:scale-110"
+                      title="Bold"
                     >
-                      ← Back to Notes List
+                      B
+                    </button>
+                    <button
+                      onClick={() => document.execCommand('italic')}
+                      onMouseDown={(e) => e.preventDefault()}
+                      className="p-2 hover:bg-white/10 rounded-lg text-[10px] italic w-7 h-7 flex items-center justify-center transition-all hover:scale-110"
+                      title="Italic"
+                    >
+                      I
+                    </button>
+                    <button
+                      onClick={() => document.execCommand('underline')}
+                      onMouseDown={(e) => e.preventDefault()}
+                      className="p-2 hover:bg-white/10 rounded-lg text-[10px] underline w-7 h-7 flex items-center justify-center transition-all hover:scale-110"
+                      title="Underline"
+                    >
+                      U
+                    </button>
+
+                    <button
+                      ref={buttonRef}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setShowSmartColorPicker(!showSmartColorPicker);
+                      }}
+                      className={cn(
+                        "p-2 rounded-lg w-7 h-7 flex items-center justify-center transition-all hover:scale-110",
+                        showSmartColorPicker ? "bg-white/20" : "hover:bg-white/10"
+                      )}
+                      title="Highlight"
+                    >
+                      <div className="w-2.5 h-2.5 rounded-full bg-accent"></div>
+                    </button>
+
+                    <div className="h-4 w-[1px] bg-white/10 mx-1"></div>
+                    <button
+                      onClick={handleInsertSmartImage}
+                      onMouseDown={(e) => e.preventDefault()}
+                      className="p-1 hover:bg-white/10 rounded text-[10px] w-6 h-6 flex items-center justify-center transition-all hover:scale-110 text-textSecondary hover:text-white"
+                      title="Upload Image"
+                    >
+                      <ImageIcon className="w-3 h-3" />
+                    </button>
+                    <div className="h-4 w-[1px] bg-white/10 mx-1"></div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleSaveSelection}
+                      onMouseDown={(e) => e.preventDefault()}
+                      className="h-7 text-[9px] px-2 text-textPrimary hover:bg-accent/20 border border-white/10 rounded-lg"
+                    >
+                      + Capture
                     </Button>
-                    <div className="p-4 bg-surface/50 rounded-lg border border-white/5">
-                      <div className="flex-1">
-                        <h3 className="font-medium text-textPrimary">{selectedNote.note_title || selectedNote.title || 'Untitled Note'}</h3>
+                    <button
+                      onClick={() => setShowNotesModal(true)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      className="p-1 hover:bg-white/10 rounded text-[10px] w-6 h-6 flex items-center justify-center transition-all hover:scale-110 text-textSecondary hover:text-white"
+                      title="View All Notes"
+                    >
+                      <RotateCw className="w-3 h-3" />
+                    </button>
+                  </div>
+
+                  {/* Smart Color Picker */}
+                  {showSmartColorPicker && (
+                    <div
+                      className="smart-color-picker absolute z-[100] bg-surface/95 backdrop-blur-xl border border-white/20 rounded-xl p-2 shadow-2xl min-w-[140px] animate-in zoom-in slide-in-from-left-1 duration-200"
+                      style={smartPickerPosition}
+                    >
+                      <div className="grid grid-cols-3 gap-1.5 mb-2">
+                        {smartHighlightColors.map((color) => (
+                          <button
+                            key={color.value}
+                            onClick={() => applySmartColor(color.value)}
+                            onMouseDown={(e) => e.preventDefault()}
+                            className="w-8 h-8 rounded-lg border border-white/10 hover:scale-110 active:scale-95 transition-all shadow-sm flex items-center justify-center group"
+                            style={{ backgroundColor: color.value }}
+                            title={color.name}
+                          >
+                            <div className="w-1.5 h-1.5 rounded-full bg-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </button>
+                        ))}
                       </div>
-                      <div className="text-textSecondary prose prose-sm max-w-none mt-4">
-                        {typeof selectedNote.note_content === 'object' && selectedNote.note_content?.html ? (
-                          <div dangerouslySetInnerHTML={{ __html: selectedNote.note_content.html }} />
-                        ) : typeof selectedNote.content === 'object' && selectedNote.content?.html ? (
-                          <div dangerouslySetInnerHTML={{ __html: selectedNote.content.html }} />
-                        ) : (
-                          <div dangerouslySetInnerHTML={{ __html: selectedNote.note_content || selectedNote.content || '' }} />
-                        )}
+                      <button
+                        onClick={() => applySmartColor('transparent')}
+                        onMouseDown={(e) => e.preventDefault()}
+                        className="w-full py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-textSecondary hover:text-white transition-all text-[9px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 border border-white/5"
+                      >
+                        <X className="w-3 h-3" /> Clear
+                      </button>
+                      {/* Arrow pointing left, aligned with the bottom corner */}
+                      <div className={`absolute bottom-2 ${arrowDirection === 'left' ? '-left-1' : '-right-1'} w-2 h-2 bg-surface border-l border-b border-white/20 ${arrowDirection === 'left' ? 'rotate-45' : '-rotate-45'}`} />
+                    </div>
+                  )}
+
+                  {/* Highlight Color Picker in Sidebar */}
+                  {showColorPicker && (
+                    <div className="bg-surface/50 backdrop-blur-md p-3 rounded-lg border border-white/10">
+                      <h5 className="text-xs font-bold text-textSecondary uppercase mb-2">Highlight Colors</h5>
+                      <div className="grid grid-cols-3 gap-1">
+                        {highlightColors.map((color) => (
+                          <button
+                            key={color.value}
+                            onClick={() => applyHighlight(color.value)}
+                            className="w-8 h-8 rounded border border-white/20 hover:scale-110 transition-transform"
+                            style={{ backgroundColor: color.value }}
+                            title={color.name}
+                          />
+                        ))}
                       </div>
-                      {(selectedNote.created_at || selectedNote.note_created_at) && (
-                        <p className="text-xs text-textSecondary mt-4">
-                          Created: {new Date(selectedNote.created_at || selectedNote.note_created_at).toLocaleDateString()}
-                        </p>
+
+                      {highlights.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-white/10">
+                          <h6 className="text-[10px] font-bold text-textSecondary uppercase mb-2">Active Highlights</h6>
+                          <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                            {highlights.map(h => (
+                              <div key={h.id} className="flex items-center justify-between gap-2 p-1.5 bg-black/20 rounded border border-white/5 group">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: h.color }}></div>
+                                  <span className="text-[10px] text-textSecondary truncate">{h.text}</span>
+                                </div>
+                                <button
+                                  onClick={() => removeHighlight(h.id)}
+                                  className="text-textSecondary hover:text-red-400 transition-opacity"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => setShowColorPicker(false)}
+                        className="mt-2 w-full text-xs text-textSecondary hover:text-white transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+
+                  <h4 className="sr-only">My Notes</h4>
+                  <div className="relative flex-1 min-h-[160px]">
+                    <div
+                      className="w-full h-full bg-black/20 rounded-b border border-white/10 p-2 text-sm text-white overflow-y-auto focus:outline-none focus:ring-1 focus:ring-accent [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-2 [&_img]:border [&_img]:border-white/10 [&_img]:cursor-pointer [&_img:hover]:ring-1 [&_img:hover]:ring-accent"
+                      contentEditable
+                      suppressContentEditableWarning
+                      onClick={handleSmartEditorClick}
+                      id="module-notes-editor"
+                      style={{ 
+                        maxHeight: '400px',
+                        overflowY: 'auto',
+                        scrollbarWidth: 'thin',
+                        scrollbarColor: 'rgba(255,255,255,0.3) transparent'
+                      }}
+                    ></div>
+
+                    {selectedSmartImg && (
+                      <div
+                        className="absolute z-40 bg-red-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-xl cursor-pointer hover:bg-red-600 transition-all flex items-center gap-1.5 animate-in fade-in slide-in-from-bottom-1"
+                        style={{
+                          left: `${selectedSmartImg.offsetLeft + selectedSmartImg.offsetWidth / 2}px`,
+                          top: `${selectedSmartImg.offsetTop + 10}px`,
+                          transform: 'translateX(-50%)'
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteSmartImage();
+                        }}
+                      >
+                        <X className="w-2.5 h-2.5" /> Remove
+                      </div>
+                    )}
+                  </div>
+
+                  <Button size="sm" onClick={handleSaveNotes} className="w-full">
+                    <Save className="w-4 h-4 mr-2" /> Save Notes
+                  </Button>
+                </div>
+              )}
+              {/* Controls for other tabs omitted for brevity */}
+            </div>
+          )}
+
+          {/* {!notesOpen} block removed as per request to remove duplicate icons - the header icon is sufficient */}
+
+        </div>
+        )}
+      </div>
+
+
+
+      {/* Notes Modal */}
+      {showNotesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-surface border border-white/10 rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-textPrimary">All Saved Notes</h2>
+              <button
+                onClick={() => setShowNotesModal(false)}
+                className="p-2 hover:bg-white/10 rounded-full text-textSecondary hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              {selectedNote ? (
+                <div className="space-y-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedNote(null)}
+                    className="mb-4"
+                  >
+                    ← Back to Notes List
+                  </Button>
+                  <div className="p-4 bg-surface/50 rounded-lg border border-white/5">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-textPrimary">{selectedNote.note_title || selectedNote.title || 'Untitled Note'}</h3>
+                    </div>
+                    <div className="text-textSecondary prose prose-sm max-w-none mt-4">
+                      {typeof selectedNote.note_content === 'object' && selectedNote.note_content?.html ? (
+                        <div dangerouslySetInnerHTML={{ __html: selectedNote.note_content.html }} />
+                      ) : typeof selectedNote.content === 'object' && selectedNote.content?.html ? (
+                        <div dangerouslySetInnerHTML={{ __html: selectedNote.content.html }} />
+                      ) : (
+                        <div dangerouslySetInnerHTML={{ __html: selectedNote.note_content || selectedNote.content || '' }} />
                       )}
                     </div>
+                    {(selectedNote.created_at || selectedNote.note_created_at) && (
+                      <p className="text-xs text-textSecondary mt-4">
+                        Created: {new Date(selectedNote.created_at || selectedNote.note_created_at).toLocaleDateString()}
+                      </p>
+                    )}
                   </div>
-                ) : (
-                  <>
-                    {notes && notes.length > 0 ? (
-                      notes.map((note, index) => (
-                        <div
-                          key={note.note_id || note.id}
-                          className="p-4 bg-surface/50 rounded-lg border border-white/5 cursor-pointer hover:bg-surface/70 transition-colors"
-                          onClick={() => setSelectedNote(note)}
-                        >
-                          <div className="flex items-start gap-2 mb-2">
-                            <div className="flex-1">
-                              <h3 className="font-medium text-textPrimary">{note.note_title || note.title || 'Untitled Note'}</h3>
-                            </div>
-                            <Button size="sm" variant="ghost" className="text-xs" onClick={(e) => {
-                              e.stopPropagation();
-                              setShowNotesModal(false);
-                              const editor = document.getElementById('module-notes-editor');
-                              if (editor) {
+                </div>
+              ) : (
+                <>
+                  {notes && notes.length > 0 ? (
+                    notes.map((note, index) => (
+                      <div
+                        key={note.note_id || note.id}
+                        className="p-4 bg-surface/50 rounded-lg border border-white/5 cursor-pointer hover:bg-surface/70 transition-colors"
+                        onClick={() => setSelectedNote(note)}
+                      >
+                        <div className="flex items-start gap-2 mb-2">
+                          <div className="flex-1">
+                            <h3 className="font-medium text-textPrimary">{note.note_title || note.title || 'Untitled Note'}</h3>
+                          </div>
+                          <Button size="sm" variant="ghost" className="text-xs" onClick={(e) => { 
+                              e.stopPropagation(); 
+                              setShowNotesModal(false); 
+                              const editor = document.getElementById('module-notes-editor'); 
+                              if (editor) { 
                                 const htmlContent = typeof note.note_content === 'object' ? note.note_content?.html : (typeof note.content === 'object' ? note.content?.html : note.note_content || note.content || '');
-                                editor.innerHTML = htmlContent || '';
-
+                                editor.innerHTML = htmlContent || ''; 
+                                
                                 // Store the note ID we're editing
                                 setCurrentEditingNoteId(note.note_id);
-                              }
+                              } 
                             }}>
                               Edit
                             </Button>
-                          </div>
-                          {(note.created_at || note.note_created_at) && (
-                            <p className="text-xs text-textSecondary mt-2">
-                              Created: {new Date(note.created_at || note.note_created_at).toLocaleDateString()}
-                            </p>
-                          )}
                         </div>
-                      ))
-                    ) : (
-                      <p className="text-textSecondary">No notes saved yet.</p>
-                    )}
-                  </>
-                )}
-              </div>
+                        {(note.created_at || note.note_created_at) && (
+                          <p className="text-xs text-textSecondary mt-2">
+                            Created: {new Date(note.created_at || note.note_created_at).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-textSecondary">No notes saved yet.</p>
+                  )}
+                </>
+              )}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+    </div>
     </GutenbergExplorerProvider>
   );
 }

@@ -62,7 +62,7 @@ export default function CourseDashboardPage({
       setStats(data);
       setMaxStreak(streak);
     };
-    loadStats();
+    loadStats();  
   }, [courseId]);
 
   // continue lesson
@@ -81,12 +81,11 @@ export default function CourseDashboardPage({
       const user = await getCurrentUserProfile();
       if (!user) return;
 
-      // usage of !inner to filter by joined table
       const { data, error } = await supabase
         .from('quiz_attempts')
-        .select('quizzes!inner ( unit_id )')
+        .select('unit_id')
         .eq('user_id', user.user_id)
-        .eq('quizzes.course_id', courseId)
+        .eq('course_id', courseId)
         .order('qa_id', { ascending: false })
         .limit(1);
 
@@ -95,8 +94,7 @@ export default function CourseDashboardPage({
         return;
       }
 
-      // @ts-ignore
-      const unitId = data && data.length > 0 ? data[0].quizzes?.unit_id : null;
+      const unitId = data && data.length > 0 ? (data[0] as any).unit_id : null;
       setLatestQuizUnitId(typeof unitId === 'number' ? unitId : null);
     };
 

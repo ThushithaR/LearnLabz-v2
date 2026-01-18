@@ -30,8 +30,8 @@ export async function upsertLessonProgress({
       .maybeSingle();
 
     // If lesson is already at 100%, don't update it
-    if (existingProgress &&
-      (existingProgress.lesson_progress_percent === 100 || existingProgress.completed === true)) {
+    if (existingProgress && 
+        (existingProgress.lesson_progress_percent === 100 || existingProgress.completed === true)) {
       console.log("Lesson already at 100% - skipping update");
       return { data: existingProgress, error: null };
     }
@@ -137,7 +137,7 @@ export async function updateUnitProgress({
   if (existing) {
     // Only update if new progress is higher than existing
     const finalProgressPercent = Math.max(existingProgressPercent, progress_percent);
-
+    
     response = await supabase
       .from("unit_progress")
       .update({
@@ -288,7 +288,7 @@ export async function updateUnitProgressFromLessons({
     }
 
     // Calculate new progress
-    const newProgressPercent = totalLessons > 0
+    const newProgressPercent = totalLessons > 0 
       ? Math.round((completedLessons / totalLessons) * 100)
       : 0;
 
@@ -419,7 +419,7 @@ export async function getCourseUnitProgressFromLessons({
       unit.lessons.forEach(lesson => {
         const lessonId = typeof lesson.id === 'string' ? parseInt(lesson.id) : lesson.id;
         const progress = lessonProgressData.find(lp => lp.lesson_id === lessonId);
-
+        
         // Count as completed if either completed flag is true OR progress is 100%
         if (progress && (progress.completed === true || progress.lesson_progress_percent === 100)) {
           completedLessons += 1;
@@ -427,7 +427,7 @@ export async function getCourseUnitProgressFromLessons({
       });
     }
 
-    const progressPercent = totalLessons > 0
+    const progressPercent = totalLessons > 0 
       ? Math.round((completedLessons / totalLessons) * 100)
       : 0;
 
@@ -493,10 +493,10 @@ export async function getContinueLesson(
     .select(`
       lesson_id,
       lesson_progress_percent,
-      lessons!inner ( lesson_title, unit_id )
+      lessons ( lesson_title, unit_id )
     `)
     .eq("user_id", userId)
-    .eq("lessons.course_id", courseId)
+    .eq("course_id", courseId)
     .eq("completed", false)
     .order("lesson_progress_percent", { ascending: false })
     .limit(1)

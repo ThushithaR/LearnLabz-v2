@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Calculator, X, CheckCircle, XCircle, ChevronDown, ChevronRight, Sun, Star, AlertCircle, Code, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
+import { getCurrentUserProfile } from "@/lib/supabase/profile";
+import { submitNumericalAttempt } from "@/lib/supabase/numericals";
 
 export default function CodingChallengePageOne({ params }: { params: { id: string, course: string } }) {
   const [solution, setSolution] = useState<string>("");
@@ -19,6 +21,7 @@ export default function CodingChallengePageOne({ params }: { params: { id: strin
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const [isStarred, setIsStarred] = useState(false);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
+  const [userId, setUserId] = useState<number | null>(null);
 
   // New state for Try It Yourself feature
   const [showTryItYourself, setShowTryItYourself] = useState(false);
@@ -32,9 +35,25 @@ export default function CodingChallengePageOne({ params }: { params: { id: strin
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [codeVariables, setCodeVariables] = useState<{[key: string]: any}>({});
-  // Add this new state at the top with other states
-const [correctAttempts, setCorrectAttempts] = useState(0);
-const [totalAttempts, setTotalAttempts] = useState(0);
+  
+  // Add these states for saving
+  const [attemptData, setAttemptData] = useState<{
+    matchPercentage: number;
+    typingCorrectLines: number;
+    typingTotalAttempts: number;
+    typingAccuracy: number;
+    isTypingCompleted: boolean;
+  }>({
+    matchPercentage: 0,
+    typingCorrectLines: 0,
+    typingTotalAttempts: 0,
+    typingAccuracy: 0,
+    isTypingCompleted: false
+  });
+  
+  const [xpEarned, setXpEarned] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+
   // Define the complete correct answer
   const correctAnswer = `from nltk.corpus import brown
 news_text = brown.words(categories='news')
@@ -84,6 +103,18 @@ for m in modals:
       variables: {}
     }
   ];
+
+  // Fetch user on component mount
+  useEffect(() => {
+    const fetchUser = async () => {
+      const user = await getCurrentUserProfile();
+      if (user) {
+        setUserId(user.user_id);
+      }
+    };
+    fetchUser();
+  }, []);
+
   useEffect(() => {
   if (showTryItYourself) {
     // Small delay to ensure modal is rendered
@@ -174,6 +205,7 @@ for m in modals:
     }
   };
 
+  // Calculate match percentage without updating state
   const calculateMatchPercentage = () => {
     const userCode = solution.trim();
     const correctCode = correctAnswer.trim();
@@ -194,95 +226,191 @@ for m in modals:
     return Math.round((matches / correctLines.length) * 100);
   };
 
-  const handleSubmit = () => {
-  setIsTimerRunning(false);
-  
-  // Show alert with Try it yourself option
-  const userWantsToTry = window.confirm(
-    "Great job completing the challenge!\n\nWould you like to try typing the code yourself line by line?\n\nClick OK for 'Try it yourself' or Cancel to see results."
-  );
-  
-  if (userWantsToTry) {
+  // Function to calculate and update match percentage in state
+  const updateMatchPercentage = () => {
+    const matchPct = calculateMatchPercentage();
+    setAttemptData(prev => ({ ...prev, matchPercentage: matchPct }));
+    return matchPct;
+  };
+
+  // Function to save attempt using existing submitNumericalAttempt
+  const saveAttempt = async (isTypingExercise: boolean = false) => {
+    if (!userId) {
+      console.error('User not logged in');
+      return false;
+    }
+
+    setIsSaving(true);
+    try {
+      // Calculate match percentage without causing re-render loop
+      const matchPct = calculateMatchPercentage();
+      
+      let finalXp = matchPct * 5;
+      
+      // If typing was completed, adjust XP based on typing accuracy
+      if (isTypingExercise && attemptData.typingAccuracy > 0) {
+        finalXp = Math.round(matchPct * 5 * (attemptData.typingAccuracy / 100));
+      }
+      
+      setXpEarned(finalXp);
+
+      // Determine if the solution is correct (100% match)
+      const isCorrect = matchPct === 100;
+
+      // Save to numerical_attempts table
+      await submitNumericalAttempt({
+        user_id: userId,
+        numerical_id: parseInt(params.id),
+        is_correct: isCorrect,
+        penalty_percent: 0,
+        cp: finalXp,
+        time_taken: timer
+      });
+
+      console.log('Coding challenge attempt saved to numerical_attempts');
+      return true;
+    } catch (error) {
+      console.error('Error saving coding challenge attempt:', error);
+      // Fallback to localStorage if backend fails
+      localStorage.setItem(`coding-attempt-${params.id}-${Date.now()}`, JSON.stringify({
+        userId,
+        challengeId: params.id,
+        course: params.course,
+        matchPercentage: calculateMatchPercentage(),
+        timeTaken: timer,
+        xpEarned,
+        timestamp: new Date().toISOString()
+      }));
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    setIsTimerRunning(false);
+    
+    // Update match percentage in state for display
+    const matchPct = calculateMatchPercentage();
+    setAttemptData(prev => ({ ...prev, matchPercentage: matchPct }));
+    
+    // Save initial attempt (without typing exercise)
+    await saveAttempt(false);
+    
+    // Show alert with Try it yourself option
+    const userWantsToTry = window.confirm(
+      "Great job completing the challenge!\n\nWould you like to try typing the code yourself line by line?\n\nClick OK for 'Try it yourself' or Cancel to see results."
+    );
+    
+    if (userWantsToTry) {
+      setShowTryItYourself(true);
+      setUserTypedCode([""]);
+      setCurrentTypingLine(0);
+      setTypingFeedback([]);
+      setTypingComplete(false);
+      // Reset typing data for new attempt
+      setAttemptData(prev => ({
+        ...prev,
+        typingCorrectLines: 0,
+        typingTotalAttempts: 0,
+        typingAccuracy: 0,
+        isTypingCompleted: false
+      }));
+    } else {
+      setShowResults(true);
+    }
+  };
+
+  // New functions for Try It Yourself feature
+  const handleTryItYourself = () => {
     setShowTryItYourself(true);
     setUserTypedCode([""]);
     setCurrentTypingLine(0);
     setTypingFeedback([]);
     setTypingComplete(false);
-  } else {
-    setShowResults(true);
-  }
-};
-
-  // New functions for Try It Yourself feature
-  const handleTryItYourself = () => {
-  setShowTryItYourself(true);
-  setUserTypedCode([""]);
-  setCurrentTypingLine(0);
-  setTypingFeedback([]);
-  setTypingComplete(false);
-  setCorrectAttempts(0);  // Add this
-  setTotalAttempts(0);    // Add this
-};
+  };
 
   const handleCodeLineChange = (value: string, lineIndex: number) => {
-  const newCode = [...userTypedCode];
-  newCode[lineIndex] = value;
-  setUserTypedCode(newCode);
-};
+    const newCode = [...userTypedCode];
+    newCode[lineIndex] = value;
+    setUserTypedCode(newCode);
+  };
 
-const handleVerifyLine = () => {
-  const correctAnswerLines = correctAnswer.split('\n');
-  const userLine = userTypedCode[currentTypingLine].trim();
-  const correctLine = correctAnswerLines[currentTypingLine].trim();
-  
-  setTotalAttempts(prev => prev + 1);
-  
-  if (userLine === correctLine) {
-    setCorrectAttempts(prev => prev + 1);
-    setTypingFeedback([
-      {
-        line: currentTypingLine + 1,
-        correct: true,
-        message: "✓ Line is correct!"
-      }
-    ]);
+  const handleVerifyLine = () => {
+    const correctAnswerLines = correctAnswer.split('\n');
+    const userLine = userTypedCode[currentTypingLine].trim();
+    const correctLine = correctAnswerLines[currentTypingLine].trim();
     
-    if (currentTypingLine < correctAnswerLines.length - 1) {
-      setUserTypedCode([...userTypedCode, ""]);
-      setCurrentTypingLine(currentTypingLine + 1);
-    } else {
-      setTypingComplete(true);
+    // Update attempts data
+    setAttemptData(prev => ({
+      ...prev,
+      typingTotalAttempts: prev.typingTotalAttempts + 1
+    }));
+    
+    if (userLine === correctLine) {
+      setAttemptData(prev => ({
+        ...prev,
+        typingCorrectLines: prev.typingCorrectLines + 1
+      }));
+      
       setTypingFeedback([
         {
           line: currentTypingLine + 1,
           correct: true,
-          message: "✓ All lines completed! Code is perfect!"
+          message: "✓ Line is correct!"
+        }
+      ]);
+      
+      if (currentTypingLine < correctAnswerLines.length - 1) {
+        setUserTypedCode([...userTypedCode, ""]);
+        setCurrentTypingLine(currentTypingLine + 1);
+      } else {
+        setTypingComplete(true);
+        const accuracy = Math.round((attemptData.typingCorrectLines + 1) / (attemptData.typingTotalAttempts + 1) * 100);
+        setAttemptData(prev => ({
+          ...prev,
+          typingAccuracy: accuracy,
+          isTypingCompleted: true
+        }));
+        setTypingFeedback([
+          {
+            line: currentTypingLine + 1,
+            correct: true,
+            message: "✓ All lines completed! Code is perfect!"
+          }
+        ]);
+      }
+    } else {
+      setTypingFeedback([
+        {
+          line: currentTypingLine + 1,
+          correct: false,
+          message: `✗ Incorrect. Expected: ${correctLine}`
         }
       ]);
     }
-  } else {
-    setTypingFeedback([
-      {
-        line: currentTypingLine + 1,
-        correct: false,
-        message: `✗ Incorrect. Expected: ${correctLine}`
-      }
-    ]);
-  }
-};
+  };
 
-const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-  if (e.key === 'Enter' && e.ctrlKey) {
-    e.preventDefault();
-    handleVerifyLine();
-  }
-};
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && e.ctrlKey) {
+      e.preventDefault();
+      handleVerifyLine();
+    }
+  };
 
-const calculateTypingAccuracy = () => {
-  if (totalAttempts === 0) return 0;
-  return Math.round((correctAttempts / totalAttempts) * 100);
-};
+  const handleShowResultsAfterTyping = async () => {
+    // Save attempt with typing exercise data
+    await saveAttempt(true);
+    setShowTryItYourself(false);
+    setShowResults(true);
+  };
 
+  const calculateTypingAccuracy = () => {
+    if (attemptData.typingTotalAttempts === 0) return 0;
+    return Math.round((attemptData.typingCorrectLines / attemptData.typingTotalAttempts) * 100);
+  };
+
+  // Use calculateMatchPercentage for display (doesn't update state)
   const matchPercentage = calculateMatchPercentage();
   const isComplete = selectedOptions.length === steps.length;
 
@@ -320,7 +448,8 @@ const calculateTypingAccuracy = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      {/* Fix scrollbar - add this class to the main content div */}
+      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
         {!showResults ? (
           <div className="flex flex-col lg:grid lg:grid-cols-12 h-fit lg:h-full">
             {/* Column 1: Problem Statement */}
@@ -400,6 +529,14 @@ might: 38 must: 53 will: 389
                     setErrorMessage('');
                     setTimer(0);
                     setIsTimerRunning(true);
+                    setAttemptData({
+                      matchPercentage: 0,
+                      typingCorrectLines: 0,
+                      typingTotalAttempts: 0,
+                      typingAccuracy: 0,
+                      isTypingCompleted: false
+                    });
+                    setXpEarned(0);
                 }}
                 className={workspaceTheme === 'dark' ? "" : "bg-gray-200 hover:bg-gray-300 text-gray-900"}
                 >
@@ -438,7 +575,7 @@ might: 38 must: 53 will: 389
                 </Card>
               )}
 
-              <div className="flex-1 p-6 md:p-8 font-mono text-sm leading-7 overflow-y-auto">
+              <div className="flex-1 p-6 md:p-8 font-mono text-sm leading-7 overflow-y-auto max-h-[calc(100vh-16rem)] lg:max-h-[calc(100vh-4rem)]">
                 {solution ? (
                     solution.split('\n').map((line, i) => (
                     <div key={i} className="flex gap-4 text-white">
@@ -564,9 +701,43 @@ might: 38 must: 53 will: 389
             </Card>
             <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5">
                 <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Experience</div>
-                <div className="text-2xl font-bold text-accent">+{matchPercentage * 5} XP</div>
+                <div className="text-2xl font-bold text-accent">
+                  +{xpEarned > 0 ? xpEarned : matchPercentage * 5} XP
+                  {isSaving && <span className="text-xs ml-2 text-textSecondary">(Saving...)</span>}
+                </div>
+                {attemptData.isTypingCompleted && attemptData.typingAccuracy > 0 && (
+                  <div className="text-xs text-textSecondary mt-1">
+                    Includes {attemptData.typingAccuracy}% typing accuracy bonus
+                  </div>
+                )}
             </Card>
             </div>
+
+            {attemptData.isTypingCompleted && (
+              <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5 mb-6">
+                <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-3">Typing Exercise</div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <div className="text-2xl font-bold text-white">
+                      {attemptData.typingCorrectLines}/{correctAnswerLines.length}
+                    </div>
+                    <div className="text-xs text-textSecondary">Lines Correct</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-white">
+                      {attemptData.typingTotalAttempts}
+                    </div>
+                    <div className="text-xs text-textSecondary">Total Attempts</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-white">
+                      {attemptData.typingAccuracy}%
+                    </div>
+                    <div className="text-xs text-textSecondary">Typing Accuracy</div>
+                  </div>
+                </div>
+              </Card>
+            )}
 
             <div className="flex gap-4 justify-center">
               <Button variant="outline" onClick={() => window.location.reload()}>
@@ -615,9 +786,8 @@ might: 38 must: 53 will: 389
             </div>
 
             {/* Main Content */}
-            {/* Main Content */}
             <div className="flex-1 overflow-y-auto p-6 min-h-0">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-4">
                 {/* Left: Code Editor */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -666,8 +836,12 @@ might: 38 must: 53 will: 389
                         setCurrentTypingLine(0);
                         setTypingFeedback([]);
                         setTypingComplete(false);
-                        setCorrectAttempts(0);
-                        setTotalAttempts(0);
+                        setAttemptData(prev => ({
+                          ...prev,
+                          typingCorrectLines: 0,
+                          typingTotalAttempts: 0,
+                          typingAccuracy: 0
+                        }));
                     }}
                     >
                     Reset
@@ -761,10 +935,7 @@ might: 38 must: 53 will: 389
                     Close
                   </Button>
                   <Button
-                    onClick={() => {
-                        setShowTryItYourself(false);
-                        setShowResults(true);
-                    }}
+                    onClick={handleShowResultsAfterTyping}
                     disabled={!typingComplete}
                     className={typingComplete ? "bg-green-600 hover:bg-green-700" : ""}
                   >

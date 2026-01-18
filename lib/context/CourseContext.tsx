@@ -3,7 +3,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-type CourseType = "aiml" | "nlp";
+type CourseType = "aiml" | "nlp" | "foundation";
 
 interface CourseContextType {
   selectedCourse: CourseType | null;
@@ -21,7 +21,7 @@ export const CourseProvider = ({ children }: { children: ReactNode }) => {
   // Load saved course from localStorage when provider mounts
   useEffect(() => {
     const savedCourse = localStorage.getItem("selectedCourse");
-    if (savedCourse === "aiml" || savedCourse === "nlp") {
+    if (savedCourse === "aiml" || savedCourse === "nlp" || savedCourse === "foundation") {
       setSelectedCourse(savedCourse);
     }
   }, []);

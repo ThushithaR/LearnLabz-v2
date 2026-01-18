@@ -34,7 +34,7 @@ export default function CourseQuizzesPage({
     const loadData = async () => {
       // 1. Load static course data (for name/features)
       const course = courses[params.course as CourseId];
-      if (!course || !course.features.quizzes) {
+      if (!course || !course.features.actualquizzes) {
         router.push("/404");
         return;
       }

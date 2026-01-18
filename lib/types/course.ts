@@ -6,13 +6,12 @@ export interface Course {
   features: {
     dashboard: boolean;
     modules: boolean;
-    quizzes: boolean;
+    actualquizzes: boolean;
     achievements: boolean;
     numericals: boolean;
     notes: boolean;
     calendar: boolean;
     important: boolean;
-    actualquizzes: boolean;
   };
 
   user: {
@@ -29,7 +28,6 @@ export interface Course {
   };
 
   modules: Module[];
-  quizzes: Quiz[];
   achievements: Achievement[];
   leaderboard: LeaderboardEntry[];
   notes: Note[];
@@ -40,11 +38,10 @@ export interface Course {
 }
 
 export interface Lesson {
-  id: string;
+  id: number | string;
   title: string;
   duration: string;
   isInteractive?: boolean; // optional
-  interactiveComponent?: any; // React Component
   content?: {
     overview?: string;
     quoteOfTheDay?: string;
@@ -58,14 +55,14 @@ export interface Lesson {
       solution?: string | React.ReactNode;
     };
   };
-  quiz?: QuizQuestion[];
+  quiz ?: QuizQuestion[];
 }
-export interface QuizQuestion {
-  id: string;
+export interface QuizQuestion{
+  id:string;
   question: string;
   options: string[];
   correctAnswer: number;
-  explanation?: string;
+  explanation ?: string;
 }
 
 export interface ProblemStatementContent {
@@ -118,7 +115,7 @@ export interface LeaderboardEntry {
   rank: number;
   name: string;
   avatarUrl?: string | null;
-  initial: string;
+  initial?: string;
   tier: string;
   ep: number;
   isUser: boolean;
@@ -188,7 +185,7 @@ export interface ActualQuizzes {
   questionData: MainQuiz[];
 }
 
-export interface MainQuiz {
+export interface  MainQuiz{
   id: number;
   question: string;
   options: string[];

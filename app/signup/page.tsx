@@ -90,29 +90,24 @@ export default function SignupPage() {
     });
 
     if (authError || !data.user) {
-      console.error("Auth signup error:", authError);
       setError(authError?.message || "Signup failed");
       return;
     }
 
-    console.log("Auth user created:", data.user.id);
-
-    // Insert user profile into database
-    const { data: insertData, error: dbError } = await supabase.from("users").insert({
+    const { error: dbError } = await supabase.from("users").insert({
       auth_user_id: data.user.id,
       user_name: formData.name,
       user_email: formData.email,
       school_name: formData.school,
       class_name: formData.section,
-    }).select();
+      password_hash: formData.password,
+    });
 
     if (dbError) {
-      console.error("Database insert error:", dbError);
-      setError(`Profile creation failed: ${dbError.message}. Please contact support.`);
+      setError(dbError.message);
       return;
     }
 
-    console.log("User profile created:", insertData);
     router.push("/home");
   };
 
