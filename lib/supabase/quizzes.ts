@@ -50,6 +50,20 @@ export async function getQuizzesByCourse(courseId: number): Promise<ActualQuizze
     const dbQuizzes = quizzesData as DBQuiz[];
     let attempts: DBQuizAttempt[] = [];
 
+    // 1.a Fetch unit titles for mapping
+    const { data: unitsData, error: unitsError } = await supabase
+      .from("units")
+      .select("unit_id, unit_title")
+      .eq("course_id", courseId);
+
+    if (unitsError) {
+      console.error("Error fetching units:", unitsError);
+    }
+    const unitTitleMap = new Map<number, string>();
+      unitsData?.forEach((u) => {
+        unitTitleMap.set(u.unit_id, u.unit_title);
+      });
+
     // 2. Fetch all user attempts for quizzes in this course using join (ONLY if user exists)
     if (user) {
       const { data: attemptsData, error: attemptsError } = await supabase
@@ -139,7 +153,7 @@ export async function getQuizzesByCourse(courseId: number): Promise<ActualQuizze
 
       transformedQuizzes.push({
         id: dbQuiz.quiz_id,
-        unit: `Unit ${dbQuiz.unit_id}`, // Simple mapping, could be enhanced
+        unit: unitTitleMap.get(dbQuiz.unit_id) ?? `Unit ${dbQuiz.unit_id}`,
         title: dbQuiz.quiz_title,
         difficulty: (dbQuiz.quiz_difficulty.charAt(0).toUpperCase() + dbQuiz.quiz_difficulty.slice(1).toLowerCase()) as "Easy" | "Medium" | "Hard",
         time: `${timeInMinutes} min`,
