@@ -14,6 +14,12 @@ import BFSTreeTraversal from "@/lib/numericals/aiml/numericals";
 import DFSGraphTraversal from "@/lib/numericals/aiml/numerical_dfs";
 import CodingChallengePageOne from "@/lib/numericals/nlp/numericals_code1";
 import TFIDFNumericalPage from "@/lib/numericals/nlp/numericals_tfidf";
+import Activity_Intro from "@/lib/numericals/foundation/activity_intro";
+import EvaluationMetricsPage from "@/lib/numericals/foundation/numericals_evaluationa_metrics";
+import SpotifyPlaylistSorter from "@/lib/numericals/foundation/activity_supervised_learning";
+import DecisionSimulatorPage from "@/lib/numericals/foundation/activity_perceptron";
+import TfIdfNumericalsPage from "@/lib/numericals/foundation/numerical_tfidf";
+
 
 export default function NumericalsSolvePage({ params }: { params: { id: string, course: string } }) {
   const router = useRouter();
@@ -32,6 +38,7 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const [isStarred, setIsStarred] = useState(false);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
+  
 
   // Load starred state on mount
   useEffect(() => {
@@ -190,6 +197,25 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
     return <TFIDFNumericalPage params={params} />;
   }
 
+  if (numerical.id === 1000) {
+    return <Activity_Intro params={params} />;
+  }
+
+  if (numerical.id === 1001) {
+    return <SpotifyPlaylistSorter params={params} />;
+  }
+
+  if (numerical.id === 1002) {
+    return <EvaluationMetricsPage params={params} />;
+  }
+
+  if (numerical.id === 1003) {
+    return <DecisionSimulatorPage params={params} />;
+  }
+
+  if (numerical.id === 1004) {
+    return <TfIdfNumericalsPage params={params} />;
+  }
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-300 overflow-y-auto lg:overflow-hidden">
       {/* Header */}
