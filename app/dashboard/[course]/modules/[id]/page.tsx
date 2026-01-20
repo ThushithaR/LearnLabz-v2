@@ -1,5 +1,5 @@
 "use client";
-
+import { Bot } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -22,6 +22,7 @@ import { ModuleProgress } from "@/lib/types/progress";
 import { getLessonProgress, getLessonProgressByUnit, upsertLessonProgress, updateUnitProgress } from "@/lib/supabase/progress";
 import { supabase } from "@/lib/supabase/client";
 import { getUserNotes, createNote, upsertNote } from "@/lib/supabase/notes";
+import { AIChatModal } from "@/components/AIChatModal";
 
 export default function LessonPage({ params }: { params: { course: string; id: string } }) {
   const { course, id } = params;
@@ -50,6 +51,7 @@ export default function LessonPage({ params }: { params: { course: string; id: s
   // lesson completion tracking
   const [isLessonCompleted, setIsLessonCompleted] = useState(false);
   // Deep link: /modules/:unitId?lesson=<lesson title>
+  const [showAiChatModal, setShowAiChatModal] = useState(false);
   useEffect(() => {
     if (!moduleData || !lessonParam) return;
 
@@ -1049,6 +1051,77 @@ export default function LessonPage({ params }: { params: { course: string; id: s
       }
     }
   };
+
+const handleAIChat = async () => {
+  try {
+    // Serialize current lesson content already in memory
+    const lessonPayload = {
+      title: lessonData.title,
+      duration: lessonData.duration,
+      content: (lessonData as any).content || {},
+      moduleTitle: moduleData.title
+    };
+
+    const response = await fetch('http://localhost:8000/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `I'm studying this lesson. Can you help me understand it better?`,
+        context: lessonPayload
+      })
+    });
+
+    const data = await response.json();
+    alert(`AI Assistant: ${data.response}`);
+    
+  } catch (error) {
+    console.error('AI chat failed:', error);
+    alert('Failed to connect to AI backend. Make sure it\'s running on localhost:8000');
+  }
+};
+
+// THEN MODIFY THE NAVIGATION SECTION (around line 950-970)
+// Replace the existing navigation buttons section with this:
+
+{/*navigation*/}
+<div className="flex flex-col items-center pt-10 gap-4 border-t border-white/5 mt-10">
+  <div className="flex gap-4">
+    {/* AI Chat Button - NEW */}
+    <Button 
+  variant="outline"
+  onClick={handleAIChat}
+  className="gap-2"
+>
+  <Bot className="w-4 h-4" />
+  AI Learning Assistant
+</Button>
+    
+    {/* Explorer Button */}
+    <ExplorerButton />
+    
+    <Button onClick={() => handleTabChange('quiz')}>
+      Take Lesson Quiz
+    </Button>
+    
+    {selectedLessonIdx < moduleData.lessons.length - 1 ? (
+      <Button onClick={handleNext}>
+        Next Lesson →
+      </Button>
+    ) : (
+      <Button 
+        onClick={() => {
+          setCompletedLessons(prev => {
+            const updated = [...prev];
+            updated[selectedLessonIdx] = true;
+            return updated;
+          });
+        }}
+      >
+        Complete Module
+      </Button>
+    )}
+  </div>
+</div>
 
   const applyHighlight = (color: string) => {
     if (selectionRange && selectedText) {
@@ -2368,6 +2441,20 @@ export default function LessonPage({ params }: { params: { course: string; id: s
           </div>
         )}
       </div>
+    {/* AI Chat Modal */}
+<AIChatModal
+  isOpen={showAiChatModal}
+  onClose={() => setShowAiChatModal(false)}
+  unitTitle={`${moduleData.title} - ${lessonData.title}`}
+  unitContent={{
+    title: lessonData.title,
+    duration: lessonData.duration,
+    content: lessonData.content || {},
+    moduleTitle: moduleData.title,
+    lessonId: lessonData.id,
+    moduleId: moduleData.id
+  }}
+/>
     </GutenbergExplorerProvider >
   );
 }

@@ -8,18 +8,45 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Button } from "@/components/ui/Button";
 import { aiml } from "@/lib/courses/aiml";
 import { nlp } from "@/lib/courses/nlp";
-import { foundation } from "@/lib/courses/foundation";
 import { COURSE_ID_MAP } from "@/lib/courses";
 import { getCourseUnitProgress, getCourseUnitProgressFromLessons } from "@/lib/supabase/progress";
 import { getCurrentUserProfile } from "@/lib/supabase/profile";
+import { Bot } from "lucide-react";
+import { AIChatModal } from "@/components/AIChatModal";
 
 export default function ModulesPage({ params }: { params: { course: string } }) {
   const { course } = params;
-  const courseData = course === "aiml" ? aiml : course === "nlp" ? nlp : foundation;
+  const courseData = course === "aiml" ? aiml : nlp;
   const [unitProgress, setUnitProgress] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
+  
+  // AI Chat Modal State
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [selectedUnit, setSelectedUnit] = useState<any>(null);
 
-  // Loading bar
+  const handleAIReview = (unitId: number) => {
+    const unit = courseData.modules.find(m => m.id === unitId);
+    if (!unit) return;
+
+    // Prepare unit content for AI
+    const unitContent = {
+      title: unit.title,
+      description: unit.description,
+      lessons: unit.lessons.map((lesson: any) => ({
+        id: lesson.id,
+        title: lesson.title,
+        duration: lesson.duration,
+        content: lesson.content || {}
+      }))
+    };
+
+    setSelectedUnit({
+      title: unit.title,
+      content: unitContent
+    });
+    setShowAiModal(true);
+  };
+
   useEffect(() => {
     async function loadProgress() {
       try {
@@ -31,8 +58,7 @@ export default function ModulesPage({ params }: { params: { course: string } }) 
         }
 
         const courseId = COURSE_ID_MAP[course as keyof typeof COURSE_ID_MAP];
-
-        // First try to get progress from unit_progress table
+        
         const { data } = await getCourseUnitProgress({
           user_id: user.user_id,
           course_id: courseId,
@@ -40,42 +66,31 @@ export default function ModulesPage({ params }: { params: { course: string } }) 
 
         console.log("Unit progress data from DB:", data);
 
-        // Initialize progress map with 0 for all units first
-        // Initialize progress map
         const progressMap: Record<number, number> = {};
         courseData.modules.forEach(unit => {
           progressMap[unit.id] = 0;
         });
 
-        // 1. Get stored unit progress
-        if (data && Array.isArray(data)) {
+        if (data && Array.isArray(data) && data.length > 0) {
           data.forEach((unit: any) => {
-            progressMap[unit.unit_id] = Math.min(100, unit.unit_progress_percent || 0); // Cap at 100%
+            progressMap[unit.unit_id] = unit.unit_progress_percent || 0;
           });
-        }
-
-        // 2. ALWAYS Calculate from lesson_progress (Source of Truth) to fix stale data
-        // This ensures that if lesson_progress exists but unit_progress is 0, we show the real value
-        const { data: lessonBasedProgress } = await getCourseUnitProgressFromLessons({
-          user_id: user.user_id,
-          course_id: courseId,
-          units: courseData.modules as any,
-        });
-
-        if (lessonBasedProgress && Array.isArray(lessonBasedProgress)) {
-          lessonBasedProgress.forEach((unit: any) => {
-            const calculated = Math.min(100, unit.unit_progress_percent || 0); // Cap at 100%
-            // Take the higher value to be safe, but never exceed 100%
-            if (calculated > (progressMap[unit.unit_id] || 0)) {
-              console.log(`Correcting Unit ${unit.unit_id} progress: ${progressMap[unit.unit_id]}% -> ${calculated}%`);
-              progressMap[unit.unit_id] = calculated;
-            }
+          setUnitProgress(progressMap);
+        } else {
+          console.log("No unit_progress found, calculating from lesson_progress...");
+          const { data: lessonBasedProgress } = await getCourseUnitProgressFromLessons({
+            user_id: user.user_id,
+            course_id: courseId,
+            units: courseData.modules as any,
           });
+
+          if (lessonBasedProgress && Array.isArray(lessonBasedProgress)) {
+            lessonBasedProgress.forEach((unit: any) => {
+              progressMap[unit.unit_id] = unit.unit_progress_percent || 0;
+            });
+          }
+          setUnitProgress(progressMap);
         }
-
-        setUnitProgress(progressMap);
-
-        console.log("Final progress map:", progressMap);
       } catch (err) {
         console.error("Failed to load progress:", err);
       } finally {
@@ -112,23 +127,24 @@ export default function ModulesPage({ params }: { params: { course: string } }) 
         {courseData.modules.map((unit) => {
           const progress = unitProgress[unit.id] || 0;
           const isStarted = progress > 0;
-          console.log(`Rendering unit ${unit.id}: progress=${progress}%, isStarted=${isStarted}`);
 
           return (
             <Card
               key={unit.id}
-              className={`overflow-hidden transition-all ${unit.isLocked ? "opacity-70 grayscale-[0.5]" : "hover:border-accent/40"
-                }`}
+              className={`overflow-hidden transition-all ${
+                unit.isLocked ? "opacity-70 grayscale-[0.5]" : "hover:border-accent/40"
+              }`}
             >
               <div className="flex flex-col md:flex-row">
                 {/* Visual Side */}
                 <div
-                  className={`w-full md:w-48 h-32 md:h-auto shrink-0 flex items-center justify-center text-4xl font-bold ${unit.isLocked
-                    ? "bg-surface"
-                    : "bg-gradient-to-br from-accent/20 to-highlight/20 text-accent"
-                    }`}
+                  className={`w-full md:w-48 h-32 md:h-auto shrink-0 flex items-center justify-center text-4xl font-bold ${
+                    unit.isLocked
+                      ? "bg-surface"
+                      : "bg-gradient-to-br from-accent/20 to-highlight/20 text-accent"
+                  }`}
                 >
-                  {unit.order}
+                  {unit.id}
                 </div>
 
                 {/* Content Side */}
@@ -137,7 +153,7 @@ export default function ModulesPage({ params }: { params: { course: string } }) 
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-xs font-bold uppercase tracking-wider text-textSecondary">
-                          Unit {unit.order}
+                          Unit {unit.id}
                         </span>
                         {isStarted && <Badge variant="accent">In Progress</Badge>}
                         {unit.isLocked && <Badge variant="outline">Locked</Badge>}
@@ -158,17 +174,27 @@ export default function ModulesPage({ params }: { params: { course: string } }) 
                     <ProgressBar value={progress} />
                   </div>
 
-                  <div className="pt-2 flex gap-3">
+                  <div className="pt-2 flex flex-wrap gap-3">
                     {unit.isLocked ? (
                       <Button disabled variant="secondary" className="w-full sm:w-auto">
                         Locked
                       </Button>
                     ) : (
-                      <Link href={`/dashboard/${course}/modules/${unit.id}`}>
-                        <Button className="w-full sm:w-auto">
-                          {isStarted ? "Continue Learning" : "Review Unit"}
+                      <>
+                        <Link href={`/dashboard/${course}/modules/${unit.id}`}>
+                          <Button className="w-full sm:w-auto">
+                            {isStarted ? "Continue Learning" : "Start Unit"}
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="outline" 
+                          className="w-full sm:w-auto flex items-center gap-2"
+                          onClick={() => handleAIReview(unit.id)}
+                        >
+                          <Bot className="w-4 h-4" />
+                          AI Review & Chat
                         </Button>
-                      </Link>
+                      </>
                     )}
                   </div>
                 </div>
@@ -177,6 +203,19 @@ export default function ModulesPage({ params }: { params: { course: string } }) 
           );
         })}
       </div>
+
+      {/* AI Chat Modal */}
+      {selectedUnit && (
+        <AIChatModal
+          isOpen={showAiModal}
+          onClose={() => {
+            setShowAiModal(false);
+            setSelectedUnit(null);
+          }}
+          unitTitle={selectedUnit.title}
+          unitContent={selectedUnit.content}
+        />
+      )}
     </div>
   );
 }
