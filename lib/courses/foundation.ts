@@ -1,5 +1,6 @@
 // lib/courses/foundation.ts
 import { Course } from "@/lib/types/course";
+import { foundationQuizzes } from "@/lib/quizzes/foundation/quizzes";
 
 export const foundation = {
   id: "foundation", // use a URL-safe id
@@ -89,7 +90,7 @@ export const foundation = {
     },
   ],
 
-  actualquizzes: [],
+  actualquizzes: foundationQuizzes,
   achievements: [],
   leaderboard: [],
     numericals : [
