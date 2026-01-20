@@ -35,8 +35,9 @@ export default function CourseQuizzesPage({
       // 1. Load static course data (for name/features)
       const course = courses[params.course as CourseId];
       if (!course || !course.features.actualquizzes) {
-        router.push("/404");
-        return;
+        // router.push("/404");
+        console.warn("Course or actualquizzes feature missing:", params.course, course);
+        // return; // Allow rendering to see what happens, or show specific error state instead
       }
       setCourseData(course);
 
@@ -174,7 +175,7 @@ export default function CourseQuizzesPage({
                       {/* Info */}
                       <div>
                         <h4 className="font-bold text-lg text-textPrimary">
-                        {quiz.title}
+                          {quiz.title}
                         </h4>
                         <div className="flex gap-3 text-xs text-textSecondary">
                           <div className="flex items-center gap-1">

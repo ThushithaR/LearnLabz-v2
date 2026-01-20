@@ -374,7 +374,7 @@ const AStarVisualizer: React.FC = () => {
                     <span className="text-xs font-bold text-textPrimary">Actual Cost</span>
                   </div>
                   <p className="text-[10px] text-textSecondary">
-                    Distance from Start -> Node n.
+                    Distance from Start {'->'} Node n.
                   </p>
                 </div>
 
@@ -588,18 +588,32 @@ const AStarVisualizer: React.FC = () => {
                   {(state !== 'normal' && state !== 'start' && state !== 'goal') && (
                     <g pointerEvents="none">
                       <rect
-                        x={node.x - 40}
-                        y={node.y - NODE_RADIUS - 46}
-                        width="80"
-                        height="40"
-                        rx="4"
-                        fill="rgba(0,0,0,0.8)"
+                        x={node.x - 50}
+                        y={node.y - NODE_RADIUS - 70}
+                        width="100"
+                        height="64"
+                        rx="6"
+                        fill="rgba(0,0,0,0.9)"
                         stroke={strokeColor}
-                        strokeWidth="1"
+                        strokeWidth="1.5"
                       />
-                      <text x={node.x} y={node.y - NODE_RADIUS - 34} textAnchor="middle" fontSize="10" fill="#94A3B8">f = g + h</text>
-                      <text x={node.x} y={node.y - NODE_RADIUS - 18} textAnchor="middle" fontSize="11" fill="#FFFFFF" fontWeight="bold">
-                        {node.f.toFixed(1)} = {node.g.toFixed(1)} + {node.h.toFixed(0)}
+                      {/* Title */}
+                      <text x={node.x} y={node.y - NODE_RADIUS - 56} textAnchor="middle" fontSize="9" fill="#94A3B8" fontWeight="bold">Cost Breakdown</text>
+
+                      {/* f(n) = g(n) + h(n) */}
+                      <text x={node.x} y={node.y - NODE_RADIUS - 42} textAnchor="middle" fontSize="10" fill="#FFFFFF" fontWeight="bold">
+                        f({node.f.toFixed(1)}) = g({node.g.toFixed(1)}) + h({node.h.toFixed(0)})
+                      </text>
+
+                      {/* Explanation */}
+                      <text x={node.x} y={node.y - NODE_RADIUS - 28} textAnchor="middle" fontSize="8" fill="#10b981">
+                        g: Path cost from start
+                      </text>
+                      <text x={node.x} y={node.y - NODE_RADIUS - 18} textAnchor="middle" fontSize="8" fill="#f59e0b">
+                        h: Distance to goal
+                      </text>
+                      <text x={node.x} y={node.y - NODE_RADIUS - 8} textAnchor="middle" fontSize="8" fill="#3b82f6">
+                        f: Total estimated cost
                       </text>
                     </g>
                   )}
@@ -611,6 +625,36 @@ const AStarVisualizer: React.FC = () => {
             })}
           </svg>
         </div>
+
+        {/* Calculation Explanation Panel */}
+        {Array.from(nodes.values()).some(n => (nodeStates.get(n.id) || 'normal') !== 'normal' && (nodeStates.get(n.id) || 'normal') !== 'start' && (nodeStates.get(n.id) || 'normal') !== 'goal') && (
+          <div className="absolute bottom-4 left-4 right-4 bg-black/90 backdrop-blur-md border border-white/10 rounded-xl p-4 shadow-2xl">
+            <h3 className="text-xs font-bold text-accent mb-2 uppercase tracking-wider flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+              How f(n) is Calculated
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2">
+                <div className="font-bold text-green-400 mb-1">g(n) - Actual Cost</div>
+                <div className="text-[10px] text-textSecondary">
+                  Sum of edge weights from start node to current node. This is the <strong>actual</strong> distance traveled so far.
+                </div>
+              </div>
+              <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-2">
+                <div className="font-bold text-orange-400 mb-1">h(n) - Heuristic</div>
+                <div className="text-[10px] text-textSecondary">
+                  Manhattan Distance = |x₁-x₂| + |y₁-y₂|. This is an <strong>estimate</strong> of remaining distance to goal.
+                </div>
+              </div>
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-2">
+                <div className="font-bold text-blue-400 mb-1">f(n) = g(n) + h(n)</div>
+                <div className="text-[10px] text-textSecondary">
+                  Total estimated cost. A* picks the node with the <strong>lowest f(n)</strong> value to explore next!
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

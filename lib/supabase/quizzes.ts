@@ -1,6 +1,6 @@
 import { supabase } from "./client";
 import { getCurrentUserProfile } from "./profile";
-import { ActualQuizzes,MainQuiz  } from "@/lib/types/course";
+import { ActualQuizzes, MainQuiz } from "@/lib/types/course";
 
 // DB Row Types
 interface DBQuiz {
@@ -28,6 +28,9 @@ interface DBQuizAttempt {
   created_at?: string;
 }
 
+import { aimlQuizzes } from "@/lib/quizzes/aiml/quizzes";
+import { nlpQuizzes } from "@/lib/quizzes/nlp/quizzes";
+
 export async function getQuizzesByCourse(courseId: number): Promise<ActualQuizzes[]> {
   try {
     const user = await getCurrentUserProfile();
@@ -39,6 +42,14 @@ export async function getQuizzesByCourse(courseId: number): Promise<ActualQuizze
       .eq("course_id", courseId)
       .order("quiz_order_index", { ascending: true });
 
+    let dbQuizzes = quizzesData as DBQuiz[] || [];
+
+    // FALLBACK: If DB is empty
+    if (!dbQuizzes || dbQuizzes.length === 0) {
+      console.warn("DB Quizzes empty. Please seed the database.");
+      return [];
+    }
+
     if (quizzesError) {
       console.error("Error fetching quizzes:", quizzesError);
       return [];
@@ -47,7 +58,6 @@ export async function getQuizzesByCourse(courseId: number): Promise<ActualQuizze
     // Log for debugging
     console.log(`Fetched ${quizzesData?.length} quizzes for course ${courseId}`);
 
-    const dbQuizzes = quizzesData as DBQuiz[];
     let attempts: DBQuizAttempt[] = [];
 
     // 2. Fetch all user attempts for quizzes in this course using join (ONLY if user exists)
@@ -174,7 +184,17 @@ export async function getQuizById(quizId: number): Promise<ActualQuizzes | null>
       .single();
 
     if (error || !data) {
-      console.error("Error fetching quiz:", error);
+      console.warn("Quiz not found in DB, checking static fallback...");
+      const staticQuiz = aimlQuizzes.find(q => q.id === quizId) || nlpQuizzes.find(q => q.id === quizId);
+      if (staticQuiz) {
+        return {
+          ...staticQuiz,
+          courseId: quizId < 400 ? 1 : 2, // 🎯 AIML IDs are 1xx/2xx, NLP are 6xx/7xx
+          unitId: typeof staticQuiz.unit === 'string' ? (parseInt(staticQuiz.unit.replace(/\D/g, '')) || 1) : (staticQuiz as any).unitId || 1,
+          difficulty: staticQuiz.difficulty as any,
+          status: "Available"
+        };
+      }
       return null;
     }
 
@@ -266,14 +286,28 @@ export async function submitQuizAttempt({
   total: number;
   time_taken: number;
 }) {
-  return supabase.from("quiz_attempts").insert({
+  const { data, error } = await supabase.from("quiz_attempts").insert({
     user_id,
     quiz_id,
     qa_score: score,
     qa_correct_count: correct,
     total_questions: total,
     time_taken_sec: time_taken
-  }).select();
+  }).select().single();
+
+  if (!error && data) {
+    // 🎯 Trigger Digital Twin Recalculation
+    // We need course_id. Fetch from quiz if not passed?
+    // Actually, getQuizById can help, or we assume caller might handle it.
+    // For now, let's fetch course_id to sync.
+    const { data: q } = await supabase.from("quizzes").select("course_id").eq("quiz_id", quiz_id).single();
+    if (q) {
+      const { syncDigitalTwin } = await import("./user-courses");
+      syncDigitalTwin(user_id, q.course_id);
+    }
+  }
+
+  return { data, error };
 }
 
 export async function getDailyQuiz(courseId: number) {

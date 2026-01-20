@@ -381,199 +381,180 @@ const AIAgentLesson = () => {
     return (
         <div className="h-full bg-background flex flex-col overflow-hidden">
             {/* Main Content Only - Simplified Layout */}
-            <div className="w-full h-full bg-[#0B1120] p-6 overflow-y-auto flex flex-col">
-                <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col">
+            <div className="w-full h-full bg-[#0B1120] p-4 md:p-6 overflow-y-auto flex flex-col">
+                <div className="max-w-5xl mx-auto w-full flex-1 flex flex-col">
 
-                    {/* Top Header & Tabs */}
-                    <div className="bg-surface border border-white/10 rounded-xl p-4 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div>
-                            <h1 className="text-xl font-black text-white tracking-tight">AI Agent Types</h1>
-                            <p className="text-xs text-gray-400 mt-1">Master Classification</p>
-                        </div>
-                        <div className="flex bg-black/40 rounded-lg p-1">
-                            <button
-                                onClick={() => setActiveTab('learn')}
-                                className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${activeTab === 'learn' ? 'bg-accent text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
-                            >
-                                LEARN & QUIZ
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('reference')}
-                                className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${activeTab === 'reference' ? 'bg-accent text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
-                            >
-                                REFERENCE GUIDE
-                            </button>
-                        </div>
-                    </div>
+                    {/* Main Content Area */}
+                    <div className="flex-1 w-full space-y-4">
 
-                    {activeTab === 'reference' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                        {/* Progress Header */}
+                        <div className="bg-surface/30 backdrop-blur-sm border border-white/10 rounded-lg p-3 md:p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-accent/10 rounded-lg">
+                                    <Brain className="text-accent" size={20} />
+                                </div>
+                                <div>
+                                    <h2 className="text-sm md:text-base font-bold text-white">Scenario {currentQuestion + 1} of {scenarios.length}</h2>
+                                    <p className="text-[10px] md:text-xs text-textSecondary">Classify the agent type</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="text-right">
+                                    <p className="text-[10px] text-textSecondary mb-0.5">Accuracy</p>
+                                    <p className="font-mono text-sm font-bold text-accent">{score > 0 ? Math.round((score / Math.max(1, currentQuestion)) * 100) : 0}%</p>
+                                </div>
+                                <div className="hidden md:flex gap-1">
+                                    {scenarios.map((_, i) => (
+                                        <div
+                                            key={i}
+                                            className={`w-2 h-2 rounded-full ${i < currentQuestion ? 'bg-accent' : i === currentQuestion ? 'bg-white animate-pulse' : 'bg-white/10'}`}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Scenario Card */}
+                        <div className="bg-gradient-to-br from-surface/50 to-surface/30 border border-white/10 rounded-xl p-5 md:p-6 shadow-lg relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-48 h-48 bg-accent/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                            <div className="relative z-10">
+                                <div className="mb-4">
+                                    <span className="inline-block px-2.5 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] font-bold uppercase tracking-wider text-textSecondary mb-3">
+                                        Real-World Example
+                                    </span>
+                                    <p className="text-base md:text-lg leading-relaxed font-medium text-white">
+                                        "{currentScenario.scenario}"
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2 text-accent">
+                                    <Target size={16} />
+                                    <p className="text-sm font-bold">{currentScenario.question}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Answer Options */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {agentTypes.map((agent) => {
-                                const Icon = agent.icon;
+                                const AgentIcon = agent.icon;
                                 return (
-                                    <div key={agent.id} className={`${agent.color} border-2 rounded-xl p-4 transition-all hover:scale-105`}>
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <div className="p-2 bg-white/10 rounded-lg">
-                                                <Icon size={24} />
+                                    <button
+                                        key={agent.id}
+                                        onClick={() => handleAnswerSelect(agent.id)}
+                                        disabled={showFeedback}
+                                        className={`p-4 rounded-lg border-2 transition-all text-left relative overflow-hidden group ${selectedAnswer === agent.id
+                                            ? showFeedback
+                                                ? isCorrect
+                                                    ? 'bg-green-500/10 border-green-500'
+                                                    : 'bg-red-500/10 border-red-500'
+                                                : 'bg-accent/10 border-accent shadow-[0_0_15px_rgba(var(--accent),0.3)]'
+                                            : showFeedback && agent.id === currentScenario.correctAnswer
+                                                ? 'bg-green-500/10 border-green-500'
+                                                : 'bg-surface/30 border-white/10 hover:border-accent/50 hover:bg-surface/50'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className={`p-2 rounded-lg ${selectedAnswer === agent.id && !showFeedback ? 'bg-accent/20' : 'bg-white/5'}`}>
+                                                <AgentIcon size={18} className={selectedAnswer === agent.id && !showFeedback ? 'text-accent' : 'text-textSecondary'} />
                                             </div>
-                                            <p className="font-bold text-lg">{agent.name}</p>
+                                            <div className="flex-1">
+                                                <span className="font-semibold text-sm text-textPrimary group-hover:text-white transition-colors block">
+                                                    {agent.name}
+                                                </span>
+                                                <span className="text-[10px] text-textSecondary">{agent.description}</span>
+                                            </div>
+                                            {selectedAnswer === agent.id && !showFeedback && (
+                                                <div className="w-3 h-3 rounded-full bg-accent animate-pulse" />
+                                            )}
                                         </div>
-                                        <p className="text-sm text-gray-300">{agent.description}</p>
-                                    </div>
+                                    </button>
                                 );
                             })}
                         </div>
-                    )}
 
-                    {activeTab === 'learn' && (
-                        <>
-                            {/* Progress Bar */}
-                            <div className="bg-surface border border-white/10 rounded-xl p-4 mb-6">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="font-bold text-white">
-                                        Question {currentQuestion + 1} of {scenarios.length}
-                                    </span>
-                                    <span className="font-bold text-white">
-                                        Score: {score}/{currentQuestion}
-                                    </span>
+                        {/* Feedback Section */}
+                        {showFeedback && (
+                            <div className={`${isCorrect ? 'bg-green-500/10 border-green-500' : 'bg-red-500/10 border-red-500'} border-2 rounded-xl p-6 mb-6`}>
+                                <div className="flex items-center gap-3 mb-4">
+                                    {isCorrect ? (
+                                        <>
+                                            <CheckCircle className="text-green-500" size={32} />
+                                            <h3 className="text-2xl font-bold text-green-500">Correct!</h3>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <XCircle className="text-red-500" size={32} />
+                                            <h3 className="text-2xl font-bold text-red-500">Not Quite!</h3>
+                                        </>
+                                    )}
                                 </div>
-                                <div className="w-full bg-gray-700 rounded-full h-3">
-                                    <div
-                                        className="bg-accent h-3 rounded-full transition-all"
-                                        style={{ width: `${((currentQuestion) / scenarios.length) * 100}%` }}
-                                    ></div>
-                                </div>
-                            </div>
 
-                            {/* Scenario */}
-                            <div className="bg-surface border border-white/10 rounded-xl p-6 mb-6">
-                                <div className="flex items-start gap-3 mb-4">
-                                    <Brain className="text-purple-500 flex-shrink-0" size={32} />
-                                    <div>
-                                        <h2 className="text-2xl font-bold mb-3 text-white">Scenario:</h2>
-                                        <p className="text-lg leading-relaxed mb-4 text-gray-300">
-                                            {currentScenario.scenario}
+                                <div className="space-y-4">
+                                    <div className={`p-4 ${isCorrect ? 'bg-green-500/20' : 'bg-yellow-500/20'} rounded-lg border-2 ${isCorrect ? 'border-green-500/50' : 'border-yellow-500/50'}`}>
+                                        <p className="font-bold mb-2 text-white">
+                                            Correct Answer: {agentTypes.find(a => a.id === currentScenario.correctAnswer)?.name || ''}
                                         </p>
-                                        <p className="text-xl font-bold text-accent">
-                                            {currentScenario.question}
+                                        <p className="text-sm text-gray-300">
+                                            {currentScenario.explanation.correct}
                                         </p>
                                     </div>
-                                </div>
-                            </div>
 
-                            {/* Answer Options */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                {agentTypes.map((agent) => {
-                                    const Icon = agent.icon;
-                                    return (
-                                        <button
-                                            key={agent.id}
-                                            onClick={() => handleAnswerSelect(agent.id)}
-                                            disabled={showFeedback}
-                                            className={`p-5 rounded-xl border-2 transition-all text-left ${selectedAnswer === agent.id
-                                                ? showFeedback
-                                                    ? isCorrect
-                                                        ? 'bg-green-500/20 border-green-500 scale-105'
-                                                        : 'bg-red-500/20 border-red-500'
-                                                    : `${agent.color} scale-105 shadow-lg`
-                                                : showFeedback && agent.id === currentScenario.correctAnswer
-                                                    ? 'bg-green-500/20 border-green-500 scale-105'
-                                                    : `bg-surface border-gray-600 hover:scale-105 ${!showFeedback && 'hover:shadow-lg'}`
-                                                }`}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <Icon size={24} />
-                                                <span className="font-bold text-lg text-white">{agent.name}</span>
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Feedback Section */}
-                            {showFeedback && (
-                                <div className={`${isCorrect ? 'bg-green-500/10 border-green-500' : 'bg-red-500/10 border-red-500'} border-2 rounded-xl p-6 mb-6`}>
-                                    <div className="flex items-center gap-3 mb-4">
-                                        {isCorrect ? (
-                                            <>
-                                                <CheckCircle className="text-green-500" size={32} />
-                                                <h3 className="text-2xl font-bold text-green-500">Correct!</h3>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <XCircle className="text-red-500" size={32} />
-                                                <h3 className="text-2xl font-bold text-red-500">Not Quite!</h3>
-                                            </>
-                                        )}
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <div className={`p-4 ${isCorrect ? 'bg-green-500/20' : 'bg-yellow-500/20'} rounded-lg border-2 ${isCorrect ? 'border-green-500/50' : 'border-yellow-500/50'}`}>
-                                            <p className="font-bold mb-2 text-white">
-                                                Correct Answer: {agentTypes.find(a => a.id === currentScenario.correctAnswer)?.name || ''}
-                                            </p>
-                                            <p className="text-sm text-gray-300">
-                                                {currentScenario.explanation.correct}
-                                            </p>
-                                        </div>
-
-                                        <div className="bg-blue-500/10 border-2 border-blue-500/50 rounded-lg p-4">
-                                            <p className="font-bold mb-2 text-blue-400">Why not the other types?</p>
-                                            <div className="space-y-2">
-                                                {Object.entries(currentScenario.explanation.whyNotOthers).map(([key, reason]) => {
-                                                    if (key === currentScenario.correctAnswer) return null;
-                                                    const agent = agentTypes.find(a => a.id === key);
-                                                    return (
-                                                        <div key={key} className="text-sm text-gray-300">
-                                                            <span className="font-semibold text-white">{agent?.name}:</span> {reason}
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-purple-500/10 border-2 border-purple-500/50 rounded-lg p-4 flex items-start gap-3">
-                                            <Lightbulb className="text-purple-400 flex-shrink-0" size={24} />
-                                            <div>
-                                                <p className="font-bold text-purple-400 mb-1">Exam Tip:</p>
-                                                <p className="text-sm text-gray-300">{currentScenario.examTip}</p>
-                                            </div>
+                                    <div className="bg-blue-500/10 border-2 border-blue-500/50 rounded-lg p-4">
+                                        <p className="font-bold mb-2 text-blue-400">Why not the other types?</p>
+                                        <div className="space-y-2">
+                                            {Object.entries(currentScenario.explanation.whyNotOthers).map(([key, reason]) => {
+                                                if (key === currentScenario.correctAnswer) return null;
+                                                const agent = agentTypes.find(a => a.id === key);
+                                                return (
+                                                    <div key={key} className="text-sm text-gray-300">
+                                                        <span className="font-semibold text-white">{agent?.name}:</span> {reason}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
 
-                                    <button
-                                        onClick={handleNext}
-                                        className="mt-6 px-8 py-3 bg-accent hover:bg-accent/80 text-white font-bold rounded-lg transition shadow-lg hover:scale-105 flex items-center gap-2 mx-auto"
-                                    >
-                                        {currentQuestion < scenarios.length - 1 ? (
-                                            <>
-                                                Next Question
-                                                <ArrowRight size={20} />
-                                            </>
-                                        ) : (
-                                            <>
-                                                View Results
-                                                <Award size={20} />
-                                            </>
-                                        )}
-                                    </button>
+                                    <div className="bg-purple-500/10 border-2 border-purple-500/50 rounded-lg p-4 flex items-start gap-3">
+                                        <Lightbulb className="text-purple-400 flex-shrink-0" size={24} />
+                                        <div>
+                                            <p className="font-bold text-purple-400 mb-1">Exam Tip:</p>
+                                            <p className="text-sm text-gray-300">{currentScenario.examTip}</p>
+                                        </div>
+                                    </div>
                                 </div>
-                            )}
 
-                            {/* Submit Button */}
-                            {!showFeedback && (
-                                <div className="text-center">
-                                    <button
-                                        onClick={handleSubmit}
-                                        disabled={selectedAnswer === null}
-                                        className="px-10 py-4 bg-accent hover:bg-accent/80 disabled:bg-gray-600 text-white text-xl font-bold rounded-xl transition shadow-lg hover:scale-105 disabled:scale-100"
-                                    >
-                                        Submit Answer
-                                    </button>
-                                </div>
-                            )}
-                        </>
-                    )}
+                                <button
+                                    onClick={handleNext}
+                                    className="mt-6 px-8 py-3 bg-accent hover:bg-accent/80 text-white font-bold rounded-lg transition shadow-lg hover:scale-105 flex items-center gap-2 mx-auto"
+                                >
+                                    {currentQuestion < scenarios.length - 1 ? (
+                                        <>
+                                            Next Question
+                                            <ArrowRight size={20} />
+                                        </>
+                                    ) : (
+                                        <>
+                                            View Results
+                                            <Award size={20} />
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Submit Button */}
+                        {!showFeedback && (
+                            <div className="text-center">
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={selectedAnswer === null}
+                                    className="px-10 py-4 bg-accent hover:bg-accent/80 disabled:bg-gray-600 text-white text-xl font-bold rounded-xl transition shadow-lg hover:scale-105 disabled:scale-100"
+                                >
+                                    Submit Answer
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

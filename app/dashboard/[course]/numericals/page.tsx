@@ -26,8 +26,9 @@ export default function CourseNumericalsPage({
     // 1. Static check first
     const course = courses[params.course as CourseId];
     if (!course) {
-      router.push("/404");
-      return;
+      // router.push("/404");
+      console.warn("Course not found for numericals:", params.course);
+      // return;
     }
     setCourseData(course);
 
@@ -137,8 +138,8 @@ export default function CourseNumericalsPage({
             <Card
               key={numerical.id}
               className={`p-5 flex flex-col gap-4 border-2 transition-all ${isLocked
-                  ? "opacity-50 bg-white/5 border-transparent pointer-events-none"
-                  : "bg-surface border-white/5 hover:border-accent/40"
+                ? "opacity-50 bg-white/5 border-transparent pointer-events-none"
+                : "bg-surface border-white/5 hover:border-accent/40"
                 }`}
               onClick={() => {
                 if (!isLocked) {

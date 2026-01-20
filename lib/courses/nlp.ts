@@ -3,8 +3,9 @@ import { dataAcquisitionContent } from "@/lib/content/nlp/unit1/dataAcquisition"
 import { problemStatementContent } from "@/lib/content/nlp/unit1/problemStatement";
 import { nlpQuizzes } from "@/lib/quizzes/nlp/quizzes";
 import { AccessingTextCorpora } from "@/lib/content/nlp/unit2/AccessingTextCorpora";
-import {BrownCorpus} from "@/lib/content/nlp/unit2/BrownCorpus";
+import { BrownCorpus } from "@/lib/content/nlp/unit2/BrownCorpus";
 import { lessonQuizzesData } from "@/lib/quizzes/nlp/lessonQuizzes";
+import { GutenbergInteractiveLesson } from "@/components/GutenbergExplorer";
 
 export const nlp = {
     id: "nlp",
@@ -36,15 +37,16 @@ export const nlp = {
     },
     modules: [
         {
-            id: 1,
+            id: 11,
             title: "Unit I: Introduction to NLP",
             description: "Natural Language Processing basics, history, and data acquisition.",
             progress: 65,
             isLocked: false,
             active: true,
+            expectedDuration: "15 min",
             lessons: [
                 {
-                    id: 1,
+                    id: 601,
                     title: "What is NLP?",
                     duration: "10 min",
                     content: {
@@ -67,10 +69,10 @@ export const nlp = {
                             }
                         ]
                     },
-                    quiz: lessonQuizzesData["1.1"]
+                    quiz: lessonQuizzesData["601"]
                 },
                 {
-                    id: 2,
+                    id: 602,
                     title: "History of NLP",
                     duration: "15 min",
                     content: {
@@ -95,13 +97,13 @@ export const nlp = {
                     }
                 },
                 {
-                    id: 3,
+                    id: 603,
                     title: "Data Acquisition Strategies",
                     duration: "25 min",
                     content: dataAcquisitionContent
                 },
                 {
-                    id: 4,
+                    id: 604,
                     title: "Real-world Problem Statement",
                     duration: "20 min",
                     content: {
@@ -123,48 +125,72 @@ export const nlp = {
             ]
         },
         {
-            id: 2,
+            id: 21,
             title: "Unit II: Textual Intelligence & Corpus Engineering",
             description: "Transitioning from raw data acquisition to structured intelligence",
             progress: 0,
             isLocked: false,
+            expectedDuration: "20 min",
             lessons: [
-                { 
-                    id: 5, 
-                    title: "Accessing Text Corpora", 
-                    duration: "20 min", 
+                {
+                    id: 701,
+                    title: "Accessing Text Corpora",
+                    duration: "20 min",
                     content: AccessingTextCorpora,
-                    quiz: lessonQuizzesData["2.1"]
+                    quiz: lessonQuizzesData["701"]
                 },
-                { 
-                    id: 6, 
-                    title: "Brown Corpus", 
-                    duration: "10 min", 
+                {
+                    id: 702,
+                    title: "Brown Corpus",
+                    duration: "10 min",
                     content: BrownCorpus,
-                    quiz: lessonQuizzesData["2.2"]
+                    quiz: lessonQuizzesData["702"]
                 },
+                {
+                    id: 703,
+                    title: "Gutenberg Corpus Explorer",
+                    duration: "15 min",
+                    isInteractive: true,
+                    content: {
+                        overview: "Explore the Gutenberg Corpus interactively. Select texts, view content, and analyze word frequencies.",
+                        objectives: [
+                            "Navigate the Gutenberg file explorer",
+                            "View raw and tokenized text",
+                            "Use the concordance tool to find word contexts"
+                        ],
+                        sections: [
+                            {
+                                type: 'text' as const,
+                                title: 'Interactive Explorer',
+                                content: 'Head over to the "Interactive" tab to start exploring the Gutenberg Corpus! You can browse files, view their content, and run NLTK-style code snippets to analyze the texts.'
+                            }
+                        ]
+                    },
+                    quiz: lessonQuizzesData["703"],
+                    interactiveComponent: GutenbergInteractiveLesson
+                }
             ]
         },
         {
-            id: 3,
+            id: 31,
             title: "Unit III: Word Embeddings",
             description: "Vector representations of language.",
             progress: 0,
             isLocked: false,
             lessons: [
-                { id: 1, title: "Word2Vec & GloVe", duration: "30 min" },
-                { id: 2, title: "TF-IDF Weighting", duration: "25 min" },
+                { id: 801, title: "Word2Vec & GloVe", duration: "30 min" },
+                { id: 802, title: "TF-IDF Weighting", duration: "25 min" },
             ]
         },
         {
-            id: 4,
+            id: 41,
             title: "Unit IV: Sequence Models",
             description: "RNNs, LSTMs, and GRUs for language.",
             progress: 0,
             isLocked: false,
             lessons: [
-                { id: 1, title: "Recurrent Networks", duration: "35 min" },
-                { id: 2, title: "Attention Mechanism", duration: "40 min" },
+                { id: 901, title: "Recurrent Networks", duration: "35 min" },
+                { id: 902, title: "Attention Mechanism", duration: "40 min" },
             ]
         }
     ],
@@ -200,6 +226,6 @@ export const nlp = {
         }
     ],
     important: [],
-    notes:[],
-    leaderboard:[]
+    notes: [],
+    leaderboard: []
 };

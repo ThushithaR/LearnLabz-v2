@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/Button";
 import {
@@ -227,7 +229,7 @@ const AlphaBetaVisualizer: React.FC = () => {
                 </text>
 
                 {/* Alpha Beta Tags */}
-                {isVisited && (
+                {isVisited && metadata && (
                     <g transform={`translate(${x + 25}, ${y - 10})`}>
                         <text fontSize="9" fill="#10b981">α: {metadata.alpha === -Infinity ? '-∞' : metadata.alpha}</text>
                         <text fontSize="9" fill="#ef4444" y="10">β: {metadata.beta === Infinity ? '∞' : metadata.beta}</text>
@@ -243,7 +245,7 @@ const AlphaBetaVisualizer: React.FC = () => {
                 )}
 
                 {/* Children Recursion */}
-                {node.children.map((child, i) => (
+                {!isPruned && node.children.map((child, i) => (
                     renderNode(child, x - spread / 2 + spread * i, y + 80, spread / 2)
                 ))}
             </g>
@@ -341,7 +343,7 @@ const AlphaBetaVisualizer: React.FC = () => {
                         <Button
                             size="sm"
                             className="rounded-full w-24 h-9 font-bold"
-                            variant={isRunning ? "secondary" : "default"}
+                            variant={isRunning ? "secondary" : "primary"}
                             onClick={() => setIsRunning(!isRunning)}
                         >
                             {isRunning ? <><Pause className="w-4 h-4 mr-2" /> Pause</> : <><Play className="w-4 h-4 mr-2" /> Play</>}

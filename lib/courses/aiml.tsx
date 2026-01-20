@@ -1,15 +1,14 @@
-import { Lesson } from "@/lib/types/course";
-import { aimlQuizzes } from "@/lib/quizzes/aiml/quizzes";
 import { introductionContent } from "@/lib/content/aiml/unit1/Introduction";
 import { aiFoundationsContent } from "@/lib/content/aiml/unit1/AIFoundations";
-import { aiApproachesContent } from "@/lib/content/aiml/unit1/AIApproaches";
-import { intelligentAgentsContent } from "@/lib/content/aiml/unit1/IntelligentAgents";
+import { TuringTestSimulator, aiApproachesContent } from "@/lib/content/aiml/unit1/AIApproaches";
+import AIAgentLesson, { intelligentAgentsContent } from "@/lib/content/aiml/unit1/IntelligentAgents";
 import { searchAlgosContent } from "@/lib/content/aiml/unit1/SearchAlgos";
-import TuringTestSimulator from "@/lib/content/aiml/unit1/AIApproaches";
-import AIAgentLesson from "@/lib/content/aiml/unit1/IntelligentAgents";
+import { overviewContent } from "@/lib/content/aiml/unit2/InformedSearch/overview";
+import HillClimbingVisualizer, { hillClimbingContent } from "@/lib/content/aiml/unit2/InformedSearch/HillClimbing";
 import { heuristicsContent } from "@/lib/content/aiml/unit2/InformedSearch/heuristics";
 import AStarVisualizer, { astarLessonContent } from "@/lib/content/aiml/unit2/InformedSearch/Astar";
 import AlphaBetaVisualizer, { alphabetaContent } from "@/lib/content/aiml/unit3/AdversarialSearch/AlphaBeta";
+import { aimlQuizzes } from "../quizzes/aiml/quizzes";
 
 export const aiml = {
   id: "aiml", // use a URL-safe id
@@ -19,7 +18,7 @@ export const aiml = {
   features: {
     dashboard: true,
     modules: true,
-    quizzes: true,
+    actualquizzes: true,
     achievements: true,
     numericals: true,
     notes: false,
@@ -47,39 +46,40 @@ export const aiml = {
       description: "History, Intelligent Agents, and Problem Solving agents.",
       progress: 100,
       isLocked: false,
+      expectedDuration: "25 min",
       lessons: [
         {
-          id: "1.1",
+          id: 101,
           title: "What is AI?",
           duration: "10 min",
           content: introductionContent
         },
         {
-          id: "1.2",
-          title: "Foundations of AI",
+          id: 102,
+          title: "AI Foundations",
           duration: "15 min",
           content: aiFoundationsContent
         },
         {
-          id: "1.3",
+          id: 103,
           title: "AI Approaches",
           duration: "20 min",
-          content: aiApproachesContent,
           isInteractive: true,
+          content: aiApproachesContent,
           interactiveComponent: TuringTestSimulator
         },
         {
-          id: "1.4",
+          id: 104,
           title: "Intelligent Agents",
           duration: "25 min",
-          content: intelligentAgentsContent,
           isInteractive: true,
+          content: intelligentAgentsContent,
           interactiveComponent: AIAgentLesson
         },
         {
-          id: "1.5",
+          id: 105,
           title: "Problem Solving Agents",
-          duration: "30 min",
+          duration: "20 min",
           content: searchAlgosContent
         },
       ],
@@ -91,15 +91,30 @@ export const aiml = {
       progress: 45,
       isLocked: false,
       active: true,
+      expectedDuration: "15 min",
       lessons: [
         {
-          id: "2.1",
+          id: 200,
+          title: "Informed Search Overview",
+          duration: "10 min",
+          content: overviewContent
+        },
+        {
+          id: 201,
           title: "Heuristic Functions",
           duration: "20 min",
           content: heuristicsContent
         },
         {
-          id: "2.2",
+          id: 202,
+          title: "Hill Climbing Search",
+          duration: "25 min",
+          isInteractive: true,
+          content: hillClimbingContent,
+          interactiveComponent: HillClimbingVisualizer
+        },
+        {
+          id: 203,
           title: "A* Search Algorithm",
           duration: "35 min",
           isInteractive: true,
@@ -111,20 +126,14 @@ export const aiml = {
     {
       id: 3,
       title: "Unit III: Adversarial Search",
-      description: "Games, Minimax algorithm, and Alpha-Beta pruning.",
+      description: "Game Theory, Minimax algorithm, and Alpha-Beta pruning.",
       progress: 0,
       isLocked: false,
-      active: false,
       lessons: [
-        {
-          id: "3.1",
-          title: "Adversarial Search",
-          duration: "30 min",
-          isInteractive: true,
-          content: alphabetaContent,
-          interactiveComponent: AlphaBetaVisualizer
-        }
-      ]
+        { id: 301, title: "Game Theory Basics", duration: "25 min" },
+        { id: 302, title: "Minimax Algorithm", duration: "30 min" },
+        { id: 303, title: "Alpha-Beta Pruning", duration: "35 min", isInteractive: true, content: alphabetaContent, interactiveComponent: AlphaBetaVisualizer },
+      ],
     },
     {
       id: 4,
@@ -133,8 +142,8 @@ export const aiml = {
       progress: 0,
       isLocked: false,
       lessons: [
-        { id: "4.1", title: "CSP Definition", duration: "15 min" },
-        { id: "4.2", title: "Backtracking Search", duration: "25 min" },
+        { id: 401, title: "CSP Definition", duration: "15 min" },
+        { id: 402, title: "Backtracking Search", duration: "25 min" },
       ],
     },
     {
@@ -144,13 +153,13 @@ export const aiml = {
       progress: 0,
       isLocked: false,
       lessons: [
-        { id: "5.1", title: "Artificial Neurons", duration: "20 min" },
-        { id: "5.2", title: "Activation Functions", duration: "15 min" },
+        { id: 501, title: "Artificial Neurons", duration: "20 min" },
+        { id: 502, title: "Activation Functions", duration: "15 min" },
       ],
     },
   ],
 
-  quizzes: aimlQuizzes,
+  actualquizzes: aimlQuizzes,
   achievements: [
     { id: 1, name: "First Steps", icon: "🚀", unlocked: true, desc: "Complete your first lesson" },
     { id: 2, name: "Week Warrior", icon: "🔥", unlocked: true, desc: "Maintain a 7-day streak" },

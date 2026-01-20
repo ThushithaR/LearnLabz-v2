@@ -3,21 +3,26 @@ import { twMerge } from "tailwind-merge";
 import { courses, CourseId } from "./courses";
 
 export function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs));
 }
 
-export function getDailyChallenge(courseId: CourseId) {
+export function getDailyChallenge(courseId: CourseId, random: boolean = false) {
   const course = courses[courseId];
-  if (!course || !course.quizzes?.length) return null;
+  if (!course || !course.actualquizzes?.length) return null;
 
-  const today = new Date();
-  const start = new Date(today.getFullYear(), 0, 0);
-  const diff = today.getTime() - start.getTime();
-  const oneDay = 1000 * 60 * 60 * 24;
-  const dayOfYear = Math.floor(diff / oneDay);
+  let index;
+  if (random) {
+    index = Math.floor(Math.random() * course.actualquizzes.length);
+  } else {
+    const today = new Date();
+    const start = new Date(today.getFullYear(), 0, 0);
+    const diff = today.getTime() - start.getTime();
+    const oneDay = 1000 * 60 * 60 * 24;
+    const dayOfYear = Math.floor(diff / oneDay);
+    index = dayOfYear % course.actualquizzes.length;
+  }
 
-  const index = dayOfYear % course.quizzes.length;
-  const quiz = course.quizzes[index];
+  const quiz = course.actualquizzes[index];
 
   return {
     title: quiz.title,

@@ -1,3 +1,7 @@
+"use client";
+
+"use client";
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -224,7 +228,7 @@ const HillClimbingVisualizer: React.FC = () => {
     }, [currentPoint, path]);
 
     return (
-        <div className="w-full h-full min-h-[600px] bg-background grid grid-cols-1 lg:grid-cols-12 overflow-hidden border border-white/10 rounded-xl relative">
+        <div className="w-full h-full min-h-[600px] bg-background grid grid-cols-1 lg:grid-cols-12 overflow-auto border border-white/10 rounded-xl relative">
 
             {/* Sidebar Controls (Col Span 3) */}
             <div className="lg:col-span-3 border-r border-white/10 flex flex-col bg-surface/50 backdrop-blur-md z-10">
@@ -366,7 +370,7 @@ const HillClimbingVisualizer: React.FC = () => {
                     <div className="flex gap-1 border-r border-white/10 pr-2 mr-1">
                         <Button
                             size="sm"
-                            variant={isRunning ? "secondary" : "default"}
+                            variant={isRunning ? "secondary" : "primary"}
                             className="rounded-full w-24 h-9 font-bold transition-all shadow-lg active:scale-95"
                             onClick={() => {
                                 const nextValue = !isRunning;

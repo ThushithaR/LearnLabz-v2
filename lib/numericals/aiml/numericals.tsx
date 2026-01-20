@@ -73,8 +73,18 @@ export default function BFSTreeTraversal({ params, }: { params: { id: string; co
   const [showResults, setShowResults] = useState(false);
   const [workspaceTheme, setWorkspaceTheme] = useState<'dark' | 'light'>('dark');
   const [isTimerRunning, setIsTimerRunning] = useState(true);
+  const [workingPenalty, setWorkingPenalty] = useState(0);
   const [isStarred, setIsStarred] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
+
+  // Fetch User
+  useEffect(() => {
+    const fetchUser = async () => {
+      const user = await getCurrentUserProfile();
+      if (user) setUserId(user.user_id);
+    };
+    fetchUser();
+  }, []);
 
   // BFS State
   const [queue, setQueue] = useState<number[]>([1]);
@@ -87,15 +97,6 @@ export default function BFSTreeTraversal({ params, }: { params: { id: string; co
 
   const treeNodes = generateTreeNodes();
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Fetch User
-  useEffect(() => {
-    const fetchUser = async () => {
-      const user = await getCurrentUserProfile();
-      if (user) setUserId(user.user_id);
-    };
-    fetchUser();
-  }, []);
 
   // Load starred state on mount
   useEffect(() => {
@@ -201,45 +202,52 @@ export default function BFSTreeTraversal({ params, }: { params: { id: string; co
     setErrorMessage("");
   };
 
-  const handleSubmit = async () => {
+
+  const handleSubmit = () => {
     setIsTimerRunning(false);
-    
+
     // Check if goal node is in traversal order
     const hasGoalNode = userTraversalOrder.includes(GOAL_NODE);
-    
-    // Determine if traversal is correct
-    const isCorrectTraversal = userTraversalOrder.includes(GOAL_NODE) && isTraversalCorrect();
-    const isCorrect = isCorrectTraversal; // This determines is_correct in database
+
+    // Check workspace content
+    const content = solution.toLowerCase();
+    const hasKeywords = ["bfs", "queue", "breadth", "level"].some(word => content.includes(word));
+    const hasMeaningfulContent = solution.replace(/\/\/ BFS Traversal Notes:[\s\S]*?Goal: Node 11\n/g, '').trim().length > 20;
+
+    if (!hasMeaningfulContent || !hasKeywords) {
+      setWorkingPenalty(15);
+    } else {
+      setWorkingPenalty(0);
+    }
 
     // Submit to DB
     const submit = async () => {
       if (!userId) return;
 
-      // Calculate XP based on correctness only (no penalty)
-      const maxXp = 450; // Get this from numericals table or use a default
+      const isCorrect = userTraversalOrder.includes(GOAL_NODE) && isTraversalCorrect();
+
+      // Calculate score based on correctness and penalty (using logic similar to render)
+      const maxXp = 15; // From aiml.ts for ID 101
       let finalScore = 0;
-      
       if (userTraversalOrder.includes(GOAL_NODE)) {
-        // Base score - no penalty applied
+        // Base score
         const base = isTraversalCorrect() ? 100 : 70;
+        // Apply penalty
+        const penalized = Math.max(0, base - (hasMeaningfulContent && hasKeywords ? 0 : 15));
         // Scale to XP
-        finalScore = Math.floor((base / 100) * maxXp);
-      } else {
-        // Partial completion
-        const percentComplete = (userTraversalOrder.length / CORRECT_BFS_ORDER.length) * 100;
-        finalScore = Math.floor((percentComplete / 100) * maxXp * 0.5); // 50% of max for partial
+        finalScore = Math.floor((penalized / 100) * maxXp);
       }
 
       await submitNumericalAttempt({
         user_id: userId,
         numerical_id: parseInt(params.id),
         is_correct: isCorrect,
-        penalty_percent: 0, // Always 0, no penalty
+        penalty_percent: hasMeaningfulContent && hasKeywords ? 0 : 15,
         cp: finalScore,
         time_taken: timer
       });
     };
-    await submit();
+    submit();
 
     setShowResults(true);
   };
@@ -654,68 +662,63 @@ export default function BFSTreeTraversal({ params, }: { params: { id: string; co
               </div>
             </div>
 
-            {/* Column 3: Controls - Made scrollable */}
-            <div className="w-full lg:col-span-3 bg-surface/30 border-t lg:border-t-0 lg:border-l border-white/5 flex flex-col shrink-0 overflow-hidden">
-              {/* Make the content area scrollable */}
-              <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                <h3 className="font-bold text-sm mb-6 uppercase text-textSecondary tracking-widest sticky top-0 bg-surface/30 backdrop-blur-sm py-2 -mt-6 -mx-6 px-6 z-10">Controls</h3>
+            {/* Column 3: Controls */}
+            <div className="w-full lg:col-span-3 bg-surface/30 border-t lg:border-t-0 lg:border-l border-white/5 p-6 flex flex-col shrink-0">
+              <h3 className="font-bold text-sm mb-6 uppercase text-textSecondary tracking-widest">Controls</h3>
 
-                <div className="space-y-4 mb-auto">
-                  <div className="bg-black/20 rounded-xl p-4 border border-white/5">
-                    <div className="text-xs text-textSecondary mb-2">Current Front Node</div>
-                    <div className="text-3xl font-bold text-accent">{currentFront}</div>
-                  </div>
-
-                  <div className="bg-black/20 rounded-xl p-4 border border-white/5">
-                    <div className="text-xs text-textSecondary mb-2">Nodes in Queue</div>
-                    <div className="text-3xl font-bold text-white">{queue.length}</div>
-                  </div>
-
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="w-full gap-2 font-bold py-6 text-base"
-                    onClick={handleDequeue}
-                    disabled={queue.length === 0 || goalReached}
-                  >
-                    Dequeue & Next Step →
-                  </Button>
-
-                  <Button
-                    size="lg"
-                    variant="secondary"
-                    className="w-full gap-2 font-bold py-6 text-base"
-                    onClick={handleDequeue}
-                    disabled={queue.length === 0 || goalReached}
-                  >
-                    Dequeue Only
-                  </Button>
-
-                  {goalReached && (
-                    <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 animate-in slide-in-from-bottom-2">
-                      <div className="flex items-center gap-2 mb-2">
-                        <CheckCircle className="w-5 h-5 text-green-400" />
-                        <span className="font-bold text-green-400">Goal Reached!</span>
-                      </div>
-                      <p className="text-xs text-green-300">You've successfully found node 11 using BFS.</p>
-                    </div>
-                  )}
+              <div className="space-y-4 mb-auto">
+                <div className="bg-black/20 rounded-xl p-4 border border-white/5">
+                  <div className="text-xs text-textSecondary mb-2">Current Front Node</div>
+                  <div className="text-3xl font-bold text-accent">{currentFront}</div>
                 </div>
-              </div>
 
-              {/* Submit button stays at bottom, not scrollable */}
-              <div className="p-6 border-t border-white/5 bg-surface/30">
+                <div className="bg-black/20 rounded-xl p-4 border border-white/5">
+                  <div className="text-xs text-textSecondary mb-2">Nodes in Queue</div>
+                  <div className="text-3xl font-bold text-white">{queue.length}</div>
+                </div>
+
                 <Button
                   size="lg"
-                  className="w-full gap-2 font-bold py-6 text-base shadow-lg shadow-accent/20"
-                  onClick={handleSubmit}
+                  variant="outline"
+                  className="w-full gap-2 font-bold py-6 text-base"
+                  onClick={handleDequeue}
+                  disabled={queue.length === 0 || goalReached}
                 >
-                  Submit Solution
+                  Dequeue & Next Step →
                 </Button>
+
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  className="w-full gap-2 font-bold py-6 text-base"
+                  onClick={handleDequeue}
+                  disabled={queue.length === 0 || goalReached}
+                >
+                  Dequeue Only
+                </Button>
+
+                {goalReached && (
+                  <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 animate-in slide-in-from-bottom-2">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="w-5 h-5 text-green-400" />
+                      <span className="font-bold text-green-400">Goal Reached!</span>
+                    </div>
+                    <p className="text-xs text-green-300">You've successfully found node 11 using BFS.</p>
+                  </div>
+                )}
               </div>
+
+              <Button
+                size="lg"
+                className="w-full gap-2 font-bold py-6 text-base shadow-lg shadow-accent/20 mt-6"
+                onClick={handleSubmit}
+              >
+                Submit Solution
+              </Button>
             </div>
           </>
         ) : (
+          /* Results View */
           /* Results View */
           <div className="lg:col-span-12 max-w-5xl mx-auto py-12 px-6 animate-in slide-in-from-bottom-4 duration-500 w-full overflow-y-auto">
             {/* Result Hero */}
@@ -759,10 +762,10 @@ export default function BFSTreeTraversal({ params, }: { params: { id: string; co
               <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5 hover:border-white/10 transition-colors">
                 <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Accuracy Score</div>
                 <div className="text-2xl font-bold text-white mb-1">
-                  {userTraversalOrder.includes(GOAL_NODE) ? (isTraversalCorrect() ? 100 : 70) : 50}%
+                  {Math.max(0, (userTraversalOrder.includes(GOAL_NODE) ? (isTraversalCorrect() ? 100 : 70) : 50) - workingPenalty)}%
                 </div>
-                <div className="text-xs text-textSecondary">
-                  {isTraversalCorrect() ? "Perfect BFS order" : userTraversalOrder.includes(GOAL_NODE) ? "Goal reached" : "Goal not reached"}
+                <div className={cn("text-xs font-medium", workingPenalty > 0 ? "text-red-400" : "text-textSecondary")}>
+                  {workingPenalty > 0 ? "Penalty: Insufficient notes" : "Well documented"}
                 </div>
               </Card>
               <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5 hover:border-white/10 transition-colors">
@@ -888,6 +891,17 @@ export default function BFSTreeTraversal({ params, }: { params: { id: string; co
                       BFS guarantees the shortest path in unweighted graphs. Time complexity is O(V + E) where V is vertices
                       and E is edges. Space complexity is O(V) for the queue.
                     </p>
+                    {workingPenalty > 0 && (
+                      <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl mb-4 animate-in slide-in-from-top-2">
+                        <h5 className="text-xs font-bold text-red-400 uppercase mb-1 flex items-center gap-2">
+                          <XCircle className="w-3 h-3" /> Documentation Penalty
+                        </h5>
+                        <p className="text-[11px] text-red-300/80">
+                          A {workingPenalty}% penalty was applied due to insufficient documentation. Include notes about
+                          queue operations, level processing, and BFS strategy for full credit.
+                        </p>
+                      </div>
+                    )}
                     <p className="text-xs">
                       <strong className="text-white">State Space:</strong> Each node k generates successors 2k and 2k+1,
                       creating a binary tree structure where BFS naturally explores by levels.

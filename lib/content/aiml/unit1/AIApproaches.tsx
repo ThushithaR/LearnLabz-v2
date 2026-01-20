@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Send, RefreshCw, Bot, CheckCircle, XCircle, Lightbulb, Brain, MessageSquare } from 'lucide-react';
 
 type Message = {
@@ -31,14 +31,19 @@ export const aiApproachesContent = {
     ]
 };
 
-const TuringTestSimulator = () => {
-    const [gameState, setGameState] = useState<GameState>('intro');
+export const TuringTestSimulator = () => {
+    const [gameState, setGameState] = useState<GameState>('chatting'); // Start directly in game
     const [messages, setMessages] = useState<Messages>({ A: [], B: [] });
     const [currentInput, setCurrentInput] = useState('');
     const [messageCount, setMessageCount] = useState(0);
     const [userGuess, setUserGuess] = useState<Entity | null>(null);
     const [actualHuman, setActualHuman] = useState<Entity | null>(null);
     const [activeTab, setActiveTab] = useState<TabState>('intro');
+
+    // Auto-start game on mount
+    useEffect(() => {
+        startGame();
+    }, []);
 
     const humanPatterns = {
         greeting: [
@@ -198,280 +203,82 @@ const TuringTestSimulator = () => {
     const isCorrect = userGuess === actualHuman;
 
     return (
-        <div className="w-full h-full bg-surface rounded-lg border border-white/10 overflow-hidden flex flex-col">
-            <div className="flex flex-col lg:flex-row h-full">
+        <div className="w-full h-[80vh] min-h-[600px] bg-surface rounded-lg border border-white/10 flex flex-col">
+            <div className="flex flex-col lg:flex-row h-full overflow-hidden">
 
-                {/* Sidebar */}
-                <div className="w-full lg:w-80 bg-black/20 border-b lg:border-b-0 lg:border-r border-white/10 flex-shrink-0 flex flex-col h-full">
-
-                    {/* Header */}
-                    <div className="p-4 border-b border-white/10 bg-gradient-to-r from-accent/10 to-transparent">
-                        <div className="flex items-center gap-3">
-                            <Brain className="text-accent" size={28} />
-                            <div>
-                                <h1 className="text-xl font-bold text-textPrimary">Turing Test</h1>
-                                <p className="text-xs text-textSecondary">Interactive Simulation</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Tabs */}
-                    <div className="flex border-b border-white/10">
-                        <button
-                            onClick={() => setActiveTab('intro')}
-                            className={`flex-1 py-2.5 text-xs font-semibold transition-all ${activeTab === 'intro' ? 'bg-accent/20 text-accent border-b-2 border-accent' : 'text-textSecondary hover:text-textPrimary hover:bg-white/5'}`}
-                        >
-                            ABOUT
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('guide')}
-                            className={`flex-1 py-2.5 text-xs font-semibold transition-all ${activeTab === 'guide' ? 'bg-accent/20 text-accent border-b-2 border-accent' : 'text-textSecondary hover:text-textPrimary hover:bg-white/5'}`}
-                        >
-                            GUIDE
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('aiapproach')}
-                            className={`flex-1 py-2.5 text-xs font-semibold transition-all ${activeTab === 'aiapproach' ? 'bg-accent/20 text-accent border-b-2 border-accent' : 'text-textSecondary hover:text-textPrimary hover:bg-white/5'}`}
-                        >
-                            AI APPROACH
-                        </button>
-                    </div>
-
-                    {/* Tab Content */}
-                    <div className="p-4 h-[450px] overflow-y-auto">
-
-                        {activeTab === 'intro' && (
-                            <div className="space-y-4">
-                                <div className="bg-accent/10 border-l-4 border-accent p-3 rounded-r-lg">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Lightbulb className="text-accent" size={18} />
-                                        <h3 className="text-xs font-bold text-accent uppercase">The Turing Test</h3>
-                                    </div>
-                                    <p className="text-xs text-textSecondary leading-relaxed">
-                                        Proposed by Alan Turing in 1950, this test provides an operational definition of intelligence.
-                                        A computer is said to be intelligent if it can achieve human-level performance in cognitive tasks
-                                        such that a human interrogator cannot distinguish it from a human during interaction.
-                                    </p>
-                                </div>
-
-                                <div className="bg-black/20 p-3 rounded-lg border border-white/5">
-                                    <h3 className="text-xs font-bold text-accent mb-2 uppercase">Key Concept</h3>
-                                    <p className="text-xs text-textSecondary leading-relaxed mb-2">
-                                        If a human evaluator cannot distinguish between human and machine responses,
-                                        the machine demonstrates human-level intelligence in conversation. The test avoids
-                                        physical interaction and focuses on conversation through text.
-                                    </p>
-                                    <div className="bg-black/30 p-2 rounded border border-white/5 mt-2">
-                                        <p className="text-xs text-textSecondary italic">
-                                            "Can machines think?" - Alan Turing, 1950
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="bg-black/20 p-3 rounded-lg border border-white/5">
-                                    <h3 className="text-xs font-bold text-green-400 mb-2 uppercase">How It Works</h3>
-                                    <div className="space-y-1.5 text-xs text-textSecondary">
-                                        <p>• Chat with two entities: Entity A and Entity B</p>
-                                        <p>• One is human, one is AI</p>
-                                        <p>• Ask questions to determine which is which</p>
-                                        <p>• Make your guess after 5 exchanges</p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {activeTab === 'guide' && (
-                            <div className="space-y-3">
-                                <div className="bg-yellow-500/10 border-l-4 border-yellow-500 p-3 rounded-r-lg">
-                                    <h3 className="text-xs font-bold text-yellow-400 mb-1 uppercase">Detection Tips</h3>
-                                    <p className="text-xs text-textSecondary">Look for these patterns to identify the AI:</p>
-                                </div>
-
-                                <div className="space-y-2.5">
-                                    <div className="bg-black/20 p-3 rounded-lg border border-white/5">
-                                        <h4 className="text-xs font-bold text-red-400 mb-1.5">🤖 AI INDICATORS</h4>
-                                        <ul className="text-xs text-textSecondary space-y-0.5">
-                                            <li>• Overly formal language</li>
-                                            <li>• Precise numerical data</li>
-                                            <li>• Lacks personal experiences</li>
-                                            <li>• Systematic responses</li>
-                                            <li>• No emotional nuance</li>
-                                        </ul>
-                                    </div>
-
-                                    <div className="bg-black/20 p-3 rounded-lg border border-white/5">
-                                        <h4 className="text-xs font-bold text-green-400 mb-1.5">👤 HUMAN INDICATORS</h4>
-                                        <ul className="text-xs text-textSecondary space-y-0.5">
-                                            <li>• Casual expressions (tbh, idk)</li>
-                                            <li>• Personal opinions</li>
-                                            <li>• Emotional responses</li>
-                                            <li>• Imperfect grammar</li>
-                                            <li>• Contextual humor</li>
-                                        </ul>
-                                    </div>
-
-                                    <div className="bg-purple-500/10 p-3 rounded-lg border border-purple-500/20">
-                                        <h4 className="text-xs font-bold text-purple-400 mb-1.5">💡 STRATEGY</h4>
-                                        <p className="text-xs text-textSecondary">
-                                            Ask about subjective experiences, emotions, or recent personal events.
-                                            Humans will naturally include personal details, while AI will be more abstract.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {activeTab === 'aiapproach' && (
-                            <div className="space-y-3">
-                                <div className="bg-accent/10 border-l-4 border-accent p-3 rounded-r-lg">
-                                    <h3 className="text-xs font-bold text-accent mb-1 uppercase">Acting Humanly</h3>
-                                    <p className="text-xs text-textSecondary">
-                                        The Turing Test represents the "Acting Humanly" approach - one of four fundamental AI approaches
-                                        focused on behavioral similarity to humans.
-                                    </p>
-                                </div>
-
-                                <div className="bg-black/20 p-3 rounded-lg border border-white/5">
-                                    <h4 className="text-xs font-bold text-accent mb-2 uppercase">Four AI Approaches</h4>
-
-                                    <div className="space-y-2">
-                                        <div className="bg-blue-500/10 p-2 rounded border border-blue-500/20">
-                                            <p className="text-xs font-bold text-blue-400 mb-0.5">1. THINKING HUMANLY</p>
-                                            <p className="text-xs text-textSecondary">Cognitive modeling - mimic human thought processes</p>
-                                        </div>
-
-                                        <div className="bg-green-500/10 p-2 rounded border border-green-500/20">
-                                            <p className="text-xs font-bold text-green-400 mb-0.5">2. ACTING HUMANLY (Turing Test)</p>
-                                            <p className="text-xs text-textSecondary">Behave indistinguishably from humans in conversation</p>
-                                        </div>
-
-                                        <div className="bg-yellow-500/10 p-2 rounded border border-yellow-500/20">
-                                            <p className="text-xs font-bold text-yellow-400 mb-0.5">3. THINKING RATIONALLY</p>
-                                            <p className="text-xs text-textSecondary">Logic-based approach using formal reasoning</p>
-                                        </div>
-
-                                        <div className="bg-purple-500/10 p-2 rounded border border-purple-500/20">
-                                            <p className="text-xs font-bold text-purple-400 mb-0.5">4. ACTING RATIONALLY</p>
-                                            <p className="text-xs text-textSecondary">Rational agents achieving best outcomes</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="bg-black/20 p-3 rounded-lg border border-white/5">
-                                    <h4 className="text-xs font-bold text-green-400 mb-2 uppercase">Required Capabilities</h4>
-                                    <p className="text-xs text-textSecondary mb-1.5">To pass the Turing Test, an AI needs:</p>
-                                    <ul className="text-xs text-textSecondary space-y-1">
-                                        <li>• <span className="text-textPrimary">Natural Language Processing</span> - understand text</li>
-                                        <li>• <span className="text-textPrimary">Knowledge Representation</span> - store information</li>
-                                        <li>• <span className="text-textPrimary">Automated Reasoning</span> - draw conclusions</li>
-                                        <li>• <span className="text-textPrimary">Machine Learning</span> - adapt and improve</li>
-                                    </ul>
-                                    <p className="text-xs text-textSecondary mt-2 pt-2 border-t border-white/5">
-                                        For the <span className="text-textPrimary font-semibold">Total Turing Test</span>, additional capabilities are required:
-                                        Computer Vision and Robotics.
-                                    </p>
-                                </div>
-
-                                <div className="bg-red-500/10 p-3 rounded-lg border border-red-500/20">
-                                    <h4 className="text-xs font-bold text-red-400 mb-1.5 uppercase">Limitations</h4>
-                                    <p className="text-xs text-textSecondary">
-                                        The Turing Test measures behavioral performance, not true intelligence or consciousness.
-                                        Modern AI can mimic human conversation without genuine understanding.
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
-                    </div>
-                </div>
-
-                {/* Main Game Area */}
-                <div className="flex-1 flex flex-col h-full overflow-hidden">
-
-                    {gameState === 'intro' && (
-                        <div className="flex-1 flex items-center justify-center p-6">
-                            <div className="max-w-md text-center space-y-4">
-                                <div className="w-20 h-20 mx-auto bg-gradient-to-br from-accent to-purple-500 rounded-full flex items-center justify-center">
-                                    <MessageSquare size={40} className="text-white" />
-                                </div>
-                                <h2 className="text-2xl font-bold text-textPrimary">Welcome to the Turing Test</h2>
-                                <p className="text-sm text-textSecondary">
-                                    You will chat with two entities. One is human, one is AI.
-                                    Can you identify which is which?
-                                </p>
-                                <button
-                                    onClick={startGame}
-                                    className="bg-gradient-to-r from-accent to-purple-500 hover:from-accent/90 hover:to-purple-500/90 text-white px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105 shadow-lg"
-                                >
-                                    Start Test
-                                </button>
-                            </div>
-                        </div>
-                    )}
+                {/* Main Game Area Only */}
+                <div className="flex-1 flex flex-col h-full overflow-hidden bg-black/40 backdrop-blur-sm">
 
                     {gameState === 'chatting' && (
                         <div className="flex-1 flex flex-col">
 
-                            {/* Progress */}
-                            <div className="p-3 bg-black/20 border-b border-white/10">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-xs text-textSecondary">Exchange {messageCount} of 5</span>
-                                    <span className="text-xs text-textSecondary/70">Ask questions to identify the AI</span>
+                            {/* Header */}
+                            <div className="p-4 border-b border-white/10 flex justify-between items-center bg-black/20">
+                                <div>
+                                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                                        <Brain className="text-accent" /> Turing Test Simulation
+                                    </h2>
+                                    <p className="text-xs text-textSecondary">Interact with both entities. Identify the AI.</p>
                                 </div>
-                                <div className="w-full bg-black/30 rounded-full h-1.5">
-                                    <div
-                                        className="bg-gradient-to-r from-accent to-purple-500 h-1.5 rounded-full transition-all duration-300"
-                                        style={{ width: `${(messageCount / 5) * 100}%` }}
-                                    />
+                                <div className="text-right">
+                                    <p className="text-accent font-mono font-bold">Exchange {messageCount}/5</p>
+                                    <div className="w-32 h-1.5 bg-white/10 rounded-full mt-1">
+                                        <div
+                                            className="h-full bg-accent rounded-full transition-all duration-300"
+                                            style={{ width: `${(messageCount / 5) * 100}%` }}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Chat Windows */}
-                            <div className="flex-1 grid grid-cols-2 gap-3 p-3 overflow-hidden">
-
+                            <div className="flex-1 grid grid-cols-2 gap-4 p-4 min-h-0">
                                 {(['A', 'B'] as Entity[]).map(entity => (
-                                    <div key={entity} className="flex flex-col bg-black/20 rounded-lg border border-white/10 overflow-hidden">
-                                        <div className="p-2 bg-gradient-to-r from-black/30 to-transparent border-b border-white/10">
-                                            <h3 className="text-sm font-bold text-textPrimary">Entity {entity}</h3>
+                                    <div key={entity} className="flex flex-col bg-surface/50 rounded-xl border border-white/10 overflow-hidden shadow-inner">
+                                        <div className="p-3 bg-white/5 border-b border-white/10 flex items-center justify-between">
+                                            <h3 className="text-sm font-bold text-white">Entity {entity}</h3>
+                                            <Bot className="w-4 h-4 text-white/20" />
                                         </div>
-                                        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                                        <div className="flex-1 overflow-y-auto p-4 space-y-3">
                                             {messages[entity].map((msg, idx) => (
                                                 <div
                                                     key={idx}
                                                     className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                                                 >
                                                     <div
-                                                        className={`max-w-[85%] p-2 rounded-lg ${msg.sender === 'user'
-                                                            ? 'bg-accent text-white'
-                                                            : 'bg-black/30 text-textPrimary border border-white/10'
+                                                        className={`max-w-[90%] p-3 rounded-2xl ${msg.sender === 'user'
+                                                            ? 'bg-accent text-white rounded-tr-sm'
+                                                            : 'bg-white/10 text-white border border-white/5 rounded-tl-sm'
                                                             }`}
                                                     >
-                                                        <p className="text-xs">{msg.text}</p>
+                                                        <p className="text-sm leading-relaxed">{msg.text}</p>
                                                     </div>
                                                 </div>
                                             ))}
+                                            {/* Dummy scroll anchor if needed */}
                                         </div>
                                     </div>
                                 ))}
                             </div>
 
                             {/* Input */}
-                            <div className="p-3 bg-black/20 border-t border-white/10">
-                                <div className="flex gap-2">
+                            <div className="p-4 bg-surface border-t border-white/10 backdrop-blur-md">
+                                <div className="flex gap-3 max-w-4xl mx-auto">
                                     <input
                                         type="text"
                                         value={currentInput}
                                         onChange={(e) => setCurrentInput(e.target.value)}
                                         onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                                        placeholder="Type your question to both entities..."
-                                        className="flex-1 bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-textPrimary placeholder-textSecondary focus:outline-none focus:border-accent"
+                                        placeholder="Ask a question to both entities..."
+                                        className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
                                     />
                                     <button
                                         onClick={sendMessage}
                                         disabled={!currentInput.trim()}
-                                        className="bg-accent hover:bg-accent/90 disabled:bg-black/30 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                                        className="bg-accent hover:bg-accent/90 disabled:bg-white/5 disabled:text-white/30 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-accent/20 flex items-center gap-2"
                                     >
                                         <Send size={18} />
+                                        <span>Send</span>
                                     </button>
                                 </div>
                             </div>

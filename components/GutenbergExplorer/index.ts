@@ -12,3 +12,4 @@ export { GutenbergExplorer as GutenbergExplorerComponent } from "./GutenbergExpl
 export { GutenbergFileViewer as GutenbergFileViewerComponent } from "./GutenbergFileViewer";
 export { NltkCodeRunner as NltkCodeRunnerComponent } from "./NltkCodeRunner";
 export { ExplorerButton as ExplorerButtonComponent } from "./ExplorerButton";
+export { GutenbergInteractiveLesson, default as GutenbergInteractiveLessonDefault } from "./GutenbergInteractiveLesson";

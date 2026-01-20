@@ -94,3 +94,79 @@ export async function onQuizCompleted(
     .select()
     .single();
 }
+
+/* =========================
+   DIGITAL TWIN DATA FETCHER
+   ========================= */
+export async function getUserDigitalTwinData(userId: number, courseId: number) {
+  try {
+    const [quizAttemptsRes, lessonProgressRes, unitProgressRes, userStatsRes] = await Promise.all([
+      supabase.from("quiz_attempts")
+        .select(`*, quizzes!inner(course_id, unit_id, quiz_time, quiz_difficulty, quiz_title)`)
+        .eq("user_id", userId)
+        .eq("quizzes.course_id", courseId)
+        .order("qa_id", { ascending: false }),
+
+      supabase.from("lesson_progress")
+        .select(`*, lessons!inner(course_id, unit_id, title)`)
+        .eq("user_id", userId)
+        .eq("lessons.course_id", courseId),
+
+      supabase.from("unit_progress")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("course_id", courseId),
+
+      supabase.from("user_courses")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("course_id", courseId)
+        .single()
+    ]);
+
+    return {
+      quizAttempts: quizAttemptsRes.data || [],
+      lessonProgress: lessonProgressRes.data || [],
+      unitProgress: unitProgressRes.data || [],
+      userStats: userStatsRes.data || null
+    };
+  } catch (err) {
+    console.error("Failed to fetch digital twin data:", err);
+    return { quizAttempts: [], lessonProgress: [], unitProgress: [], userStats: null };
+  }
+}
+
+export async function updateUserLearnerProfile(userId: number, courseId: number, profile: any) {
+  return supabase
+    .from("user_courses")
+    .update({
+      learner_profile: profile,
+      last_active: new Date().toISOString(),
+    })
+    .eq("user_id", userId)
+    .eq("course_id", courseId)
+    .select()
+    .single();
+}
+
+import { calculateDigitalTwin } from "@/lib/digital-twin";
+
+export async function syncDigitalTwin(userId: number, courseId: number) {
+  try {
+    const { quizAttempts, lessonProgress, unitProgress, userStats: fetchedUserStats } = await getUserDigitalTwinData(userId, courseId);
+
+    // Ensure we have user stats for activeDays calculation
+    let userStats = fetchedUserStats;
+    if (!userStats) {
+      const { data } = await supabase.from("user_courses").select("*").eq("user_id", userId).eq("course_id", courseId).single();
+      userStats = data;
+    }
+
+    const profile = calculateDigitalTwin(quizAttempts, lessonProgress, unitProgress, userStats, courseId);
+    await updateUserLearnerProfile(userId, courseId, profile);
+    return profile;
+  } catch (err) {
+    console.error("Sync Digital Twin failed:", err);
+    return null;
+  }
+}

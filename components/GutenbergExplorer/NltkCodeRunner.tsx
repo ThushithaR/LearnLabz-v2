@@ -16,6 +16,7 @@ import {
   findConcordance,
 } from "@/lib/utils/gutenbergUtils";
 import { Play, Copy, Code } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 interface CodeSnippet {
   id: number;
@@ -36,6 +37,7 @@ export const NltkCodeRunner: React.FC = () => {
 
   const [output, setOutput] = useState<React.ReactNode>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Define code snippets with dynamic substitution
   const snippets: CodeSnippet[] = [
@@ -202,66 +204,91 @@ emma = gutenberg.words('${selectedFileId || "austen-emma.txt"}')`,
   };
 
   return (
-    <div className="bg-surface/30 border-t border-white/5 p-4 space-y-4 max-h-96 overflow-y-auto">
-      <div className="text-sm font-bold text-textPrimary flex items-center gap-2">
-        <Code className="w-4 h-4" />
-        NLTK Code Snippets
+    <div className={cn(
+      "bg-surface/30 border-t border-white/5 transition-all duration-300 overflow-hidden",
+      isCollapsed ? "h-12" : "max-h-[500px]"
+    )}>
+      {/* Header / Collapse Toggle */}
+      <div
+        className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/5 transition-colors"
+        onClick={() => setIsCollapsed(!isCollapsed)}
+      >
+        <div className="text-sm font-bold text-textPrimary flex items-center gap-2">
+          <Code className="w-4 h-4 text-accent" />
+          NLTK Code Snippets
+          {activeCodeSnippet !== null && (
+            <Badge variant="outline" className="text-[9px] py-0 px-1.5 border-accent/30 text-accent">
+              {snippets[activeCodeSnippet].title}
+            </Badge>
+          )}
+        </div>
+        <button className="text-textSecondary hover:text-textPrimary">
+          {isCollapsed ? "Expand" : "Collapse"}
+        </button>
       </div>
 
-      {!selectedFileId && (
-        <div className="text-xs text-textSecondary italic p-3 bg-yellow-500/10 border border-yellow-500/20 rounded">
-          Select a file to see available code snippets
-        </div>
-      )}
+      {!isCollapsed && (
+        <div className="p-4 pt-0 space-y-4 overflow-y-auto max-h-[450px] custom-scrollbar">
+          {!selectedFileId && (
+            <div className="text-xs text-textSecondary italic p-3 bg-yellow-500/10 border border-yellow-500/20 rounded">
+              Select a file to see available code snippets
+            </div>
+          )}
 
-      <div className="grid grid-cols-2 gap-2">
-        {snippets.map((snippet, index) => (
-          <button
-            key={snippet.id}
-            onClick={() => handleExecuteSnippet(snippet.id)}
-            disabled={!selectedFileId && (snippet.id === 1 || snippet.id === 2 || snippet.id === 5)}
-            className={cn(
-              "p-3 rounded border text-left text-xs transition-all group",
-              activeCodeSnippet === snippet.id
-                ? "bg-accent/20 border-accent text-accent"
-                : "bg-surface border-white/10 text-textSecondary hover:border-accent/50 hover:text-textPrimary",
-              !selectedFileId &&
-                (snippet.id === 1 || snippet.id === 2 || snippet.id === 5)
-                ? "opacity-50 cursor-not-allowed"
-                : ""
-            )}
-          >
-            <div className="font-medium mb-1">{snippet.title}</div>
-            <div className="text-[10px] opacity-70 group-hover:opacity-100">{snippet.description}</div>
-          </button>
-        ))}
-      </div>
-
-      {/* Output Display */}
-      {output && (
-        <div className="p-3 bg-black/40 rounded border border-white/5">
-          <div className="text-[10px] text-textSecondary/60 mb-2">Output:</div>
-          <div className="max-h-32 overflow-y-auto">{output}</div>
-        </div>
-      )}
-
-      {/* Code Display */}
-      {activeCodeSnippet !== null && snippets[activeCodeSnippet] && (
-        <div className="p-3 bg-black/40 rounded border border-white/5">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-[10px] text-textSecondary/60">Code:</div>
-            <button
-              onClick={() =>
-                handleCopyCode(snippets[activeCodeSnippet]!.code, activeCodeSnippet)
-              }
-              className="text-[10px] p-1 hover:bg-white/10 rounded transition-colors text-textSecondary"
-            >
-              {copiedIndex === activeCodeSnippet ? "✓ Copied" : "Copy"}
-            </button>
+          <div className="grid grid-cols-2 gap-2">
+            {snippets.map((snippet, index) => (
+              <button
+                key={snippet.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleExecuteSnippet(snippet.id);
+                }}
+                disabled={!selectedFileId && (snippet.id === 1 || snippet.id === 2 || snippet.id === 5)}
+                className={cn(
+                  "p-3 rounded border text-left text-xs transition-all group",
+                  activeCodeSnippet === snippet.id
+                    ? "bg-accent/20 border-accent text-accent shadow-[0_0_10px_rgba(var(--accent),0.2)]"
+                    : "bg-surface border-white/10 text-textSecondary hover:border-accent/50 hover:text-textPrimary",
+                  !selectedFileId &&
+                    (snippet.id === 1 || snippet.id === 2 || snippet.id === 5)
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                )}
+              >
+                <div className="font-medium mb-1">{snippet.title}</div>
+                <div className="text-[10px] opacity-70 group-hover:opacity-100">{snippet.description}</div>
+              </button>
+            ))}
           </div>
-          <pre className="text-[10px] font-mono text-green-400 overflow-x-auto">
-            {snippets[activeCodeSnippet].code}
-          </pre>
+
+          {/* Output Display */}
+          {output && (
+            <div className="p-3 bg-black/40 rounded border border-white/5 animate-in slide-in-from-top-2 duration-300">
+              <div className="text-[10px] text-textSecondary/60 mb-2 font-bold uppercase tracking-widest">Output:</div>
+              <div className="max-h-32 overflow-y-auto custom-scrollbar">{output}</div>
+            </div>
+          )}
+
+          {/* Code Display */}
+          {activeCodeSnippet !== null && snippets[activeCodeSnippet] && (
+            <div className="p-3 bg-black/40 rounded border border-white/5 animate-in slide-in-from-top-2 duration-300">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[10px] text-textSecondary/60 font-bold uppercase tracking-widest">Code:</div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCopyCode(snippets[activeCodeSnippet]!.code, activeCodeSnippet);
+                  }}
+                  className="text-[10px] px-2 py-0.5 hover:bg-white/10 rounded transition-colors text-textSecondary border border-white/10"
+                >
+                  {copiedIndex === activeCodeSnippet ? "✓ Copied" : "Copy Source"}
+                </button>
+              </div>
+              <pre className="text-[10px] font-mono text-green-400 overflow-x-auto p-2 bg-black/20 rounded">
+                {snippets[activeCodeSnippet].code}
+              </pre>
+            </div>
+          )}
         </div>
       )}
     </div>
