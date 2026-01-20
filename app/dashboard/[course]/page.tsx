@@ -231,7 +231,7 @@ export default function CourseDashboardPage({
             <div className="p-6 flex flex-col justify-center">
               <div className="flex items-center gap-2 mb-2 text-accent">
                 <span className="flex items-center justify-center w-4 h-4 rounded-full border border-accent/30 text-[9px] font-bold">
-                  {activeModule?.id || "I"}
+                  {activeModule?.order || "I"}
                 </span>
                 <span className="text-[9px] font-bold tracking-widest uppercase">Current Focus</span>
               </div>

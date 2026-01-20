@@ -82,6 +82,7 @@ export interface LessonSection {
 export interface Module {
   id: number;
   title: string;
+  order: number;
   description: string;
   progress: number;
   isLocked: boolean;

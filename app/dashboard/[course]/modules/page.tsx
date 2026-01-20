@@ -127,7 +127,7 @@ export default function ModulesPage({ params }: { params: { course: string } }) 
                     : "bg-gradient-to-br from-accent/20 to-highlight/20 text-accent"
                     }`}
                 >
-                  {unit.id}
+                  {unit.order}
                 </div>
 
                 {/* Content Side */}
@@ -136,7 +136,7 @@ export default function ModulesPage({ params }: { params: { course: string } }) 
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-xs font-bold uppercase tracking-wider text-textSecondary">
-                          Unit {unit.id}
+                          Unit {unit.order}
                         </span>
                         {isStarted && <Badge variant="accent">In Progress</Badge>}
                         {unit.isLocked && <Badge variant="outline">Locked</Badge>}
