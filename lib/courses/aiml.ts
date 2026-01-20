@@ -43,6 +43,7 @@ export const aiml = {
     {
       id: 1,
       title: "Unit I: Introduction to AI",
+      order: 1,
       description: "History, Intelligent Agents, and Problem Solving agents.",
       progress: 100,
       isLocked: false,
@@ -87,6 +88,7 @@ export const aiml = {
     {
       id: 2,
       title: "Unit II: Informed Search Strategies",
+      order: 2,
       description: "Heuristics, A* Search, and Best-first search algorithms.",
       progress: 45,
       isLocked: false,
@@ -126,6 +128,7 @@ export const aiml = {
     {
       id: 3,
       title: "Unit III: Adversarial Search",
+      order: 3,
       description: "Game Theory, Minimax algorithm, and Alpha-Beta pruning.",
       progress: 0,
       isLocked: false,
@@ -138,6 +141,7 @@ export const aiml = {
     {
       id: 4,
       title: "Unit IV: Constraint Satisfaction",
+      order:4,
       description: "Definition, Constraint Propagation, and Backtracking.",
       progress: 0,
       isLocked: false,
@@ -149,6 +153,7 @@ export const aiml = {
     {
       id: 5,
       title: "Unit V: Neural Networks",
+      order:5,
       description: "Perceptrons, Backpropagation, and Deep Learning basics.",
       progress: 0,
       isLocked: false,

@@ -39,6 +39,7 @@ export const nlp = {
         {
             id: 11,
             title: "Unit I: Introduction to NLP",
+            order:1,
             description: "Natural Language Processing basics, history, and data acquisition.",
             progress: 65,
             isLocked: false,
@@ -127,6 +128,7 @@ export const nlp = {
         {
             id: 21,
             title: "Unit II: Textual Intelligence & Corpus Engineering",
+            order: 2,
             description: "Transitioning from raw data acquisition to structured intelligence",
             progress: 0,
             isLocked: false,
@@ -174,6 +176,7 @@ export const nlp = {
         {
             id: 31,
             title: "Unit III: Word Embeddings",
+            order: 3,
             description: "Vector representations of language.",
             progress: 0,
             isLocked: false,
@@ -185,6 +188,7 @@ export const nlp = {
         {
             id: 41,
             title: "Unit IV: Sequence Models",
+            order: 4,
             description: "RNNs, LSTMs, and GRUs for language.",
             progress: 0,
             isLocked: false,
