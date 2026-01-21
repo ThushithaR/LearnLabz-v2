@@ -15,7 +15,7 @@ import InteractiveRenderer from "@/components/interactive/InteractiveRenderer";
 import TuringTestSimulator from "@/lib/content/aiml/unit1/AIApproaches";
 import AIAgentLesson from "@/lib/content/aiml/unit1/IntelligentAgents";
 import { getCurrentUserProfile } from "@/lib/supabase/profile";
-import {ChevronLeft,ChevronRight,Clock,BookOpen,CheckCircle2,Save,FileText,ArrowLeft,X,PauseCircle,PlayCircle,Image as ImageIcon,Star,RotateCw} from "lucide-react";
+import {ChevronLeft,ChevronRight,Clock,BookOpen,CheckCircle2,Save,FileText,ArrowLeft,X,PauseCircle,PlayCircle,Image as ImageIcon,Star,RotateCw,Box} from "lucide-react";
 import { GutenbergExplorerProvider } from "@/lib/context/GutenbergExplorerContext";
 import { GutenbergExplorerPanel, ExplorerButton } from "@/components/GutenbergExplorer";
 import { ModuleProgress } from "@/lib/types/progress";
