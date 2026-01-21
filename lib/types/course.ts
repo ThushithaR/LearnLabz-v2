@@ -72,10 +72,17 @@ export interface ProblemStatementContent {
   solution?: string | React.ReactNode;
 }
 
+export interface InteractiveContent {
+  lines: ({ text: string; note: string; cls?: string } | { text: string; note: string; cls: string })[][];
+  outputs: string[];
+  summary: string;
+}
+
 export interface LessonSection {
   type: 'text' | 'problem-statement' | 'examples' | 'summary' | 'interactive';
   title?: string;
-  content: string | React.ReactNode | ProblemStatementContent;
+  //variant?: |'code' | 'concept'| 'flow' | 'dataset' | 'simulation';
+  content: string | React.ReactNode | ProblemStatementContent | InteractiveContent;
 }
 
 export interface Module {

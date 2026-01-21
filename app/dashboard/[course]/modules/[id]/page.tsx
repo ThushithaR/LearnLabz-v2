@@ -11,7 +11,8 @@ import { courses, CourseId, COURSE_ID_MAP } from "@/lib/courses";
 import { Course, Module, Lesson, ProblemStatementContent } from "@/lib/types/course";
 import { useCourse } from "@/lib/context/CourseContext";
 import { ProblemStatement } from "@/lib/content/nlp/unit1/problemStatement";
-import InteractiveCodeWalkthrough from "@/lib/content/nlp/unit2/InteractiveCodeWalkthrough";
+import InteractiveCodeWalkthrough from "@/components/interactive/InteractiveCodeWalkthrough";
+import InteractiveRenderer from "@/components/interactive/InteractiveRenderer";
 import {ChevronLeft,ChevronRight,Clock,BookOpen,CheckCircle2,Save,FileText,ArrowLeft,X,PauseCircle,PlayCircle,Image as ImageIcon,Star,RotateCw} from "lucide-react";
 import { GutenbergExplorerProvider } from "@/lib/context/GutenbergExplorerContext";
 import { GutenbergExplorerPanel, ExplorerButton } from "@/components/GutenbergExplorer";
@@ -1364,11 +1365,10 @@ const handleSaveSelection = () => {
                               {section.title}
                             </h2>
                             <div className="rounded-lg border border-white/10 p-6 bg-surface/50">
-                              {typeof section.content === 'object' && section.content !== null && 'lines' in (section.content as any) ? (
-                                <InteractiveCodeWalkthrough
-                                  lines={(section.content as any).lines}
-                                  outputs={(section.content as any).outputs}
-                                  summary={(section.content as any).summary}
+                              {typeof section.content === 'object' && section.content !== null && ('lines' in (section.content as any) || 'concepts' in (section.content as any) || 'scenarioId' in (section.content as any) || 'scenarioIdDl' in (section.content as any) || 'kind' in (section.content as any) || 'modelFlow' in (section.content as any) || 'questions' in (section.content as any)) ? (
+                                <InteractiveRenderer
+                                  title={section.title}
+                                  content={section.content}
                                 />
                               ) : (
                                 (section.content as React.ReactNode)
@@ -1376,7 +1376,7 @@ const handleSaveSelection = () => {
                             </div>
                           </div>
                         )}
-
+                        
                         {section.type === 'problem-statement' && (
                           <div className="mt-12 pt-8 border-t border-white/10">
                             <h2 className="font-bold text-textPrimary mb-6 text-2xl">
@@ -1401,7 +1401,7 @@ const handleSaveSelection = () => {
               <div className="flex flex-col items-center pt-10 gap-4 border-t border-white/5 mt-10">
                 <div className="flex gap-4">
                     {/* Explorer Button */}
-                    <ExplorerButton />
+                  {course === "nlp" && <ExplorerButton />}
                   <Button onClick={() => handleTabChange('quiz')}>
                     Take Lesson Quiz
                   </Button>

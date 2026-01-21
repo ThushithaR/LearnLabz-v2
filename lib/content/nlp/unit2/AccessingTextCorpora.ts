@@ -1,6 +1,7 @@
 import { LessonSection } from "@/lib/types/course";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import type React from "react";
 
 export const AccessingTextCorpora = {
   quoteOfTheDay: "Data! Data! Data! I can't make bricks without clay.",

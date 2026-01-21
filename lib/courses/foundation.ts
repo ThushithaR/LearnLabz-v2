@@ -1,6 +1,8 @@
 // lib/courses/foundation.ts
 import { Course } from "@/lib/types/course";
 import { foundationQuizzes } from "@/lib/quizzes/foundation/quizzes";
+import { revisitingAIMLDL } from "@/lib/content/tenth/chapter2/RevisitingAIMLDL";
+import { modelling } from "@/lib/content/tenth/chapter2/Modelling";
 
 export const foundation = {
   id: "foundation", // use a URL-safe id
@@ -33,59 +35,66 @@ export const foundation = {
 
   modules: [
     {
-      id: 1,
-      title: "Unit I: Introduction to AI",
-      description: "History, Intelligent Agents, and Problem Solving agents.",
+      id: 71,
+      title: "Unit II: Advanced concepts of Modelling in AI",
+      order:1,
+      description: "Types of AIML models",
       progress: 100,
       isLocked: false,
       lessons: [
-        { id: "1.1", title: "What is AI?", duration: "10 min" },
-        { id: "1.2", title: "History of AI", duration: "15 min" },
+        { id: 1001, title: "Revisiting AI, ML and DL", duration: "10 min", content: revisitingAIMLDL },
+        { id: 1002, title: "Modelling", duration: "15 min", content: modelling },
+        { id: 1003, title: "Neural Networks", duration: "20 min" },
       ],
     },
     {
-      id: 2,
-      title: "Unit II: Informed Search Strategies",
-      description: "Heuristics, A* Search, and Best-first search algorithms.",
+      id: 81,
+      title: "Unit III: Evaluating Models",
+      order:2,
+      description: "Understanding model performance metrics",
       progress: 45,
       isLocked: false,
       active: true,
       lessons: [
-        { id: "2.1", title: "Heuristic Functions", duration: "20 min" },
-        { id: "2.2", title: "A* Search Algorithm", duration: "35 min", isInteractive: true },
+        { id: 1101, title: "Importance of Model Evaluation", duration: "20 min" },
+        { id: 1102, title: "Splitting the training set data for evaluation", duration: "35 min", isInteractive: true },
+        { id: 1103, title: "What is Accuracy and Error?", duration: "25 min" },
+        { id: 1104, title: "Evaluation metrics for classification", duration: "30 min" },
+        {id: 1105, title: "Ethical concerns around model evaluation", duration: "30 min" },
       ],
     },
     {
-      id: 3,
-      title: "Unit III: Adversarial Search",
-      description: "Game Theory, Minimax algorithm, and Alpha-Beta pruning.",
+      id: 91,
+      title: "Unit V: Computer Vision",
+      order:3,
+      description: "Image Processing, Convolutional Neural Networks, and Applications.",
       progress: 0,
       isLocked: false,
       lessons: [
-        { id: "3.1", title: "Game Theory Basics", duration: "25 min" },
-        { id: "3.2", title: "Minimax Algorithm", duration: "30 min" },
+        { id: 1201, title: "Introduction to Computer Vision", duration: "30 min" },
+        { id: 1202, title: "Applications of CV", duration: "25 min" },
+        { id: 1203, title: "Computer Vision Tasks", duration: "30 min" },
+        { id: 1204, title: "No-Code AI Tools", duration: "30 min" },
+        { id: 1205, title: "Image Features", duration: "30 min" },
+        { id: 1206, title: "Convolution", duration: "30 min" },
+        { id: 1207, title: "Convolution Neural Network", duration: "30 min" },
+        { id: 1208, title: "Python libraries in Computer Vision", duration: "30 min" },
       ],
     },
     {
-      id: 4,
-      title: "Unit IV: Constraint Satisfaction",
-      description: "Definition, Constraint Propagation, and Backtracking.",
+      id: 101,
+      title: "Unit VI: Natural Language Processing",
+      order:4,
+      description: "Text Processing, Language Models, and Applications.",
       progress: 0,
       isLocked: false,
       lessons: [
-        { id: "4.1", title: "CSP Definition", duration: "15 min" },
-        { id: "4.2", title: "Backtracking Search", duration: "25 min" },
-      ],
-    },
-    {
-      id: 5,
-      title: "Unit V: Neural Networks",
-      description: "Perceptrons, Backpropagation, and Deep Learning basics.",
-      progress: 0,
-      isLocked: false,
-      lessons: [
-        { id: "5.1", title: "Artificial Neurons", duration: "20 min" },
-        { id: "5.2", title: "Activation Functions", duration: "15 min" },
+        { id: 1301, title: "Introduction to Natural Language Processing", duration: "15 min" },
+        { id: 1302, title: "Applications of Natural Language Processing", duration: "25 min" },
+        { id: 1303, title: "Stages of Natural Language Processing", duration: "30 min" },
+        { id: 1304, title: "Chatbots", duration: "30 min" },
+        { id: 1305, title: "Text Processing", duration: "30 min" },
+        { id: 1306, title: "NLP: Use Case Walkthrough", duration: "30 min" },
       ],
     },
   ],
@@ -93,13 +102,7 @@ export const foundation = {
   actualquizzes: foundationQuizzes,
   achievements: [],
   leaderboard: [],
-    numericals : [
-    { id: 402, title: "Optimal Move - Minimax", description: "Game Theory", topic: "Practical", difficulty: "Hard" as const, status: "Pending" as const, xp: 50, topics :["Minimax","Alpha-beta pruning"]},
-    { id: 105, title: "A* Heuristic Estimation", description: "Informed Search", topic: "Practical", difficulty: "Medium" as const, status: "Completing" as const, xp: 30 },
-    { id: 208, title: "Alpha-Beta Pruning Count", description: "Game Theory", topic: "Practical", difficulty: "Hard" as const, status: "Locked" as const, xp: 50 },
-    { id: 101, title: "BFS Path Cost", description: "Uninformed Search", topic: "Practical", difficulty: "Easy" as const, status: "Completed" as const, xp: 15 },
-    { id: 303, title: "Neural Net Weights", description: "Neural Networks", topic: "Practical", difficulty: "Medium" as const, status: "New" as const, xp: 30 },
-  ],
+  numericals : [],
   calendar: [],
   important: [],
   notes:[]

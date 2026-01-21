@@ -102,7 +102,7 @@ export default function HomePage() {
         </div>
 
         {/* Course Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6">
           {/* AI/ML Card */}
           <Card
               className="relative p-6 rounded-2xl bg-[var(--bg-secondary)] border border-white/10 shadow-md transition-all duration-300 ease-out hover:shadow-xl hover:border-[var(--accent-primary)] cursor-pointer overflow-hidden group"

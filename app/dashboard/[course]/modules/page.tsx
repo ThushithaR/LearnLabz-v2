@@ -8,13 +8,14 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Button } from "@/components/ui/Button";
 import { aiml } from "@/lib/courses/aiml";
 import { nlp } from "@/lib/courses/nlp";
+import { foundation } from "@/lib/courses/foundation";
 import { COURSE_ID_MAP } from "@/lib/courses";
 import { getCourseUnitProgress, getCourseUnitProgressFromLessons } from "@/lib/supabase/progress";
 import { getCurrentUserProfile } from "@/lib/supabase/profile";
 
 export default function ModulesPage({ params }: { params: { course: string } }) {
   const { course } = params;
-  const courseData = course === "aiml" ? aiml : nlp;
+  const courseData = course === "aiml" ? aiml : course === "nlp" ? nlp : foundation;
   const [unitProgress, setUnitProgress] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
 
