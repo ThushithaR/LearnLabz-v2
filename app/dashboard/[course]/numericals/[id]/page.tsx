@@ -14,10 +14,16 @@ import BFSTreeTraversal from "@/lib/numericals/aiml/numericals";
 import DFSGraphTraversal from "@/lib/numericals/aiml/numerical_dfs";
 import CodingChallengePageOne from "@/lib/numericals/nlp/numericals_code1";
 import TFIDFNumericalPage from "@/lib/numericals/nlp/numericals_tfidf";
+import Activity_Intro from "@/lib/numericals/foundation/activity_intro";
+import EvaluationMetricsPage from "@/lib/numericals/foundation/numericals_evaluationa_metrics";
+import SpotifyPlaylistSorter from "@/lib/numericals/foundation/activity_supervised_learning";
+import DecisionSimulatorPage from "@/lib/numericals/foundation/activity_perceptron";
+import TfIdfNumericalsPage from "@/lib/numericals/foundation/numerical_tfidf";
+
 
 export default function NumericalsSolvePage({ params }: { params: { id: string, course: string } }) {
   const router = useRouter();
-  const [solution, setSolution] = useState<string>(`// Workspace Step 1: `);
+  const [solution, setSolution] = useState<string>(`// Numerical Workspace\n// Loading problem...\n`);
   const [showCalculator, setShowCalculator] = useState(false);
   const [calcDisplay, setCalcDisplay] = useState("0");
   const [calcEquation, setCalcEquation] = useState("");
@@ -32,6 +38,7 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const [isStarred, setIsStarred] = useState(false);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
+  
 
   // Load starred state on mount
   useEffect(() => {
@@ -114,9 +121,8 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
   const handleSubmit = async () => {
     setIsTimerRunning(false);
 
-    // Calculate score/correctness (Mock logic preserved as per original file, assuming FE validation for now)
-    // Ideally this validation should also verify against backend or secure hash
-    const isCorrect = isRootNodeCorrect && isNodesPrunedCorrect;
+    // Calculate score/correctness 
+    const isCorrect = isAnswerCorrect;
     const cpEarned = isCorrect ? numerical.xp : 0;
 
     if (userId) {
@@ -134,13 +140,13 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
     setShowModal(true);
   };
 
-  // Check if answers are correct
-  const isRootNodeCorrect = parseInt(rootNodeValue as string) === 5;
-  const isNodesPrunedCorrect = parseInt(nodesPruned as string) === 0;
-
   // Fetch numerical data
   const [numerical, setNumerical] = useState<any>(null);
   const [userId, setUserId] = useState<number | null>(null);
+
+  // Check if answer is correct
+  const isAnswerCorrect = rootNodeValue.toString().trim() === (numerical?.solution?.toString() || "").trim();
+  const isAdditionalCorrect = true; // For now, only one answer field for generic numericals
 
   useEffect(() => {
     const loadData = async () => {
@@ -153,6 +159,7 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
         return;
       }
       setNumerical(numData);
+      setSolution(`// Numerical Workspace\n// Solve "${numData.title}" here\n`);
 
       // 2. Fetch User for submission
       const user = await getCurrentUserProfile();
@@ -166,6 +173,14 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
   }
 
   // Route to specific solvers based on ID
+  if (numerical.id === 404) {
+    return <BFSTreeTraversal params={params} />;
+  }
+
+  if (numerical.id === 403) {
+    return <DFSGraphTraversal params={params} />;
+  }
+
   if (numerical.id === 101) {
     return <BFSTreeTraversal params={params} />;
   }
@@ -178,10 +193,29 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
     return <CodingChallengePageOne params={params} />;
   }
 
-    if (numerical.id === 402) {
+  if (numerical.id === 402) {
     return <TFIDFNumericalPage params={params} />;
   }
 
+  if (numerical.id === 1000) {
+    return <Activity_Intro params={params} />;
+  }
+
+  if (numerical.id === 1001) {
+    return <SpotifyPlaylistSorter params={params} />;
+  }
+
+  if (numerical.id === 1002) {
+    return <EvaluationMetricsPage params={params} />;
+  }
+
+  if (numerical.id === 1003) {
+    return <DecisionSimulatorPage params={params} />;
+  }
+
+  if (numerical.id === 1004) {
+    return <TfIdfNumericalsPage params={params} />;
+  }
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-300 overflow-y-auto lg:overflow-hidden">
       {/* Header */}
@@ -222,23 +256,35 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
           <div className="flex flex-col lg:grid lg:grid-cols-12 h-fit lg:h-full">
             {/* Column 1: Problem Statement */}
             <div className="w-full lg:col-span-3 bg-surface/30 border-r border-white/5 p-6 overflow-y-auto max-h-[40vh] lg:max-h-full shrink-0">
-              <Badge variant="warning" className="mb-4">Hard</Badge>
-              <h2 className="text-xl font-bold mb-4 text-textPrimary">Optimal Move Calculation</h2>
-              <p className="text-sm text-textSecondary leading-relaxed mb-6">
-                Given the following game tree with leaf node values, determine the value of the root node using the Minimax algorithm. Assume the root player is a Maximizer.
-              </p>
-              <div className="bg-black/20 p-6 rounded-xl border border-white/5 mb-6 flex justify-center">
-                {/* Mock Tree Visual */}
-                <svg width="200" height="150" viewBox="0 0 200 150" fill="none" stroke="currentColor">
-                  <circle cx="100" cy="20" r="10" stroke="#facc15" strokeWidth="2" />
-                  <line x1="100" y1="30" x2="60" y2="70" strokeOpacity="0.3" />
-                  <line x1="100" y1="30" x2="140" y2="70" strokeOpacity="0.3" />
-                  <circle cx="60" cy="80" r="10" strokeOpacity="0.5" />
-                  <circle cx="140" cy="80" r="10" strokeOpacity="0.5" />
-                  <text x="50" y="110" fill="white" fontSize="12">3</text>
-                  <text x="130" y="110" fill="white" fontSize="12">5</text>
-                </svg>
+              <Badge
+                variant={
+                  numerical.difficulty === "Hard" ? "warning" :
+                    numerical.difficulty === "Medium" ? "secondary" : "outline" // Changed variants to match Badge component
+                }
+                className="mb-4"
+              >
+                {numerical.difficulty}
+              </Badge>
+              <h2 className="text-xl font-bold mb-4 text-textPrimary">{numerical.title}</h2>
+              <div className="text-sm text-textSecondary leading-relaxed mb-6 space-y-4">
+                {numerical.description.split('\n').map((para: string, i: number) => (
+                  <p key={i}>{para}</p>
+                ))}
               </div>
+              {numerical.id < 200 && (
+                <div className="bg-black/20 p-6 rounded-xl border border-white/5 mb-6 flex justify-center">
+                  {/* Mock Tree Visual */}
+                  <svg width="200" height="150" viewBox="0 0 200 150" fill="none" stroke="currentColor">
+                    <circle cx="100" cy="20" r="10" stroke="#facc15" strokeWidth="2" />
+                    <line x1="100" y1="30" x2="60" y2="70" strokeOpacity="0.3" />
+                    <line x1="100" y1="30" x2="140" y2="70" strokeOpacity="0.3" />
+                    <circle cx="60" cy="80" r="10" strokeOpacity="0.5" />
+                    <circle cx="140" cy="80" r="10" strokeOpacity="0.5" />
+                    <text x="50" y="110" fill="white" fontSize="12">3</text>
+                    <text x="130" y="110" fill="white" fontSize="12">5</text>
+                  </svg>
+                </div>
+              )}
 
               {/* Collapsible Hint */}
               <div className="mt-auto">
@@ -334,23 +380,13 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
 
               <div className="space-y-6 mb-8 lg:mb-auto">
                 <div>
-                  <label className="text-xs font-medium text-textSecondary mb-2 block">Root Node Value</label>
+                  <label className="text-xs font-medium text-textSecondary mb-2 block">Final Answer</label>
                   <input
-                    type="number"
+                    type="text"
                     value={rootNodeValue}
                     onChange={(e) => setRootNodeValue(e.target.value)}
                     className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-accent text-lg font-mono transition-all focus:ring-1 ring-accent/50"
-                    placeholder="?"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-textSecondary mb-2 block">Nodes Pruned</label>
-                  <input
-                    type="number"
-                    value={nodesPruned}
-                    onChange={(e) => setNodesPruned(e.target.value)}
-                    className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-accent text-lg font-mono transition-all focus:ring-1 ring-accent/50"
-                    placeholder="0"
+                    placeholder="Enter your result..."
                   />
                 </div>
               </div>
@@ -367,19 +403,19 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
             <div className="flex flex-col items-center text-center mb-16">
               <div className={cn(
                 "w-20 h-20 rounded-3xl flex items-center justify-center mb-6 shadow-2xl animate-bounce duration-[2000ms]",
-                isRootNodeCorrect && isNodesPrunedCorrect ? "bg-green-500 shadow-green-500/20" : "bg-red-500 shadow-red-500/20"
+                isAnswerCorrect && true ? "bg-green-500 shadow-green-500/20" : "bg-red-500 shadow-red-500/20"
               )}>
-                {isRootNodeCorrect && isNodesPrunedCorrect ? (
+                {isAnswerCorrect && true ? (
                   <CheckCircle className="w-10 h-10 text-white" />
                 ) : (
                   <XCircle className="w-10 h-10 text-white" />
                 )}
               </div>
               <h2 className="text-4xl font-black text-white mb-2">
-                {isRootNodeCorrect && isNodesPrunedCorrect ? "Masterfully Solved!" : "Concept Check Required"}
+                {isAnswerCorrect && true ? "Masterfully Solved!" : "Concept Check Required"}
               </h2>
               <p className="text-textSecondary text-lg max-w-xl">
-                {isRootNodeCorrect && isNodesPrunedCorrect
+                {isAnswerCorrect && true
                   ? "You've accurately calculated the optimal moves and pruning points. Your understanding of the Minimax algorithm is solid."
                   : "Some calculations didn't quite match the optimal solution. Let's break down the logic below to refine your approach."}
               </p>
@@ -394,12 +430,12 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
               <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5 hover:border-white/10 transition-colors">
                 <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Calculation Accuracy</div>
                 <div className="text-2xl font-bold text-white mb-1">
-                  {(isRootNodeCorrect ? 50 : 0) + (isNodesPrunedCorrect ? 50 : 0)}%
+                  {isAnswerCorrect ? 100 : 0}%
                 </div>
               </Card>
               <Card className="p-6 bg-surface/40 backdrop-blur-md border border-white/5 hover:border-white/10 transition-colors">
                 <div className="text-[10px] uppercase tracking-widest font-bold text-textSecondary mb-1">Experience Earned</div>
-                <div className="text-2xl font-bold text-accent mb-1">+450 EP</div>
+                <div className="text-2xl font-bold text-accent mb-1">+{isAnswerCorrect ? numerical.xp : 0} XP</div>
               </Card>
             </div>
 
@@ -437,7 +473,7 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
                   <div className="mt-8 p-4 bg-accent/10 rounded-xl border border-accent/20">
                     <h4 className="text-xs font-bold text-accent mb-2 uppercase">Key Takeaway</h4>
                     <p className="text-xs text-textSecondary leading-relaxed">
-                      At depth 2, the Minimizer nodes branch into (3) and (5). Since the root player is a Maximizer, it will select the path with value 5. Pruning occurs when the known value already exceeds the current branch's potential.
+                      Review the steps above to understand the core concepts. Practice consistently to master these numerical patterns.
                     </p>
                   </div>
                 </div>
@@ -453,21 +489,21 @@ export default function NumericalsSolvePage({ params }: { params: { id: string, 
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-sm leading-relaxed text-textSecondary">
                   <div>
-                    <h4 className="font-bold text-textPrimary mb-3 underline decoration-accent/30 underline-offset-4">Calculation Insights</h4>
+                    <h4 className="font-bold text-textPrimary mb-3 underline decoration-accent/30 underline-offset-4">Performance Analysis</h4>
                     <p className="mb-4">
-                      The Minimax value for the root node is 5. Your input of <span className={cn("font-bold px-1.5 py-0.5 rounded", isRootNodeCorrect ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400")}>{rootNodeValue || '0'}</span> was meticulously analyzed.
+                      Your answer was <span className={cn("font-bold px-1.5 py-0.5 rounded", isAnswerCorrect ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400")}>{isAnswerCorrect ? "Correct" : "Incorrect"}</span>.
                     </p>
                     <p>
-                      In a Maximizer layer, you choose the maximum of children outputs. In a Minimizer layer, you choose the minimum. This alternating logic forms the core of game tree search.
+                      The expected solution involves applying the specific formulas and logic for this topic. Ensure you've followed each step carefully in your workspace.
                     </p>
                   </div>
                   <div>
-                    <h4 className="font-bold text-textPrimary mb-3 underline decoration-accent/30 underline-offset-4">Efficiency & Optimization</h4>
+                    <h4 className="font-bold text-textPrimary mb-3 underline decoration-accent/30 underline-offset-4">Efficiency & Accuracy</h4>
                     <p className="mb-4">
-                      Nodes Pruned: <span className={cn("font-bold px-1.5 py-0.5 rounded", isNodesPrunedCorrect ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400")}>{nodesPruned || '0'}</span>. Alpha-Beta pruning is an enhancement that reduces the number of nodes evaluated.
+                      Time taken: {formatTime(timer)}. Accuracy is key to mastering these challenges.
                     </p>
                     <p>
-                      It stops evaluating a move when at least one possibility has been found that proves the move to be worse than a previously examined move.
+                      Double-check your calculations and ensure you're using the correct units or state space representations.
                     </p>
                   </div>
                 </div>

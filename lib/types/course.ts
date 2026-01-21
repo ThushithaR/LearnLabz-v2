@@ -42,6 +42,7 @@ export interface Lesson {
   title: string;
   duration: string;
   isInteractive?: boolean; // optional
+  interactiveComponent?: any; // Component to render for interactive lessons
   content?: {
     overview?: string;
     quoteOfTheDay?: string;
@@ -55,14 +56,14 @@ export interface Lesson {
       solution?: string | React.ReactNode;
     };
   };
-  quiz ?: QuizQuestion[];
+  quiz?: QuizQuestion[];
 }
-export interface QuizQuestion{
-  id:string;
+export interface QuizQuestion {
+  id: string;
   question: string;
   options: string[];
   correctAnswer: number;
-  explanation ?: string;
+  explanation?: string;
 }
 
 export interface ProblemStatementContent {
@@ -88,10 +89,12 @@ export interface LessonSection {
 export interface Module {
   id: number;
   title: string;
+  order: number;
   description: string;
   progress: number;
   isLocked: boolean;
   active?: boolean;
+  expectedDuration?: string;
   lessons: Lesson[];
 }
 
@@ -192,11 +195,49 @@ export interface ActualQuizzes {
   questionData: MainQuiz[];
 }
 
-export interface  MainQuiz{
+export interface MainQuiz {
   id: number;
   question: string;
   options: string[];
   correct: number;
   explanation: string;
   topics?: string[];
+}
+
+export interface LearnerProfile {
+  quiz_performance: {
+    accuracy: number; // 1.1
+    trend: number;    // 1.3 (AVG(last 3) - AVG(prev 3))
+    difficulty_wise_accuracy: { easy: number; medium: number; hard: number }; // 1.4
+  };
+  time_analysis: {
+    lesson_time_ratios: Record<number, {
+      actual_time_sec: number; // 2.1
+      expected_time_sec: number; // 2.2
+      ratio: number; // 2.3
+      status: 'rushing' | 'ideal' | 'struggling'; // 2.3 logic
+    }>;
+    quiz_time_ratio: number; // 2.4
+  };
+  attempt_behavior: {
+    first_attempt_accuracy: number; // 4.1
+    retry_depth: number; // 4.2
+    avg_attempt_time: number; // 4.3
+    guessing_flag: boolean; // 4.4
+  };
+  unit_metrics: Record<number, {
+    completion_percent: number; // 5.1
+  }>;
+  course_signals: {
+    progress_percent: number; // 6.1
+    streak_days: number; // 6.2
+    engagement_rate: number; // 6.3
+  };
+  focus_lessons: Array<{
+    lesson_id: number;
+    unit_id: number;
+    lesson_title: string;
+    reason: 'low_accuracy' | 'rushing' | 'struggling';
+  }>;
+  last_updated: string;
 }

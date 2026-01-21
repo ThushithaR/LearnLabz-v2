@@ -29,12 +29,7 @@ export async function upsertLessonProgress({
       .eq("lesson_id", lesson_id)
       .maybeSingle();
 
-    // If lesson is already at 100%, don't update it
-    if (existingProgress && 
-        (existingProgress.lesson_progress_percent === 100 || existingProgress.completed === true)) {
-      console.log("Lesson already at 100% - skipping update");
-      return { data: existingProgress, error: null };
-    }
+    // We allow updating progress even if already completed to track cumulative time spent
 
     let response;
 
@@ -135,9 +130,9 @@ export async function updateUnitProgress({
   let response;
 
   if (existing) {
-    // Only update if new progress is higher than existing
-    const finalProgressPercent = Math.max(existingProgressPercent, progress_percent);
-    
+    // Only update if new progress is higher than existing, but cap at 100%
+    const finalProgressPercent = Math.min(100, Math.max(existingProgressPercent, progress_percent));
+
     response = await supabase
       .from("unit_progress")
       .update({
@@ -156,7 +151,7 @@ export async function updateUnitProgress({
         unit_id,
         unit_quiz_score: quiz_score,
         unit_unlocked: unlocked,
-        unit_progress_percent: progress_percent,
+        unit_progress_percent: Math.min(100, progress_percent), // Cap at 100%
       })
       .select();
   }
@@ -288,15 +283,15 @@ export async function updateUnitProgressFromLessons({
     }
 
     // Calculate new progress
-    const newProgressPercent = totalLessons > 0 
+    const newProgressPercent = totalLessons > 0
       ? Math.round((completedLessons / totalLessons) * 100)
       : 0;
 
     console.log(`Calculating unit ${unit_id}: ${completedLessons}/${totalLessons} = ${newProgressPercent}%`);
 
-    // If existing progress is higher than new calculation, keep the higher value
+    // If existing progress is higher than new calculation, keep the higher value, but cap at 100%
     const existingProgressPercent = existingUnitProgress?.unit_progress_percent || 0;
-    const finalProgressPercent = Math.max(existingProgressPercent, newProgressPercent);
+    const finalProgressPercent = Math.min(100, Math.max(existingProgressPercent, newProgressPercent));
 
     console.log(`Final unit ${unit_id} progress: ${finalProgressPercent}% (existing: ${existingProgressPercent}%, new: ${newProgressPercent}%)`);
 
@@ -377,70 +372,75 @@ export async function getCourseUnitProgress({
 export async function getCourseUnitProgressFromLessons({
   user_id,
   course_id,
-  units
+  units // We'll ignore this static structure and rely on DB
 }: {
   user_id: number;
   course_id: number;
-  units: Array<{ id: number; lessons: Array<{ id: string | number }> }>;
+  units: any[];
 }) {
-  // Collect all lesson IDs from all units in this course
-  const allLessonIds: number[] = [];
-  units.forEach(unit => {
-    unit.lessons.forEach(lesson => {
-      const lessonId = typeof lesson.id === 'string' ? parseInt(lesson.id) : lesson.id;
-      if (!isNaN(lessonId)) {
-        allLessonIds.push(lessonId);
-      }
-    });
-  });
+  try {
+    // 1. Get all lessons for this course from DB
+    const { data: dbLessons, error: lessonsError } = await supabase
+      .from("lessons")
+      .select("lesson_id, unit_id")
+      .eq("course_id", course_id);
 
-  if (allLessonIds.length === 0) {
-    return { data: [], error: null };
-  }
-
-  // Get progress for all these lessons
-  const { data: lessonProgressData, error: progressError } = await supabase
-    .from("lesson_progress")
-    .select("lesson_id, completed, lesson_progress_percent")
-    .eq("user_id", user_id)
-    .in("lesson_id", allLessonIds);
-
-  if (progressError) {
-    console.error("Error fetching lesson progress:", progressError);
-    return { data: null, error: progressError };
-  }
-
-  // Calculate progress for each unit
-  const result = units.map(unit => {
-    const totalLessons = unit.lessons.length;
-    let completedLessons = 0;
-
-    if (lessonProgressData) {
-      unit.lessons.forEach(lesson => {
-        const lessonId = typeof lesson.id === 'string' ? parseInt(lesson.id) : lesson.id;
-        const progress = lessonProgressData.find(lp => lp.lesson_id === lessonId);
-        
-        // Count as completed if either completed flag is true OR progress is 100%
-        if (progress && (progress.completed === true || progress.lesson_progress_percent === 100)) {
-          completedLessons += 1;
-        }
-      });
+    if (lessonsError || !dbLessons) {
+      console.error("Error fetching course lessons:", lessonsError);
+      return { data: null, error: lessonsError };
     }
 
-    const progressPercent = totalLessons > 0 
-      ? Math.round((completedLessons / totalLessons) * 100)
-      : 0;
+    if (dbLessons.length === 0) {
+      return { data: [], error: null };
+    }
 
-    console.log(`Unit ${unit.id}: ${completedLessons}/${totalLessons} lessons = ${progressPercent}%`);
+    const allLessonIds = dbLessons.map(l => l.lesson_id);
 
-    return {
-      unit_id: unit.id,
-      unit_progress_percent: progressPercent,
-      unit_unlocked: true
-    };
-  });
+    // 2. Get progress for all these lessons
+    const { data: lessonProgressData, error: progressError } = await supabase
+      .from("lesson_progress")
+      .select("lesson_id, completed, lesson_progress_percent")
+      .eq("user_id", user_id)
+      .in("lesson_id", allLessonIds);
 
-  return { data: result, error: null };
+    if (progressError) {
+      console.error("Error fetching lesson progress:", progressError);
+      return { data: null, error: progressError };
+    }
+
+    // 3. Group by Unit and Calculate
+    const unitMap: Record<number, { total: number; completed: number }> = {};
+
+    // Initialize map
+    dbLessons.forEach(l => {
+      if (!unitMap[l.unit_id]) {
+        unitMap[l.unit_id] = { total: 0, completed: 0 };
+      }
+      unitMap[l.unit_id].total += 1;
+
+      // Check progress
+      const progress = lessonProgressData?.find(lp => lp.lesson_id === l.lesson_id);
+      if (progress && (progress.completed || progress.lesson_progress_percent === 100)) {
+        unitMap[l.unit_id].completed += 1;
+      }
+    });
+
+    const result = Object.entries(unitMap).map(([unitId, stats]) => ({
+      unit_id: parseInt(unitId),
+      unit_progress_percent: stats.total > 0
+        ? Math.round((stats.completed / stats.total) * 100)
+        : 0,
+      unit_unlocked: true,
+      debug_stats: stats // Add this for debugging
+    }));
+
+    console.log("getCourseUnitProgressFromLessons RESULT:", result);
+    return { data: result, error: null };
+
+  } catch (err) {
+    console.error("getCourseUnitProgressFromLessons failed", err);
+    return { data: null, error: err };
+  }
 }
 
 export async function updateUserStreak(
@@ -493,10 +493,10 @@ export async function getContinueLesson(
     .select(`
       lesson_id,
       lesson_progress_percent,
-      lessons ( lesson_title, unit_id )
+      lessons!inner ( lesson_title, unit_id )
     `)
     .eq("user_id", userId)
-    .eq("course_id", courseId)
+    .eq("lessons.course_id", courseId)
     .eq("completed", false)
     .order("lesson_progress_percent", { ascending: false })
     .limit(1)

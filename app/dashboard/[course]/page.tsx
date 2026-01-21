@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-// import DigitalTwinCard from "@/components/ui/DigitalTwinCard";
+import DigitalTwinCard from "@/components/ui/DigitalTwinCard";
 import {
   ArrowRight,
   Clock,
@@ -22,11 +22,12 @@ import { getCurrentUserProfile } from "@/lib/supabase/profile";
 import { getUpcomingDeadlines, toggleCalendarEventComplete } from "@/lib/supabase/calendar";
 import { getDailyQuiz } from "@/lib/supabase/quizzes";
 import { COURSE_ID_MAP } from "@/lib/courses";
-import { getUserCourseStats } from "@/lib/supabase/user-courses";
+import { getUserCourseStats, getUserDigitalTwinData, updateUserLearnerProfile } from "@/lib/supabase/user-courses";
 import { getContinueLesson } from "@/lib/supabase/progress";
 import { getCompletedUnitsCount } from "@/lib/supabase/progress";
 import { getUserMaxStreak } from "@/lib/supabase/streak";
 import { getDailyChallenge } from "@/lib/utils";
+import { calculateDigitalTwin } from "@/lib/digital-twin";
 
 export default function CourseDashboardPage({
   params,
@@ -41,6 +42,7 @@ export default function CourseDashboardPage({
   const [latestQuizUnitId, setLatestQuizUnitId] = useState<number | null>(null);
   const [completedUnits, setCompletedUnits] = useState<number>(0);
   const [profile, setProfile] = useState<any>(null);
+  const [twinProfile, setTwinProfile] = useState<any>(null);
   const [maxStreak, setMaxStreak] = useState<number>(0);
 
   // get user profile
@@ -61,8 +63,13 @@ export default function CourseDashboardPage({
       const streak = await getUserMaxStreak(user.user_id);
       setStats(data);
       setMaxStreak(streak);
+
+      // 🎯 Load existing digital twin profile immediately if available
+      if (data?.learner_profile) {
+        setTwinProfile(data.learner_profile);
+      }
     };
-    loadStats();  
+    loadStats();
   }, [courseId]);
 
   // continue lesson
@@ -83,9 +90,13 @@ export default function CourseDashboardPage({
 
       const { data, error } = await supabase
         .from('quiz_attempts')
-        .select('unit_id')
+        .select(`
+          quizzes!inner (
+            unit_id
+          )
+        `)
         .eq('user_id', user.user_id)
-        .eq('course_id', courseId)
+        .eq('quizzes.course_id', courseId)
         .order('qa_id', { ascending: false })
         .limit(1);
 
@@ -94,7 +105,7 @@ export default function CourseDashboardPage({
         return;
       }
 
-      const unitId = data && data.length > 0 ? (data[0] as any).unit_id : null;
+      const unitId = data && data.length > 0 ? (data[0] as any).quizzes?.unit_id : null;
       setLatestQuizUnitId(typeof unitId === 'number' ? unitId : null);
     };
 
@@ -143,10 +154,36 @@ export default function CourseDashboardPage({
   const [dailyQuiz, setDailyQuiz] = useState<any>(null);
   useEffect(() => {
     const loadDaily = async () => {
-      const quiz = getDailyChallenge(courseId as CourseId);
+      const quiz = getDailyChallenge(course as CourseId);
       setDailyQuiz(quiz);
     };
     loadDaily();
+  }, [courseId]);
+
+  // Digital Twin Data
+  useEffect(() => {
+    const loadDigitalTwin = async () => {
+      const user = await getCurrentUserProfile();
+      if (!user) return;
+
+      const { quizAttempts, lessonProgress, unitProgress, userStats } = await getUserDigitalTwinData(user.user_id, courseId);
+
+      // Check if we actually have data to calculate something meaningful
+      if (quizAttempts.length > 0 || lessonProgress.length > 0) {
+        // Calculate latest profile
+        const twin = calculateDigitalTwin(quizAttempts, lessonProgress, unitProgress, userStats, courseId);
+        setTwinProfile(twin);
+
+        // Persist to DB only if meaningful
+        await updateUserLearnerProfile(user.user_id, courseId, twin);
+      } else if (userStats?.learner_profile) {
+        // If no raw data was found but we had a profile, keep showing it
+        setTwinProfile(userStats.learner_profile);
+      }
+    };
+    if (courseId) {
+      loadDigitalTwin();
+    }
   }, [courseId]);
 
   const activeModule = courseData.modules.find((m) => m.active);
@@ -194,7 +231,7 @@ export default function CourseDashboardPage({
             <div className="p-6 flex flex-col justify-center">
               <div className="flex items-center gap-2 mb-2 text-accent">
                 <span className="flex items-center justify-center w-4 h-4 rounded-full border border-accent/30 text-[9px] font-bold">
-                  {activeModule?.id || "I"}
+                  {activeModule?.order || "I"}
                 </span>
                 <span className="text-[9px] font-bold tracking-widest uppercase">Current Focus</span>
               </div>
@@ -263,7 +300,7 @@ export default function CourseDashboardPage({
                       <p className="text-xs font-medium truncate text-textPrimary">
                         {cal.cal_title}
                       </p>
-                      <p className="text-[9px] text-textSecondary">
+                      <p className="text-xs text-textSecondary">
                         {cal.cal_completed
                           ? "Completed"
                           : `Due: ${cal.cal_time}`}
@@ -277,7 +314,10 @@ export default function CourseDashboardPage({
         </Card>
 
         {/* Digital Twin - Between Deadlines and Daily Challenge */}
-        {/* <DigitalTwinCard courseId={courseId} courseSlug={course} unitId={unitIdForDigitalTwin} /> */}
+        <DigitalTwinCard
+          profile={twinProfile}
+          courseSlug={course as string}
+        />
 
         {/* Daily Challenge */}
         <Card className="flex flex-col p-0 overflow-hidden border border-white/5 bg-gradient-to-br from-white/[0.07] to-transparent hover:from-white/[0.1] transition-all group backdrop-blur-md shadow-lg shadow-black/20 rounded-xl">

@@ -53,34 +53,47 @@ export const GutenbergFileViewer: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* View Mode Selector */}
-      <div className="flex items-center gap-2 p-3 border-b border-white/5 bg-surface/30 backdrop-blur-sm">
-        <Code className="w-4 h-4 text-textSecondary" />
-        <div className="flex gap-1">
+      <div className="flex items-center gap-4 p-5 border-b border-white/5 bg-surface/30 backdrop-blur-md">
+        <div className="flex items-center gap-2">
+          <Eye className="w-4 h-4 text-accent" />
+          <span className="text-xs font-bold text-textPrimary uppercase tracking-wider">Analysis Mode</span>
+        </div>
+
+        <div className="h-6 w-px bg-white/10 mx-2" />
+
+        <div className="flex gap-2">
           {(["raw", "words", "sents"] as ViewMode[]).map(mode => (
             <button
               key={mode}
               onClick={() => setViewMode(mode)}
               className={cn(
-                "px-3 py-1 text-xs font-medium rounded transition-all",
+                "px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-2",
                 viewMode === mode
-                  ? "bg-accent text-background shadow-sm"
-                  : "text-textSecondary hover:text-textPrimary hover:bg-white/5"
+                  ? "bg-accent text-background shadow-[0_0_15px_rgba(var(--accent),0.4)] scale-105"
+                  : "text-textSecondary hover:text-textPrimary hover:bg-white/5 border border-white/5"
               )}
             >
-              {mode === "raw" ? "Raw" : mode === "words" ? "Words" : "Sentences"}
+              <div className={cn(
+                "w-1.5 h-1.5 rounded-full",
+                viewMode === mode ? "bg-background" : "bg-white/20"
+              )} />
+              {mode === "raw" ? "Raw Archive" : mode === "words" ? "Word Tokens" : "Sentence Structures"}
             </button>
           ))}
         </div>
-        <div className="ml-auto text-[10px] text-textSecondary">
-          {tokens.length} {viewMode === "raw" ? "chars" : viewMode === "words" ? "words" : "sentences"}
+        <div className="ml-auto flex flex-col items-end">
+          <span className="text-[10px] font-bold text-textSecondary uppercase tracking-tighter">Total Units</span>
+          <span className="text-sm font-mono font-bold text-accent">
+            {tokens.length.toLocaleString()} {viewMode === "raw" ? "chars" : viewMode === "words" ? "words" : "sentences"}
+          </span>
         </div>
       </div>
 
       {/* Content Display */}
-      <div className="flex-1 overflow-y-auto p-6 bg-background">
+      <div className="flex-1 overflow-y-auto p-8 bg-background/50">
         {viewMode === "raw" && (
           <div className="prose prose-p:text-textSecondary max-w-none">
-            <pre className="text-xs leading-relaxed text-textSecondary bg-surface/30 p-4 rounded border border-white/5 overflow-x-auto">
+            <pre className="text-sm leading-relaxed text-textSecondary bg-surface/30 p-6 rounded-xl border border-white/5 overflow-x-auto shadow-inner font-mono">
               {fileContent}
             </pre>
           </div>

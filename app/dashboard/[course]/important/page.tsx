@@ -44,8 +44,8 @@ export default function ImportantPage({ params }: { params: { course?: string } 
 
 
     // Load starred questions from all quizzes in this course
-    if (courseData.quizzes) {
-      courseData.quizzes.forEach((quiz: any) => {
+    if (courseData.actualquizzes) {
+      courseData.actualquizzes.forEach((quiz: any) => {
         const storageKey = `starred_questions_${course}_${quiz.id}`;
         const saved = localStorage.getItem(storageKey);
         if (saved) {

@@ -25,14 +25,14 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    const { error, data } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password: password.trim(),
     });
 
     if (error) {
       setError(error.message);
+      console.log("LOGIN RESULT:", { data, error });
       return;
     }
      // ✅ fetch logged-in user profile

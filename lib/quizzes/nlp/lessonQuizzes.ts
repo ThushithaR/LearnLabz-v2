@@ -4,8 +4,8 @@ import { QuizQuestion } from "@/lib/types/course";
 // Example structure: lessonId -> QuizQuestion[]
 
 export const lessonQuizzesData: Record<string, QuizQuestion[]> = {
-  // NLP Unit 1 - Lesson 1 (Problem Statement)
-  "1.1": [
+  // NLP Unit I - Lesson 601 (What is NLP?)
+  "601": [
     {
       id: "1.1.1",
       question: "What is the primary goal of Natural Language Processing?",
@@ -44,8 +44,8 @@ export const lessonQuizzesData: Record<string, QuizQuestion[]> = {
     }
   ],
 
-  // NLP Unit 2 - Lesson 1 (Accessing Text Corpora)
-  "2.1": [
+  // NLP Unit II - Lesson 701 (Accessing Text Corpora)
+  "701": [
     {
       id: "2.1.1",
       question: "The Gutenberg Corpus is especially valuable for NLP education because its texts are modern, standardized, and representative of contemporary English usage.",
@@ -98,19 +98,19 @@ export const lessonQuizzesData: Record<string, QuizQuestion[]> = {
     }
   ],
 
-  // NLP Unit 2 - Lesson 2 (Brown Corpus)
-  "2.2": [
+  // NLP Unit II - Lesson 702 (Brown Corpus)
+  "702": [
     {
       id: "2.2.1",
       question: "What is the Brown Corpus?",
       options: [
-        "A modern web-based corpus",
-        "The first major computer-readable corpus of American English",
-        "A corpus focused only on spoken language",
-        "A proprietary corpus owned by a tech company"
+        "First electronic corpus of modern English",
+        "A collection of medical texts",
+        "A dictionary of synonyms",
+        "A set of programming language manuals"
       ],
-      correctAnswer: 1,
-      explanation: "The Brown Corpus was created in 1961 and was one of the first major machine-readable corpora of American English."
+      correctAnswer: 0,
+      explanation: "The Brown Corpus was the first million-word electronic corpus of English, created in 1961."
     },
     {
       id: "2.2.2",
@@ -138,9 +138,33 @@ export const lessonQuizzesData: Record<string, QuizQuestion[]> = {
     }
   ],
 
-  // Add more lessons as needed
-  // "3.1": [ ... ],
-  // "3.2": [ ... ],
+  // NLP Unit II - Lesson 703 (Gutenberg Corpus Explorer)
+  "703": [
+    {
+      id: "2.3.1",
+      question: "Which NLTK method is used to explore a specific file's content in the Gutenberg corpus?",
+      options: [
+        "gutenberg.open()",
+        "gutenberg.raw()",
+        "gutenberg.read()",
+        "gutenberg.load()"
+      ],
+      correctAnswer: 1,
+      explanation: "The raw() method is used to get the original text content of a file."
+    },
+    {
+      id: "2.3.2",
+      question: "The Gutenberg corpus contains approximately how many electronic books?",
+      options: [
+        "18",
+        "1,000",
+        "50,000",
+        "100"
+      ],
+      correctAnswer: 0,
+      explanation: "NLTK includes a selection of 18 texts from the Project Gutenberg collection."
+    }
+  ],
 };
 
 export default lessonQuizzesData;

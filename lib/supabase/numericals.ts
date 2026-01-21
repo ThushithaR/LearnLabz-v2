@@ -35,13 +35,24 @@ const LEVEL_CONFIG = {
 // Calculate level based on XP (copied from achievements.ts)
 function calculateLevelFromXP(xp: number): number {
   if (xp < LEVEL_CONFIG.baseXP) return 1;
-  
+
   const level = Math.floor(
     Math.log2((xp / LEVEL_CONFIG.baseXP) * (LEVEL_CONFIG.growthFactor - 1) + 1)
   ) + 1;
-  
+
   return Math.min(level, LEVEL_CONFIG.maxLevel);
 }
+
+// STATIC FALLBACK DATA
+const STATIC_NUMERICALS: Numerical[] = [
+  { id: 101, courseId: 1, lessonId: 1, title: 'Minimax Algorithm', description: 'Implement Minimax with Alpha-Beta Pruning', topic: 'Game Theory', difficulty: 'Hard', xp: 500, status: 'New', topics: [] },
+  { id: 102, courseId: 1, lessonId: 2, title: 'BFS vs DFS', description: 'Analyze Search Algorithms', topic: 'Search', difficulty: 'Medium', xp: 300, status: 'New', topics: [] },
+  { id: 105, courseId: 1, lessonId: 3, title: 'A* Heuristic Estimation', description: 'Calculate heuristic values for A* search', topic: 'Informed Search', difficulty: 'Medium', xp: 30, status: 'Completing', topics: [] },
+  { id: 208, courseId: 1, lessonId: 4, title: 'Alpha-Beta Pruning Count', description: 'Count pruned branches in a game tree', topic: 'Game Theory', difficulty: 'Hard', xp: 50, status: 'Locked', topics: [] },
+  { id: 303, courseId: 1, lessonId: 5, title: 'Neural Net Weights', description: 'Adjust weights for a simple perceptron', topic: 'Neural Networks', difficulty: 'Medium', xp: 30, status: 'New', topics: [] },
+  { id: 401, courseId: 2, lessonId: 1, title: 'Python Coding Basic', description: 'Basic strings', topic: 'Python', difficulty: 'Easy', xp: 200, status: 'New', topics: [] },
+  { id: 402, courseId: 2, lessonId: 2, title: 'TF-IDF Implementation', description: 'Calculate TF-IDF', topic: 'NLP', difficulty: 'Hard', xp: 400, status: 'New', topics: [] },
+];
 
 export async function getNumericalsByCourse(courseId: number): Promise<Numerical[]> {
   try {
@@ -55,12 +66,19 @@ export async function getNumericalsByCourse(courseId: number): Promise<Numerical
       .eq("numerical_active", true)
       .order("numerical_order_index", { ascending: true });
 
+    let dbNumericals = numericalsData as DBNumerical[] || [];
+
+    // FALLBACK
+    if (!dbNumericals || dbNumericals.length === 0) {
+      console.warn("DB Numericals empty, but static fallback is disabled by user request.");
+      return [];
+    }
+
     if (numericalsError) {
       console.error("Error fetching numericals:", numericalsError);
       return [];
     }
 
-    const dbNumericals = numericalsData as DBNumerical[];
     let attempts: DBNumericalAttempt[] = [];
 
     // 2. Fetch user attempts
@@ -128,8 +146,9 @@ export async function getNumericalById(numericalId: number): Promise<Numerical |
       .single();
 
     if (error || !data) {
-      console.error("Error fetching numerical:", error);
-      return null;
+      console.warn("Numerical not found in DB, using fallback...");
+      const staticNum = STATIC_NUMERICALS.find(n => n.id === numericalId);
+      return staticNum || null;
     }
 
     const dbNum = data as DBNumerical;
@@ -142,6 +161,7 @@ export async function getNumericalById(numericalId: number): Promise<Numerical |
       description: dbNum.numerical_problem_statement || "",
       topic: "General",
       difficulty: (dbNum.numerical_difficulty.charAt(0).toUpperCase() + dbNum.numerical_difficulty.slice(1).toLowerCase()) as "Easy" | "Medium" | "Hard",
+      solution: (dbNum as any).numerical_solution || "",
       xp: dbNum.numerical_max_cp,
       status: "New",
       topics: []
@@ -191,11 +211,11 @@ export async function submitNumericalAttempt({
     }
 
     const courseId = numericalData.course_id;
-    
+
     // 2. Calculate XP earned (100% match required)
     // Only give XP if is_correct is true (answers 100% match)
     const xpEarned = is_correct ? cp : 0;
-    
+
     console.log(`Numerical "${numericalData.numerical_title}": ${is_correct ? 'CORRECT' : 'INCORRECT'}, XP: ${xpEarned}`);
 
     // 3. Submit the attempt
@@ -222,7 +242,7 @@ export async function submitNumericalAttempt({
     // 4. Update user XP and level if answer is correct (100% match)
     if (is_correct && xpEarned > 0) {
       console.log(`Updating XP and level: +${xpEarned} XP for user ${user_id}`);
-      
+
       // Get current user progress
       const { data: userCourse, error: userError } = await supabase
         .from("user_courses")
@@ -261,18 +281,16 @@ export async function submitNumericalAttempt({
           console.error("Error updating user XP and level:", updateError);
         } else {
           console.log(`User updated: ${newXP} XP, Level ${newLevel}`);
-          
+
           if (levelIncreased) {
             console.log(`🎉 LEVEL UP! User is now level ${newLevel}`);
           }
         }
       }
-    } else {
-      console.log("No XP awarded - answer was incorrect");
     }
 
     return { data: attemptData, error: null };
-    
+
   } catch (error) {
     console.error("Unexpected error in submitNumericalAttempt:", error);
     return { data: null, error: error as Error };

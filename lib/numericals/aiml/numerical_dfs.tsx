@@ -112,14 +112,14 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
     setIsInitialized(true);
     setStep('explore');
     setErrorMessage("");
-    
+
     // Update solution notes
     setSolution(prev => prev + `\n// Step 1: Selected source node ${START_NODE}, marked visited, pushed to stack\n// Stack: [${START_NODE}], Visited: [${START_NODE}]`);
   };
 
   const handleNodeClick = (nodeId: number) => {
     if (traversalComplete) return;
-    
+
     if (!isInitialized) {
       setErrorMessage("Please initialize DFS first by clicking 'Initialize DFS'.");
       return;
@@ -146,14 +146,14 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
     const newStack = [nodeId, ...stack]; // Push to stack (LIFO)
     const newVisited = [...visitedNodes, nodeId];
     const newTraversalOrder = [...userTraversalOrder, nodeId];
-    
+
     setStack(newStack);
     setVisitedNodes(newVisited);
     setCurrentNode(nodeId);
     setUserTraversalOrder(newTraversalOrder);
     setStep('explore');
     setErrorMessage("");
-    
+
     // Update solution notes
     setSolution(prev => prev + `\n// Step ${userTraversalOrder.length + 1}: Selected neighbor ${nodeId}, marked visited, pushed to stack\n// Stack: [${newStack.join(', ')}], Visited: [${newVisited.join(', ')}]`);
   };
@@ -172,11 +172,11 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
 
     // Pop from stack (LIFO - remove first element)
     const [poppedNode, ...remainingStack] = stack;
-    
+
     // Check if popped node has unvisited neighbors
     const poppedNodeNeighbors = GRAPH[poppedNode].neighbors;
     const hasUnvisitedNeighbors = poppedNodeNeighbors.some(neighbor => !visitedNodes.includes(neighbor));
-    
+
     if (hasUnvisitedNeighbors && poppedNode === currentNode) {
       setErrorMessage(`Node ${poppedNode} still has unvisited neighbors. Explore them first before backtracking.`);
       return;
@@ -184,17 +184,17 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
 
     // Backtrack - pop current node
     setStack(remainingStack);
-    
+
     // If stack is not empty, set new current node (top of stack)
     const newCurrentNode = remainingStack.length > 0 ? remainingStack[0] : null;
     setCurrentNode(newCurrentNode);
-    
+
     setStep(remainingStack.length > 0 ? 'explore' : 'select');
-    
+
     // Check if traversal is complete
     const allNodes = Object.keys(GRAPH).map(Number);
     const allVisited = allNodes.every(node => visitedNodes.includes(node));
-    
+
     if (allVisited && remainingStack.length === 0) {
       setTraversalComplete(true);
       setErrorMessage("DFS traversal complete! All nodes have been visited.");
@@ -203,7 +203,7 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
     } else {
       setErrorMessage(`Backtracked from node ${poppedNode}. Current node is ${newCurrentNode}.`);
     }
-    
+
     // Update solution notes
     setSolution(prev => prev + `\n// Backtrack: Popped ${poppedNode} from stack\n// New stack: [${remainingStack.join(', ')}], Current node: ${newCurrentNode}`);
   };
@@ -317,7 +317,7 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
     [0, 2, 4, 3, 1],   // 0 → 2 → 4 → 3 → 1
   ];
 
-  const isTraversalCorrect = correctDFSOrders.some(order => 
+  const isTraversalCorrect = correctDFSOrders.some(order =>
     userTraversalOrder.length === order.length &&
     userTraversalOrder.every((val, idx) => val === order[idx])
   );
@@ -467,7 +467,7 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
             </div>
 
             {/* Column 2: Interactive Workspace */}
-            <div className="w-full lg:col-span-6 bg-[#0F0E0D] relative flex flex-col min-h-[50vh] lg:min-h-full overflow-auto">
+            <div className="w-full lg:col-span-6 bg-[#0F0E0D] relative flex flex-col min-h-[50vh] lg:min-h-full overflow-hidden">
               <div className="absolute top-4 right-4 z-10 flex gap-2">
                 <Button
                   size="sm"
@@ -510,8 +510,8 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
                 </Card>
               )}
 
-              {/* Main Visualization Area */}
-              <div className="flex-1 p-8 overflow-auto">
+              {/* Main Visualization Area - Scrollable */}
+              <div className="flex-1 p-8 overflow-y-auto">
                 <div className="mb-6">
                   <h3 className="text-sm font-bold text-accent mb-4">
                     Graph Visualization {!isInitialized && "(Click 'Initialize DFS' to start)"}
@@ -534,17 +534,17 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
                         />
                       );
                     })}
-                    
+
                     {/* Draw nodes */}
                     {Object.values(GRAPH).map(node => {
                       const isVisited = visitedNodes.includes(node.id);
                       const isCurrent = currentNode === node.id;
                       const isInStack = stack.includes(node.id);
-                      const isClickable = isInitialized && step === 'explore' && 
-                                         currentNode !== null && 
-                                         GRAPH[currentNode].neighbors.includes(node.id) && 
-                                         !isVisited;
-                      
+                      const isClickable = isInitialized && step === 'explore' &&
+                        currentNode !== null &&
+                        GRAPH[currentNode].neighbors.includes(node.id) &&
+                        !isVisited;
+
                       return (
                         <g key={node.id}>
                           {/* Node circle */}
@@ -554,14 +554,14 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
                             r="30"
                             fill={
                               isCurrent ? "#f59e0b" :        // Orange for current node
-                              isVisited ? "#22c55e" :        // Green for visited
-                              "#374151"                      // Gray for unvisited
+                                isVisited ? "#22c55e" :        // Green for visited
+                                  "#374151"                      // Gray for unvisited
                             }
                             stroke={
                               isCurrent ? "#facc15" :
-                              isClickable ? "#facc15" :
-                              isInStack ? "#3b82f6" :        // Blue for nodes in stack
-                              "rgba(250, 204, 21, 0.3)"
+                                isClickable ? "#facc15" :
+                                  isInStack ? "#3b82f6" :        // Blue for nodes in stack
+                                    "rgba(250, 204, 21, 0.3)"
                             }
                             strokeWidth={isCurrent ? "4" : "2"}
                             className={isClickable ? "cursor-pointer hover:opacity-80" : "cursor-default"}
@@ -612,8 +612,8 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
                             key={idx}
                             className={cn(
                               "px-6 py-4 rounded-lg font-mono font-bold border-2 text-center w-48 transition-all",
-                              idx === 0 
-                                ? "bg-accent/30 border-accent text-accent shadow-lg" 
+                              idx === 0
+                                ? "bg-accent/30 border-accent text-accent shadow-lg"
                                 : "bg-white/5 border-white/10 text-white opacity-80"
                             )}
                             style={{
@@ -646,8 +646,8 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
                       <span className="text-textSecondary text-sm">No nodes visited yet</span>
                     ) : (
                       visitedNodes.map((node, idx) => (
-                        <div 
-                          key={idx} 
+                        <div
+                          key={idx}
                           className="px-4 py-3 rounded-lg font-mono font-bold bg-green-500/20 border-2 border-green-500 text-green-400"
                         >
                           Node {node}
@@ -661,20 +661,20 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
                 {errorMessage && (
                   <div className={cn(
                     "rounded-xl p-4 mb-4 flex items-start gap-3 animate-in slide-in-from-top-2",
-                    errorMessage.includes("Error") || errorMessage.includes("not") 
-                      ? "bg-red-500/10 border border-red-500/30" 
+                    errorMessage.includes("Error") || errorMessage.includes("not")
+                      ? "bg-red-500/10 border border-red-500/30"
                       : "bg-blue-500/10 border border-blue-500/30"
                   )}>
                     <AlertCircle className={cn(
                       "w-5 h-5 shrink-0 mt-0.5",
-                      errorMessage.includes("Error") || errorMessage.includes("not") 
-                        ? "text-red-400" 
+                      errorMessage.includes("Error") || errorMessage.includes("not")
+                        ? "text-red-400"
                         : "text-blue-400"
                     )} />
                     <p className={cn(
                       "text-sm",
-                      errorMessage.includes("Error") || errorMessage.includes("not") 
-                        ? "text-red-300" 
+                      errorMessage.includes("Error") || errorMessage.includes("not")
+                        ? "text-red-300"
                         : "text-blue-300"
                     )}>{errorMessage}</p>
                   </div>
@@ -723,7 +723,7 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
                   <div className="text-xs text-textSecondary mb-2">Progress</div>
                   <div className="text-2xl font-bold text-white">{visitedNodes.length} / 5 nodes</div>
                   <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
-                    <div 
+                    <div
                       className="bg-accent rounded-full h-2 transition-all duration-300"
                       style={{ width: `${(visitedNodes.length / 5) * 100}%` }}
                     />
@@ -731,8 +731,8 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
                 </div>
 
                 {!isInitialized ? (
-                  <Button 
-                    size="lg" 
+                  <Button
+                    size="lg"
                     className="w-full gap-2 font-bold py-6 text-base shadow-lg shadow-accent/20 hover:scale-[1.02] transition-transform"
                     onClick={initializeDFS}
                   >
@@ -741,8 +741,8 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
                   </Button>
                 ) : (
                   <>
-                    <Button 
-                      size="lg" 
+                    <Button
+                      size="lg"
                       variant="outline"
                       className="w-full gap-2 font-bold py-6 text-base hover:scale-[1.02] transition-transform"
                       onClick={handleBacktrack}
@@ -776,8 +776,8 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
                 )}
               </div>
 
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="w-full gap-2 font-bold py-6 text-base shadow-lg shadow-accent/20 mt-6 hover:scale-[1.02] transition-transform"
                 onClick={handleSubmit}
                 disabled={!traversalComplete}
@@ -793,8 +793,8 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
             <div className="flex flex-col items-center text-center mb-16">
               <div className={cn(
                 "w-20 h-20 rounded-3xl flex items-center justify-center mb-6 shadow-2xl",
-                isTraversalCorrect 
-                  ? "bg-green-500 shadow-green-500/20 animate-bounce duration-[2000ms]" 
+                isTraversalCorrect
+                  ? "bg-green-500 shadow-green-500/20 animate-bounce duration-[2000ms]"
                   : "bg-orange-500 shadow-orange-500/20"
               )}>
                 {isTraversalCorrect ? (
@@ -804,8 +804,8 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
                 )}
               </div>
               <h2 className="text-4xl font-black text-white mb-2">
-                {isTraversalCorrect 
-                  ? "DFS Algorithm Correctly Implemented!" 
+                {isTraversalCorrect
+                  ? "DFS Algorithm Correctly Implemented!"
                   : "DFS Traversal Completed"}
               </h2>
               <p className="text-textSecondary text-lg max-w-xl">
@@ -862,7 +862,7 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
                     <div className="mt-6 p-4 bg-orange-500/10 rounded-xl border border-orange-500/20">
                       <h4 className="text-xs font-bold text-orange-400 mb-2 uppercase">Note</h4>
                       <p className="text-xs text-orange-300/80">
-                        Your traversal is valid if you followed DFS correctly. 
+                        Your traversal is valid if you followed DFS correctly.
                         Multiple valid orders exist depending on the order you explored neighbors.
                       </p>
                     </div>
@@ -957,7 +957,7 @@ export default function DFSGraphTraversal({ params }: { params: { id: string; co
                   className="flex-1 md:flex-none"
                   onClick={() => window.location.reload()}
                 >
-                  Clear & Try Again
+                  Try Again
                 </Button>
                 <Button
                   variant="outline"
