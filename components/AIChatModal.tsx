@@ -329,12 +329,75 @@ export function AIChatModal({ isOpen, onClose, unitTitle, unitContent }: AIChatM
     setTimeout(() => handleSendMessage(), 100);
   };
 
-  const requestSummary = () => {
-    if (isLoading) return;
-    setInput("Can you provide a summary of our learning session?");
-    setShowSummaryPanel(true);
-    setTimeout(() => handleSendMessage(), 100);
-  };
+  const requestSummary = async () => {
+  if (isLoading) return;
+  setIsLoading(true);
+  setShowSummaryPanel(true);
+  
+  try {
+    // Request session stats which includes summaries
+    const response = await fetch(`${BACKEND_URL}/session/${sessionId}/stats`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to get session stats');
+    }
+    
+    const data = await response.json();
+    console.log('📊 Session stats:', data);
+    
+    // Build a comprehensive summary
+    let summaryText = ` Learning Session Summary\n\n`;
+    summaryText += `Overall Progress: ${Math.round((data.stats?.mean_mastery || 0) * 100)}% mastery\n`;
+    summaryText += ` Total Interactions: ${data.total_interactions || 0}\n`;
+    summaryText += `Concepts Learned: ${data.total_concepts || 0}\n\n`;
+    
+    if (data.user_best_style) {
+      summaryText += `Your Best Learning Style: ${data.user_best_style}\n\n`;
+    }
+    
+    if (data.concept_summaries && data.concept_summaries.length > 0) {
+      summaryText += `Top Concepts:\n`;
+      data.concept_summaries.slice(0, 3).forEach((concept: any, idx: number) => {
+        summaryText += `${idx + 1}. ${concept.concept} (${Math.round(concept.mastery * 100)}% mastery)\n`;
+        if (concept.best_style) {
+          summaryText += `   Best style: ${concept.best_style}\n`;
+        }
+      });
+    }
+    
+    setSessionSummary(summaryText);
+    
+    // Also update KSV if available
+    if (data.stats?.mean_mastery !== undefined) {
+      const masteryPercent = Math.round(data.stats.mean_mastery * 100);
+      setKsvScore({
+        overall: masteryPercent,
+        knowledge: masteryPercent,
+        skills: masteryPercent,
+        values: masteryPercent
+      });
+      setShowKSVPanel(true);
+    }
+    
+    // Show as a message too
+    setMessages(prev => [...prev, {
+      role: 'assistant',
+      content: summaryText,
+      timestamp: new Date()
+    }]);
+    
+  } catch (error) {
+    console.error('Summary error:', error);
+    
+    // Fallback to chat endpoint
+    setInput("Can you provide a summary of our learning session with my progress and best learning style?");
+    setTimeout(() => {
+      handleSendMessage();
+    }, 100);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleFileUpload = async (file: File) => {
     setIsUploading(true);

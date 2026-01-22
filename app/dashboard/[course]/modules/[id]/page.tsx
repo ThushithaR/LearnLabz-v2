@@ -1097,29 +1097,44 @@ const handleAIChat = async () => {
 </Button>
     
     {/* Explorer Button */}
-    <ExplorerButton />
-    
-    <Button onClick={() => handleTabChange('quiz')}>
-      Take Lesson Quiz
-    </Button>
-    
-    {selectedLessonIdx < moduleData.lessons.length - 1 ? (
-      <Button onClick={handleNext}>
-        Next Lesson →
-      </Button>
-    ) : (
-      <Button 
-        onClick={() => {
-          setCompletedLessons(prev => {
-            const updated = [...prev];
-            updated[selectedLessonIdx] = true;
-            return updated;
-          });
-        }}
-      >
-        Complete Module
-      </Button>
-    )}
+   {/* Explorer Button */}
+<ExplorerButton />
+
+<Button onClick={() => handleTabChange('quiz')}>
+  Take Lesson Quiz
+</Button>
+
+{selectedLessonIdx < moduleData.lessons.length - 1 ? (
+  <Button
+    onClick={() => {
+      // Move to next lesson
+      setSelectedLessonIdx(prev => prev + 1);
+
+      // Mark current lesson as completed
+      setCompletedLessons(prev => {
+        const updated = [...prev];
+        updated[selectedLessonIdx] = true;
+        return updated;
+      });
+    }}
+  >
+    Next Lesson →
+  </Button>
+) : (
+  <Button
+    onClick={() => {
+      // Mark current lesson as completed
+      setCompletedLessons(prev => {
+        const updated = [...prev];
+        updated[selectedLessonIdx] = true;
+        return updated;
+      });
+    }}
+  >
+    Complete Module
+  </Button>
+)}
+
   </div>
 </div>
 
